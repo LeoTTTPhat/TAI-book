@@ -463,6 +463,68 @@ In distributed architectures, architects must ensure \textbf{Referential Integri
 
 Ultimately, the architect must navigate the \textbf{Pareto Frontier of Utility}: finding the optimal balance where Information Loss (IL) is minimized while Privacy Risk (PR) is kept below the acceptable threshold for the AI use case.
 
+% ------------------------------------------------------------------
+\subsubsection{The Privacy-Utility Trade-off Report Template}
+\label{subsubsec:pareto_template}
+% ------------------------------------------------------------------
+
+Navigating the Pareto Frontier is not merely a technical optimization---it is a \textbf{communication exercise}. Business stakeholders and regulators require a structured, reproducible format for understanding the privacy-utility trade-off inherent in every parameter selection. The following \textbf{Privacy-Utility Trade-off Report} satisfies both audiences, meeting Decree 356's data-release documentation requirement.
+
+\begin{table}[ht]
+\centering
+\caption{Privacy-Utility Trade-off Report Template: a standardized format for presenting mechanism parameter selections to business stakeholders and regulators under Decree 356 and the EU AI Act.}
+\label{tab:pareto_report}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{3.8cm} p{7.5cm}}
+\toprule
+\textbf{Report Field} & \textbf{Content / Architect's Entry} \\
+\midrule
+Dataset Description & \textit{[Name; size $N$; sensitivity class A/B/C/D; domain]} \\
+Privacy Mechanism & \textit{[k-Anonymity / $\ell$-Diversity / DP-SGD / Synthetic / LDP]} \\
+Privacy Parameter(s) & \textit{[e.g., $k=10$; $\varepsilon=1.0$, $\delta=10^{-5}$]} \\
+Utility Metric & \textit{[e.g., Model Accuracy, F1-score, Mean Absolute Error]} \\
+Baseline Utility (no privacy) & \textit{[e.g., Accuracy = 94.2\%]} \\
+Privacy-Adjusted Utility & \textit{[e.g., Accuracy = 89.7\% at $\varepsilon=1.0$]} \\
+Utility Loss & \textit{[e.g., $\Delta = -4.5\%$; within $\pm5\%$ acceptable band]} \\
+Regulatory Alignment & \textit{[Decree 356 Art.\ X; EU AI Act Art.\ Y; NIST RMF control Z]} \\
+MIA-S Audit Score & \textit{[AUC = 0.54; below 0.60 threshold --- PASS]} \\
+Approved By & \textit{[Data Protection Officer + date]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Pair this report with a \textbf{Privacy-Utility Curve} so decision-makers can select the operating point that satisfies both the technical requirement and the business constraint.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=10cm, height=5.5cm,
+    xlabel={Privacy Budget $\varepsilon$},
+    ylabel={Model Accuracy (\%)},
+    xmin=0.1, xmax=10,
+    ymin=70, ymax=97,
+    xtick={0.1,0.5,1,2,4,8,10},
+    xticklabels={0.1,0.5,1.0,2.0,4.0,8.0,10},
+    grid=major, grid style={dashed, gray!30},
+    legend pos=south east, font=\small,
+]
+\addplot[thick, blue!70!black, mark=*] coordinates {
+    (0.1,72)(0.5,80)(1.0,85)(2.0,89)(4.0,92)(8.0,94)(10,95)};
+\addlegendentry{DP-SGD Accuracy}
+\addplot[thick, red!60!black, dashed] coordinates {(0.1,94.2)(10,94.2)};
+\addlegendentry{Baseline (no DP)}
+\addplot[only marks, mark=triangle*, mark size=4pt, orange!90!black]
+    coordinates {(1.0,85)};
+\addlegendentry{Decree 356 Operating Point ($\varepsilon{=}1.0$)}
+\addplot[thick, green!55!black, dotted] coordinates {(0.1,89.5)(10,89.5)};
+\addlegendentry{Min.\ acceptable utility threshold}
+\end{axis}
+\end{tikzpicture}
+\caption{Privacy-Utility Curve for a diagnostic classifier: Accuracy vs.\ $\varepsilon$. The Decree 356 operating point ($\varepsilon=1.0$) delivers 85\% accuracy, above the minimum threshold. The full Trade-off Report (Table~\ref{tab:pareto_report}) accompanies this visualization for regulatory submission.}
+\label{fig:pareto_curve}
+\end{figure}
+
 \section{The Vietnam Edge: Decree 356 (2026) Standards}
 \label{sec:vietnam_decree_356}
 
@@ -845,6 +907,42 @@ provenance and the full evaluation
 suite results as part of their compliance documentation.
 
 % ------------------------------------------------------------------
+% ------------------------------------------------------------------
+\subsection{The Synthetic Verification Gateway}
+\label{subsec:synth-verification-gateway}
+% ------------------------------------------------------------------
+
+Even a DP-trained generative model should not be released without a final automated audit. The \textbf{Synthetic Verification Gateway} is a middleware architectural pattern that intercepts every synthetic dataset release request, executes an automated MIA audit, and either issues an \textbf{Audit Certificate} (if the MIA-S AUC is below threshold) or \textbf{blocks the release} with a remediation report.
+
+The threshold is $\text{AUC}_{\text{MIA}} < 0.60$ (Sovereign AI Scorecard, Chapter~\ref{chap:attm}): a score at or above this level indicates membership leakage distinguishable from chance at a practically significant level.
+
+\begin{lstlisting}[style=pythonstyle,
+  caption={Synthetic Verification Gateway: automated MIA-S audit middleware. The certificate hash provides an immutable, verifiable link between the published dataset and its privacy audit---satisfying Decree 356 documentation requirements.},
+  label={lst:synth-gateway}]
+# Synthetic Verification Gateway
+# Run before any synthetic dataset release.
+from privacymeter import MembershipInferenceAudit
+import hashlib, json
+
+AUDIT_THRESHOLD = 0.60  # Sovereign AI Scorecard threshold
+
+def synthetic_verification_gateway(real_train, real_holdout, synthetic):
+    auditor = MembershipInferenceAudit()
+    auc = auditor.run(real_train=real_train,
+                      real_holdout=real_holdout,
+                      synthetic=synthetic)
+    if auc >= AUDIT_THRESHOLD:
+        raise ReleaseBlockedError(
+            f"MIA-S AUC={auc:.3f} exceeds threshold {AUDIT_THRESHOLD}. "
+            "Apply DP-SGD to the generative model and re-generate."
+        )
+    cert = {"status": "APPROVED", "mia_auc": round(auc, 4),
+            "threshold": AUDIT_THRESHOLD}
+    cert["certificate_id"] = hashlib.sha256(
+        json.dumps(cert).encode()).hexdigest()
+    return cert
+\end{lstlisting}
+
 \subsection{Conclusion: Synthetic Data as a Complement, Not a
             Substitute}
 \label{subsec:synth-conclusion}
@@ -878,6 +976,74 @@ underpins both DP-trained generative models and the broader class of
 privacy-preserving mechanisms: \textbf{Differential Privacy}, the
 gold standard that transforms these empirical defences into provable
 guarantees.
+
+% ------------------------------------------------------------------
+\section{Privacy Mechanism Selection: A Diagnostic Decision Tree}
+\label{sec:privacy_mechanism_selection}
+% ------------------------------------------------------------------
+
+Having established the technical characteristics of k-Anonymity, $\ell$-Diversity, $t$-Closeness, Differential Privacy, and Synthetic Data, the practitioner faces the most common real-world challenge: \emph{which primitive do I use for this specific deployment?} The following \textbf{Privacy Mechanism Selection Decision Tree} provides a diagnostic flowchart based on six discriminating questions.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 2.6cm,
+    font=\small,
+    decision/.style={draw, diamond, aspect=3.2, inner sep=3pt, text centered,
+                     font=\bfseries\scriptsize, fill=yellow!8, draw=orange!70!black},
+    mech/.style={draw, rounded corners, inner sep=6pt, text centered,
+                 font=\bfseries\scriptsize, minimum width=3.6cm},
+    kanon/.style={mech, fill=blue!10,   draw=blue!70!black},
+    dpbox/.style={mech, fill=green!10,  draw=green!60!black},
+    ldpbox/.style={mech, fill=orange!10, draw=orange!70!black},
+    synth/.style={mech, fill=purple!10, draw=purple!70!black},
+    tclose/.style={mech, fill=red!10,   draw=red!60!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (d1) [decision, text width=4.5cm]
+    {Raw data accessible\\to the consumer?};
+\node (d2) [decision, below=1.4cm of d1, text width=4.5cm]
+    {$N < 5{,}000$ or tabular\\with few attributes?};
+\node (d3) [decision, below=1.4cm of d2, text width=4.5cm]
+    {Mobile-first / server\\cannot be trusted?};
+\node (d4) [decision, below=1.4cm of d3, text width=4.5cm]
+    {Genomic / high-dim with\\rich auxiliary knowledge?};
+\node (d5) [decision, below=1.4cm of d4, text width=4.5cm]
+    {Repeated or sequential\\query releases?};
+
+\node (synth_n) [synth,  right=2.8cm of d1, text width=3.8cm]
+    {\textbf{Synthetic Data}\\DP-trained GAN/VAE\\(Sec.~\ref{sec:synthetic-data})};
+\node (kanon_n) [kanon,  right=2.8cm of d2, text width=3.8cm]
+    {\textbf{$k$-Anonymity}\\+ $\ell$-Diversity\\(Sec.~\ref{sec:k_l_t_hierarchy})};
+\node (ldp_n)   [ldpbox, right=2.8cm of d3, text width=3.8cm]
+    {\textbf{Local DP (LDP)}\\Randomized Response\\on-device noise (Ch.~5)};
+\node (tclose_n)[tclose, right=2.8cm of d4, text width=3.8cm]
+    {\textbf{$t$-Closeness + DP}\\Distribution protection\\+ formal guarantee};
+\node (dp_n)    [dpbox,  right=2.8cm of d5, text width=3.8cm]
+    {\textbf{DP-SGD (Central)}\\R\'{e}nyi accounting\\Opacus / TF Privacy (Ch.~5)};
+\node (default_n)[dpbox, below=1.4cm of d5, text width=3.8cm]
+    {\textbf{DP-SGD (Default)}\\$\varepsilon \leq 1.0$; Gaussian mech.\\Conservative baseline};
+
+\draw [arrow] (d1.east)  -- node[above, font=\scriptsize] {No}  (synth_n.west);
+\draw [arrow] (d1.south) -- node[right, font=\scriptsize] {Yes} (d2.north);
+\draw [arrow] (d2.east)  -- node[above, font=\scriptsize] {Yes} (kanon_n.west);
+\draw [arrow] (d2.south) -- node[right, font=\scriptsize] {No}  (d3.north);
+\draw [arrow] (d3.east)  -- node[above, font=\scriptsize] {Yes} (ldp_n.west);
+\draw [arrow] (d3.south) -- node[right, font=\scriptsize] {No}  (d4.north);
+\draw [arrow] (d4.east)  -- node[above, font=\scriptsize] {Yes} (tclose_n.west);
+\draw [arrow] (d4.south) -- node[right, font=\scriptsize] {No}  (d5.north);
+\draw [arrow] (d5.east)  -- node[above, font=\scriptsize] {Yes} (dp_n.west);
+\draw [arrow] (d5.south) -- node[right, font=\scriptsize] {No}  (default_n.north);
+
+\end{tikzpicture}
+\caption{Privacy Mechanism Selection Decision Tree: six diagnostic questions guide the architect to the appropriate privacy primitive for their specific deployment scenario. Each terminal references the implementing section or chapter.}
+\label{fig:privacy_selection_tree}
+\end{figure}
+
+\begin{svgraybox}
+\textbf{Vietnam Decree 356 Guidance (2026):} For ``Sensitive Personal Data'' (health, biometrics, financial behavior), Decree 356 recommends $\varepsilon \leq 1.0$ with Gaussian mechanism or a DP-trained generative model. $k$-Anonymity with $k \geq 10$ is accepted for ``General Personal Data.'' Local DP is explicitly endorsed for mobile telemetry collection from consumer devices under Article 18.
+\end{svgraybox}
 
 % ------------------------------------------------------------------
 \section{From the Trenches: Practitioner's Challenge}

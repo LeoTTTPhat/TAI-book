@@ -226,8 +226,7 @@ implementation of the Constitutional Policy Engine with the
 six Decree~13/356 predicates of
 Table~\ref{tab:regulatory-predicates}.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Constitutional Policy Engine: translates Vietnamese
            regulatory articles into enforceable runtime constraints
            for autonomous AI agents.
@@ -449,7 +448,7 @@ The applicant's employment history is stored on a Singapore-based
 HR platform.
 The agent plans the following tool call:
 
-\begin{lstlisting}[style=pythonstyle]
+\begin{lstlisting}[language=Python, style=pythonstyle]
 action = AgentAction(
     action_type="api_call",
     tool_name="hr_platform_sg",
@@ -634,8 +633,7 @@ agent-specific fields:
 The following JSON-LD fragment illustrates the DID Document
 for a Vietnamese fintech credit-scoring agent:
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={W3C DID Document for an autonomous AI agent,
            extended with model hash, constitution hash, and
            ZK-audit endpoint.},
@@ -828,8 +826,7 @@ reference implementation of the Agent Credential Manager,
 which handles DID Document generation, DID-ZK binding proof
 requests, and behavioural fingerprint monitoring.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Agent Credential Manager: DID Document lifecycle,
            ZK-bound action proofs, and behavioural fingerprint
            monitoring for autonomous AI agents.},

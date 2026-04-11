@@ -56,10 +56,91 @@ The goal of a Membership Inference Attack is to answer the question: \textit{``W
 \label{fig:ch6_mia}
 \end{figure}
 
+% ------------------------------------------------------------------
+\subsection{Code Lab: Simulating a Membership Inference Attack}
+\label{subsec:mia_code_lab}
+% ------------------------------------------------------------------
+
+Understanding the MIA threat theoretically is necessary but not sufficient. The following code lab---runnable on any dataset---makes the attack concrete using a simplified shadow-model approach. The AUC output is the same metric used by the Synthetic Verification Gateway of Chapter~\ref{chap:anonymization}.
+
+\begin{lstlisting}[style=pythonstyle,
+  caption={Simplified Membership Inference Attack simulation. AUC $>0.60$ indicates membership leakage above the Sovereign AI Scorecard threshold; apply DP-SGD with $\varepsilon \leq 2.0$ to reduce it below 0.55 in most practical cases.},
+  label={lst:mia_simulation}]
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.base import clone
+from sklearn.metrics import roc_auc_score
+
+def simulate_mia(target_model, X_train, y_train,
+                 X_test, y_test, X_public, n_shadows=10):
+    """Shadow-model MIA. Returns AUC: >0.60 = VULNERABLE."""
+    attack_X, attack_y = [], []
+    n = min(len(X_train), len(X_public) // 2)
+
+    for _ in range(n_shadows):
+        idx = np.random.choice(len(X_public), n * 2, replace=False)
+        shadow_in,  shadow_out = X_public[idx[:n]], X_public[idx[n:]]
+        shadow_mdl = clone(target_model).fit(shadow_in, ...)
+
+        attack_X += list(shadow_mdl.predict_proba(shadow_in))
+        attack_y += [1] * n       # member label
+        attack_X += list(shadow_mdl.predict_proba(shadow_out))
+        attack_y += [0] * n       # non-member label
+
+    attack_clf = RandomForestClassifier(n_estimators=100)
+    attack_clf.fit(attack_X, attack_y)
+
+    all_conf  = np.vstack([target_model.predict_proba(X_train),
+                            target_model.predict_proba(X_test)])
+    all_truth = [1] * len(X_train) + [0] * len(X_test)
+    auc = roc_auc_score(all_truth,
+                        attack_clf.predict_proba(all_conf)[:, 1])
+    print(f"MIA AUC: {auc:.3f}  "
+          f"[{'VULNERABLE' if auc > 0.60 else 'SAFE'}]")
+    return auc
+\end{lstlisting}
+
+\begin{svgraybox}
+\textbf{Interpreting the Output:} AUC = 0.50 is random chance---the attacker gains nothing. AUC = 0.60 (Scorecard threshold) means membership is identified 60\% of the time. AUC $\geq$ 0.85 (common in undefended deep models) means the model has effectively memorized its training set. Apply DP-SGD (Chapter~\ref{chap:differential_privacy}) with $\varepsilon \leq 2.0$ to reduce AUC below 0.55 in most practical deployments.
+\end{svgraybox}
+
 \section{Model Inversion and Gradient Leakage}
 \label{sec:model_inversion}
 
 Model Inversion aims to reconstruct sensitive input data, such as faces or genomic sequences, from the model's outputs or its gradients. In Federated Learning environments, "deep leakage" from gradients \cite{zhu2019} can reveal recognizable private images if the updates are not correctly obscured with noise (DP-SGD) or multi-party computation.
+
+% ------------------------------------------------------------------
+\section{Metadata and Side-Channel Privacy}
+\label{sec:metadata_privacy}
+% ------------------------------------------------------------------
+
+The attacks above target the \textbf{content} of model outputs or training data. In agentic and distributed AI systems, a parallel attack surface exists in the \textbf{metadata} of system communication: even when the payload is DP-protected, the \emph{frequency}, \emph{timing}, and \emph{volume} of API calls can leak sensitive information about a subject's state.
+
+\textbf{Concrete examples:}
+\begin{itemize}
+  \item A healthcare triage agent that queries a diagnostic model with higher frequency when a patient deteriorates---an observer monitoring call rates can infer clinical state without reading any payload.
+  \item A TEE-based inference server (Chapter~\ref{chap:tee}) whose latency is 12 ms for benign inputs and 18 ms for inputs triggering a sensitive model branch---a timing oracle revealing which branch the input fell into.
+  \item A Federated Learning client that uploads a large gradient update only when its local dataset has changed significantly---packet-size monitoring reveals when user behavior changed.
+\end{itemize}
+
+\subsection{Traffic Padding: Masking Call Frequency}
+\label{subsec:traffic_padding}
+
+\textbf{Traffic Padding} injects \textbf{dummy API calls} at a constant rate $r_\mathrm{pad}$ exceeding the maximum expected true call rate under all conditions. Real calls are indistinguishable from padding by any external observer. The cost is proportional bandwidth overhead of $r_\mathrm{pad} / r_\mathrm{true} - 1$.
+
+\subsection{Constant-Time Execution: Defeating Timing Oracles}
+\label{subsec:constant_time}
+
+\textbf{Constant-Time Execution} ensures that TEE-based inference always returns at the same wall-clock deadline, regardless of which internal branch executes. Implementation strategies include:
+\begin{enumerate}
+  \item \textbf{Response Buffering:} Hold the completed response until a fixed deadline (e.g., 20 ms) before returning it.
+  \item \textbf{Dummy Computation:} Pad short execution paths with null operations to match the longest expected path.
+  \item \textbf{ORAM (Oblivious RAM):} For memory-access-pattern privacy within enclaves, ORAM \cite{goldreich1996} provides a cryptographic guarantee that the sequence of memory accesses is independent of the input, defeating cache-timing attacks.
+\end{enumerate}
+
+\begin{svgraybox}
+\textbf{Design Heuristic:} Treat every externally observable system property---latency, packet size, call frequency, error rate---as a potential leakage channel in an agentic AI system. The adversary does not need to break the encryption; they need only to correlate observable metadata with a known signal to reconstruct sensitive state.
+\end{svgraybox}
 
 \section{Data Poisoning: Corrupting the Source}
 \label{sec:data_poisoning}
@@ -69,6 +150,42 @@ Data Poisoning occurs during the training phase. An attacker injects malicious s
 \begin{svgraybox}
 \textbf{Research Insight (ACOMP 2020) \cite{trantruong2020}:} Early research by Tran-Truong et al. on poisoning attacks found that even a poisoning rate of less than 5 percent can significantly degrade model accuracy or introduce specific "backdoors." For example, a poisoned fraud model could be trained to ignore all transactions from a specific attacker's account while appearing perfectly normal for all other queries.
 \end{svgraybox}
+
+% ------------------------------------------------------------------
+\section{The Unlearning Vulnerability: When Forgetting Reveals}
+\label{sec:unlearning_vulnerability}
+% ------------------------------------------------------------------
+
+The Right to be Forgotten---enshrined in GDPR Article 17 and Vietnam's Decree 13/2023---requires removing a user's data not just from the database but from the model weights. Chapter~\ref{chap:machine_unlearning} provides the full Machine Unlearning toolkit. Here we identify a critical attack surface created by the \emph{process} of unlearning itself: the \textbf{Unlearning Vulnerability}.
+
+\subsection{The Model-Comparison Attack}
+\label{subsec:model_comparison}
+
+Suppose an adversary has access to two consecutive model checkpoints: $\theta_{\text{v1}}$ (before unlearning) and $\theta_{\text{v2}}$ (after unlearning)---both potentially available through a public inference API or a versioned model registry. If the adversary knows that exactly one record was deleted between v1 and v2, they can compare the two models to identify the deleted record by examining the gradient difference:
+
+\begin{equation}
+\Delta\theta = \theta_{\text{v2}} - \theta_{\text{v1}}
+\label{eq:unlearning_delta}
+\end{equation}
+
+$\Delta\theta$ concentrates around the parameter dimensions most influenced by the deleted record. The adversary identifies the deleted record $r^*$ from a candidate dataset $D_\mathrm{cand}$ as:
+
+\begin{equation}
+r^* = \arg\max_{r \in D_\mathrm{cand}} \; \bigl\langle \nabla_\theta \mathcal{L}(\theta_{\text{v1}}, r),\; \Delta\theta \bigr\rangle
+\label{eq:unlearning_attack}
+\end{equation}
+
+This attack is particularly effective against \textbf{Approximate Unlearning} (influence functions, gradient ascent), where $\Delta\theta$ is precisely proportional to the target record's gradient---essentially surfacing the deleted record's training contribution.
+
+\subsection{Architectural Countermeasures}
+\label{subsec:unlearning_countermeasures}
+
+\begin{description}
+  \item[Batch Unlearning:] Accumulate deletion requests and execute unlearning in batches of $B \geq 10$ records simultaneously, making $\Delta\theta$ a superposition of multiple records' gradients and preventing individual identification.
+  \item[DP-Unlearning:] Apply calibrated Gaussian noise to $\Delta\theta$ before committing the new weights, providing a formal $(\varepsilon_u, \delta_u)$-DP guarantee on the unlearning operation itself.
+  \item[Version Access Control:] Restrict inference API access to the current model version only. Revoke old checkpoint access immediately upon unlearning; never expose a versioned API enabling side-by-side comparison.
+  \item[Randomized Confirmation Delay:] Add a uniformly random delay $d \sim \mathcal{U}[d_{\min}, d_{\max}]$ between receiving a deletion request and executing unlearning, preventing the adversary from precisely pinpointing the version boundary.
+\end{description}
 
 % ------------------------------------------------------------------
 \section{Full-Stack Blueprint: Secure Medical Research Data Pipeline}

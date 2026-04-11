@@ -78,6 +78,45 @@ Standard Stochastic Gradient Descent (SGD) is vulnerable; an individual record's
 
 In deep learning, we query the data every single step. Privacy loss \textit{accumulates}. \textbf{Composition} is the study of how these small "leaks" add up over time. Modern architects use \textbf{Rényi Differential Privacy (RDP)} or \textbf{Gaussian DP (GDP)} to track this budget much more accurately than simple addition, enabling thousands of training steps while keeping $\epsilon$ under control.
 
+% ------------------------------------------------------------------
+\section{Local Differential Privacy: When the Server Cannot Be Trusted}
+\label{sec:ldp}
+% ------------------------------------------------------------------
+
+The DP-SGD framework of Section~\ref{sec:dp_sgd} operates under a \textbf{central trust model}: the aggregation server is assumed honest. In \textbf{Southeast Asian mobile-first economies}, many deployments involve consumer-device data collection through third-party analytics servers that may be untrustworthy, foreign-operated, or subject to a different jurisdiction's lawful-access regime.
+
+\textbf{Local Differential Privacy (LDP)} shifts noise injection from the server to the \textbf{device itself}. A user's data is perturbed \emph{before} it leaves their device. The server receives only the noisy response and can never reconstruct the original input---even with unlimited computational resources.
+
+\subsection{The Randomized Response Mechanism}
+\label{subsec:randomized_response}
+
+The canonical LDP primitive is \textbf{Randomized Response} \cite{warner1965}. For a binary attribute $b \in \{0, 1\}$, the $\varepsilon$-LDP mechanism outputs:
+
+\begin{equation}
+\mathcal{M}_\varepsilon(b) =
+\begin{cases}
+b       & \text{with probability } p = \dfrac{e^\varepsilon}{1 + e^\varepsilon} \\[6pt]
+1 - b   & \text{with probability } 1 - p = \dfrac{1}{1 + e^\varepsilon}
+\end{cases}
+\label{eq:randomized_response}
+\end{equation}
+
+The server aggregates $n$ noisy reports and de-biases to estimate the true proportion. For high-cardinality categorical features, \textbf{OLH (Optimized Local Hashing)} and Google's \textbf{RAPPOR} protocol extend Randomized Response to practical feature spaces.
+
+\subsection{The Utility Cost and the Trust Trade-off}
+\label{subsec:ldp_utility}
+
+The fundamental trade-off between LDP and central DP is a statistical efficiency gap of $O(\sqrt{n})$: achieving the same estimation accuracy under LDP requires approximately $n$ times more data than under central DP for the same $\varepsilon$.
+
+\begin{description}
+  \item[Central DP (server trusted):] Noise $\propto 1/n$; high utility at small $n$; server sees raw individual reports before noise.
+  \item[LDP (server untrusted):] Noise $\propto 1/\sqrt{n}$; requires large $n$ (millions of users) for high utility; server only ever sees noisy reports.
+\end{description}
+
+\begin{svgraybox}
+\textbf{Mobile Deployment Pattern (Vietnam, 2026):} For a consumer app collecting location-sensitive behavioral telemetry, the recommended architecture is \textbf{Double-DP}: (1) apply $\varepsilon_\mathrm{local} = 1.0$ LDP on-device using OLH before any network transmission; (2) apply an additional $\varepsilon_\mathrm{central} = 0.5$ DP-SGD layer at model training. This satisfies Decree 356's on-device privacy requirement while maintaining acceptable model utility at the scale of Vietnam's 70M+ mobile user base.
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_dp}
 
