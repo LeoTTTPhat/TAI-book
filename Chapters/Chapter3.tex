@@ -526,6 +526,19 @@ Designing for oversight requires addressing the ``Multi-Stakes Pattern,'' where 
     \item \textbf{Cognitive Ergonomics:} Reducing ``AI Noise'' by filtering agent logs into a human-readable \textbf{Trust Dashboard} that highlights only the most critical decision-branches for review.
 \end{itemize}
 
+% ==================================================================
+\subsection{Human-Centric Consent: A Foundational Design Imperative}
+\label{sec:consent_foundations}
+% ==================================================================
+
+The oversight architecture above---Verifiable Audit Trails, Cognitive Ergonomics, Trust Dashboards---addresses the design requirements for \emph{expert operators}: clinicians, financial supervisors, civic administrators who interact with the AI system in a professional capacity. However, the Alignment Pillar encompasses a second, equally important human stakeholder: the \textbf{end-user}, whose personal data is the system's raw material and whose rights are the ultimate beneficiary of every cryptographic guarantee in this book.
+
+The \textbf{Consent Gap}---the distance between what is technically happening inside the system and what an end-user can meaningfully understand and agree to---is one of the most under-engineered aspects of trustworthy AI design. When a user is told their medical data is protected by ``$\varepsilon$-Differential Privacy with $\varepsilon=1.0$,'' they receive no actionable understanding of what that guarantee means, no basis for informed consent, and---under GDPR Article 7---no legally valid authorization for the processing. The mathematical rigor of the privacy mechanism is socially irrelevant if it cannot be communicated.
+
+This is not a peripheral UX concern. It is a \textbf{foundational design constraint} with the same architectural weight as the mathematical guarantee itself. A system that is privacy-preserving but communicatively opaque has not achieved alignment with its users---it has hidden its technical properties behind a screen of complexity, creating a new form of power asymmetry between the architect and the citizen. The architect's responsibility extends beyond building the guarantee to building the \emph{legibility} of that guarantee.
+
+The practical tools for closing the Consent Gap---the Expert-to-Consumer Translation Layer, the three-principle framework for agentic consent UX (Contextual Consent, Privacy-Budget Traffic Lights, and Verifiable Unlearning Receipts), and the CEN-CENELEC Consent Comprehension Score benchmark---are detailed in Section~\ref{sec:informed_consent_ux}.
+
 % ------------------------------------------------------------------
 %  Colour palette for UI state indicators
 % ------------------------------------------------------------------
@@ -1447,6 +1460,92 @@ In this architecture, a citizen's service request first passes through a \textbf
 \caption{Full-Stack Blueprint (Part I): A Trustworthy Civic AI governance stack showing how Contextual Integrity gating, Data Minimization, Tamper-Evident Audit Logging, and Human-in-Command controls integrate into a single service router for a smart city.}
 \label{fig:blueprint_civic_ai}
 \end{figure}
+
+% ------------------------------------------------------------------
+\section{Foundational Mapping Matrix: From Part I Philosophy to Parts II--VI Architecture}
+\label{sec:mapping_matrix}
+% ------------------------------------------------------------------
+
+Part I has established high-level philosophies: Contextual Integrity governs which data may cross which social boundary; Human Agency defines the spectrum of human control over autonomous systems; the four Trust Pillars define the strategic objective of every architectural decision that follows. The purpose of this Foundational Mapping Matrix is to make the bridge from philosophy to architecture explicit---showing precisely which technical pattern in Parts II--VI implements which foundational concept from Part I. Readers are encouraged to return to this matrix as they encounter each implementing chapter.
+
+\begin{longtable}{p{3.5cm} p{1.8cm} p{5.5cm} p{1.5cm}}
+\caption{Foundational Mapping Matrix: mapping Part I philosophical concepts to their technical realizations in Parts II--VI.}
+\label{tab:mapping_matrix} \\
+\toprule
+\textbf{Part I Concept} & \textbf{Part I Ch.} & \textbf{Technical Realization} & \textbf{Impl.\ Part/Ch.} \\
+\midrule
+\endfirsthead
+\multicolumn{4}{c}{\textit{(Mapping Matrix continued)}} \\
+\toprule
+\textbf{Part I Concept} & \textbf{Part I Ch.} & \textbf{Technical Realization} & \textbf{Impl.\ Part/Ch.} \\
+\midrule
+\endhead
+\midrule \multicolumn{4}{r}{\textit{Continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+\textbf{CI: Contextual Boundary} --- the limit of appropriate information flow between social contexts &
+Ch.~2 &
+\textit{TEE Microservice Enclave}: hardware boundary isolating model execution from host infrastructure; \textit{Federated Data Silo}: data never crosses the network boundary; \textit{DP Purpose-Limitation Filter}: queries beyond the stated purpose consume budget and trigger alert &
+III/Ch.~7,~9 \\[4pt]
+
+\textbf{CI: Transmission Principle} --- governs HOW information may move within an appropriate context &
+Ch.~2 &
+\textit{DP Noise Calibration}: controls the fidelity of the transmitted signal relative to the raw data; \textit{ZK-ML Output Filter}: proves a property of the result without transmitting the underlying data; \textit{SecAgg Privacy Envelope}: masks individual contributions before transmission &
+II/Ch.~5; VI/Ch.~21; III/Ch.~8 \\[4pt]
+
+\textbf{CI: Contextual Collapse} (``Contextual Bleed'') --- when data crosses into an inappropriate context &
+Ch.~2 &
+\textit{Membership Inference Attack Defense}: prevents querying whether a record participated in training; \textit{Model Inversion Guard}: prevents reconstruction of sensitive inputs from outputs; \textit{Cross-Modal Privacy Filter}: prevents audio/vision fusion from leaking context across modalities &
+II/Ch.~6; V/Ch.~18 \\[4pt]
+
+\textbf{HITL: Human-in-the-Loop} --- active human participation in every decision &
+Ch.~3 &
+\textit{Conformal Prediction Handover Panel}: mathematical trigger for escalation to human review; \textit{Trust Dashboard UX}: operator-facing interface for reviewing and approving decisions; \textit{Informed Consent Gate}: end-user consent checkpoint before sensitive processing &
+III/Ch.~3; V/Ch.~17 \\[4pt]
+
+\textbf{HOTL: Human-on-the-Loop} --- autonomous agent with real-time human monitoring and override &
+Ch.~3 &
+\textit{Agentic Governance Loop}: real-time policy engine monitoring agent actions against constitutional constraints; \textit{Emergency Brake Architecture}: stateful halt requiring explicit human context-mutation to resume &
+VI/Ch.~23 \\[4pt]
+
+\textbf{HiC: Human-in-Command} --- high-level human authority over agent constitution and constraints &
+Ch.~3 &
+\textit{Constitutional AI Policy Engine}: formal encoding of behavioral boundaries; \textit{Formal Verification Invariants}: mathematical proof that the agent cannot violate stated safety properties; \textit{DID-Bound Agent Identity}: cryptographic binding of agent actions to an authorized constitution hash &
+VI/Ch.~22,~23 \\[4pt]
+
+\textbf{Uncertainty Handover} --- triggering mechanism for human intervention on high-ambiguity outputs &
+Ch.~3 &
+\textit{Conformal Prediction Set}: prediction set grows when true ambiguity is high; \textit{Hallucination Scorer}: LLM output confidence score with clinical threshold $\tau$; \textit{ZK-Proof Confidence Attestation}: cryptographically attested output confidence &
+V/Ch.~17; VI/Ch.~21 \\[4pt]
+
+\textbf{Emergency Brake} --- hard halt with mandatory human state-mutation before resumption &
+Ch.~3 &
+\textit{Constitutional Policy Engine misalignment flag}: immediate transaction suspension; \textit{Formal Safety Property violation}: enclave-level halt; \textit{Post-Brake Recovery Protocol}: enforces context mutation before re-engagement &
+VI/Ch.~22,~23 \\[4pt]
+
+\textbf{Security Pillar} --- adversarial resilience across all system layers &
+Ch.~1 &
+\textit{Federated Learning}: training without raw data transfer; \textit{TEEs}: hardware-rooted execution integrity; \textit{Adversarial Hardening}: model-level evasion defense; \textit{SBOM + Provenance}: supply-chain integrity &
+III/Ch.~7,~9; IV/Ch.~11; VII/Ch.~24 \\[4pt]
+
+\textbf{Privacy Pillar} --- mathematical guarantee of data anonymity during use &
+Ch.~1 &
+\textit{k-Anonymity pre-filter}: suppresses quasi-identifiers; \textit{DP-SGD}: noise-calibrated training; \textit{MIA / Model Inversion defense}: post-deployment privacy guarantee; \textit{Machine Unlearning}: technical Right to be Forgotten &
+II/Ch.~4--6; V/Ch.~19 \\[4pt]
+
+\textbf{Verifiability Pillar} --- mathematical certainty of execution without revealing private state &
+Ch.~1 &
+\textit{ZK-ML}: prove model output correctness without revealing weights; \textit{Formal Verification}: mathematical proof of safety invariants; \textit{ATTM Gap Analysis}: quantified Trust Debt score &
+VI/Ch.~21,~22; VII/Ch.~25 \\[4pt]
+
+\textbf{Alignment Pillar} --- behavioral consistency with human intent, ethics, and social norms &
+Ch.~1 &
+\textit{CA-RLHF}: culturally-calibrated reward model; \textit{Fairness Auditing}: demographic bias measurement and mitigation; \textit{Constitutional AI}: policy-engine behavioral boundaries; \textit{Trustworthy MLOps}: continuous alignment monitoring &
+I/Ch.~1; IV/Ch.~13; VI/Ch.~23; VII/Ch.~26 \\[4pt]
+
+\end{longtable}
 
 \section{Conclusion of Part I}
 \label{sec:conclusion_part1}

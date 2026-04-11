@@ -37,6 +37,28 @@ As of \textbf{March 1, 2026}, Vietnam's comprehensive AI Law has gone into effec
   \item[International Alignment:] This framework aligns with the EU AI Act \cite{eu-ai-act} and the latest \textbf{NIST AI RMF (2026)} updates, creating a standardized "Global Passport" for trustworthy systems.
 \end{description}
 
+% ------------------------------------------------------------------
+\subsection{A Strategic Heuristic for Regulatory Conflict}
+\label{subsec:regulatory_conflict_heuristic}
+% ------------------------------------------------------------------
+
+While international alignment is encouraging, multinational AI architects routinely encounter \textbf{regulatory collisions}---situations where two legally binding obligations contradict each other when applied to the same system. Before a deployment goes live, the architect needs a strategic heuristic for classifying and routing these conflicts.
+
+\textbf{The Three-Type Conflict Taxonomy:}
+
+\begin{description}
+  \item[Type A: Right vs.\ Retention.]
+    A data subject right (e.g., GDPR Art.~17 Right to be Forgotten) conflicts with a legal retention mandate (e.g., financial audit obligation under Basel III or Circular 09/2020). \textit{Strategic resolution:} Apply Restricted Processing (GDPR Art.~18) as an intermediate state, and implement architectural separation between the compliance data silo and the active ML pipeline. The Dual-Silo Pattern is detailed in Chapter~\ref{chap:compliance}.
+  \item[Type B: Transparency vs.\ Secrecy.]
+    A regulatory transparency requirement (e.g., EU AI Act Art.~13 explainability) conflicts with a trade-secret or national-security obligation. \textit{Strategic resolution:} Use Zero-Knowledge proofs (Chapter~\ref{chap:zkml}) to prove a property of the model---fairness, accuracy, or safety---without revealing the model weights, satisfying both obligations simultaneously.
+  \item[Type C: Sovereignty vs.\ Portability.]
+    A data localization mandate (e.g., Decree 13 cross-border restriction) conflicts with a portability right (e.g., GDPR Art.~20). \textit{Strategic resolution:} Federated architectures (Chapter~\ref{chap:fl}) that process data locally while enabling portability of the model \emph{output}, not the raw data.
+\end{description}
+
+\begin{svgraybox}
+\textbf{The Architect's First Question on Any Collision:} Before reaching for legal counsel, ask---``Which of my four Trust Pillars can \emph{technically} satisfy both obligations simultaneously?'' Zero-Knowledge proofs resolve most Type B conflicts. Federated Learning resolves many Type C conflicts. Machine Unlearning with Restricted Processing resolves Type A. In most cases, a cryptographic or architectural solution renders the legal collision moot. The full resolution heuristic with worked examples appears in Chapter~\ref{chap:compliance}.
+\end{svgraybox}
+
 \section{Digital Sovereignty and Cultural Context}
 \label{sec:digital_sovereignty}
 
@@ -295,6 +317,68 @@ Community Obligation
 \noalign{\smallskip}\hline\noalign{\smallskip}
 \end{tabular}
 \end{table}
+
+% ==================================================================
+\subsubsection{The Sovereign Alignment Workbook: A Universal Template}
+\label{subsubsec:sovereign_workbook}
+% ==================================================================
+
+Table~\ref{tab:norm-taxonomy} is calibrated for the Vietnamese context. The \textbf{CA-RLHF methodology itself, however, is culturally universal}: any architect building a foundational model for a distinct regional or institutional context can use the same three-layer framework---Norm Taxonomy, Dual Reward Arbiter, Sovereign AI Scorecard---by populating the workbook below with their own cultural dimensions. The following four-step process guides that population.
+
+\begin{description}
+  \item[Step 1: Map to Cultural Axes.]
+    Identify the Hofstede dimensions (PDI, IDV, MAS, UAI, LTO, IVR) or a comparable framework (GLOBE cultural clusters; Trompenaars' seven dimensions) that best characterize the target community. The World Values Survey provides empirical baselines for most ASEAN, African, and Latin American contexts.
+  \item[Step 2: Elicit Linguistic Markers.]
+    Work with a community panel of at least 20 native speakers to identify the specific linguistic patterns---hedging particles, honorific systems, indirect refusal forms, silence conventions---that signal each norm dimension in natural language. These become the evaluation rubric for the Cultural Reward Model $R_\mathrm{cult}$.
+  \item[Step 3: Construct Red-Norm Adversarial Examples.]
+    For each norm dimension, construct at minimum 50 adversarial prompts designed to elicit violations. These ``red-norm'' examples teach the reward model \emph{boundaries}, not just prototypical compliance.
+  \item[Step 4: Version and Audit.]
+    Treat the workbook as a versioned artifact. Cultural norms evolve: a workbook calibrated in 2026 may require revision by 2028 as generational or geopolitical shifts alter linguistic conventions.
+\end{description}
+
+\begin{table}[ht]
+\centering
+\caption{Sovereign Alignment Workbook: universal template for populating a CA-RLHF Norm Taxonomy in any regional or institutional context. Complete one row per identified norm dimension.}
+\label{tab:sovereign_workbook}
+\begin{tabular}{p{2.8cm} p{2.5cm} p{4.0cm} p{2.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Norm Dimension} &
+\textbf{Cultural Axis} &
+\textbf{Linguistic / Behavioural Markers} &
+\textbf{Reward Component} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+
+\textit{[Dimension 1]}
+  & \textit{[Hofstede axis + score range]}
+  & \textit{[Target-language lexical, syntactic, or pragmatic markers]}
+  & $R_\mathrm{cult}$ gate \\[5pt]
+
+\textit{[Dimension 2]}
+  & \textit{[e.g., UAI $\downarrow$]}
+  & \textit{[e.g., ellipsis acceptance; implicit acknowledgement]}
+  & $R_\mathrm{cult}$ gate \\[5pt]
+
+\textit{[Add rows as needed]}
+  & & & \\[5pt]
+
+\textbf{Corpus Version}
+  & \multicolumn{3}{p{8.5cm}}{\textit{[e.g., v1.0 / 2026-Q1 / reviewed by: community panel]}} \\[5pt]
+
+\textbf{Norm Drift Review}
+  & \multicolumn{3}{p{8.5cm}}{\textit{[Annual; triggers: legal reform, geopolitical change, generational shift]}} \\
+
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Regional Adaptation Examples:}
+\begin{description}
+  \item[Indonesia (Javanese context):] Dimensions include \textit{rukun} (social harmony), \textit{sungkan} (respectful restraint), and the \textit{ngoko/krama} register system. Hofstede profile: PDI $\uparrow$, IDV $\downarrow$, UAI $\downarrow$ (Javanese sub-culture).
+  \item[Nigeria (Yoruba business context):] Dimensions include elder deference, collective decision-making (\textit{\`{i}j\'{o}k\`{o}\'{o}}), and indirect negative communication. Profile: PDI $\uparrow$, IDV $\downarrow$, UAI moderate.
+  \item[Japan (institutional context):] Dimensions include \textit{tatemae/honne} (public/private self), \textit{nemawashi} (consensus-building), and seniority-indexed address (\textit{keigo}). Profile: UAI $\uparrow\uparrow$, LTO $\uparrow$, PDI moderate.
+\end{description}
+\end{svgraybox}
 
 \paragraph{Corpus Versioning and Norm Drift.}
 Cultural norms are not static.
@@ -774,6 +858,26 @@ The Role of the Architect has evolved from a "Model Selector" to a "System Guard
   \item[Alignment:] Behavioral consistency with human intent, ethics, and specific social norms.
 \end{description}
 
+% ------------------------------------------------------------------
+\subsection{The Verifiability Paradigm: From ``Trust but Verify'' to ``Verify, then Trust''}
+\label{subsec:verify_then_trust}
+% ------------------------------------------------------------------
+
+Of the four pillars, \textbf{Verifiability} represents the most profound philosophical departure from traditional software engineering. Classical engineering operates on a \textbf{``Trust but Verify''} model: systems are deployed based on design specifications, tests are run to check compliance, and deviations are corrected after the fact. This model was adequate when systems were deterministic and human-auditable at reasonable cost.
+
+Autonomous AI systems break both assumptions. A Large Action Model executing thousands of decisions per second across encrypted channels cannot be audited by sampling; its outputs are neither deterministic nor directly interpretable by a human reviewer in real time. A single undetected misalignment in a credit-scoring model can silently discriminate against thousands of applicants before any test catches it.
+
+The Trustworthy AI Stack of 2026 demands a paradigm inversion: \textbf{``Verify, then Trust.''} Under this model, a system earns the right to operate autonomously only by providing a \emph{prior} mathematical proof---not a posterior audit report---that its execution is correct, its training data was not memorized, and its outputs respect defined fairness and safety constraints. This proof is not a compliance document. It is a cryptographic artefact, generated automatically at inference time, that any designated verifier can check \emph{without} seeing the private model weights or the underlying data.
+
+\begin{svgraybox}
+\textbf{The Paradigm Shift at a Glance:}
+\begin{description}
+  \item[Trust but Verify (Classical):] Deploy $\to$ Test $\to$ Audit $\to$ Correct. Post-hoc accountability; trust is assumed until violated; audit frequency is cost-bounded.
+  \item[Verify, then Trust (2026 Standard):] Prove $\to$ Deploy $\to$ Monitor $\to$ Re-prove on change. Pre-hoc accountability; trust is earned cryptographically at each execution; audit is automatic and zero-marginal-cost.
+\end{description}
+This shift transforms Zero-Knowledge Machine Learning (Chapter~\ref{chap:zkml}) and Formal Verification (Chapter~\ref{chap:formal-verification}) from academic research into architectural requirements for any system seeking market authorization under the EU AI Act or Vietnam's AI Law.
+\end{svgraybox}
+
 \begin{table}[h]
 \caption{The 2026 Trustworthy AI Stack: Core Pillars and Governing Standards}
 \label{tab:trust_stack_2026}
@@ -788,5 +892,67 @@ Layer & 2026 Objective & Core Technology & Regulatory Pivot \\
 \textbf{Alignment} & Behavioral Integrity & Constitutional AI / HITL & NIST AI RMF 2026 \\
 \end{tabular}
 \end{table}
+
+% ------------------------------------------------------------------
+\subsection{Trust Debt: The Strategic Cost of Deferred Security}
+\label{subsec:trust_debt_intro}
+% ------------------------------------------------------------------
+
+Every architectural decision that defers a layer of the Trustworthy AI Stack---deploying without Differential Privacy, skipping a Conformity Assessment, running inference outside a TEE---is not a neutral cost-saving measure. It is an act of \textbf{Trust Debt accumulation}.
+
+\textbf{Trust Debt} is the accumulated architectural liability of an AI system resulting from the gap between the defenses a system \emph{should} have and those it \emph{actually} has. The analogy to technical debt in software engineering is precise, with one critical distinction: whereas technical debt primarily increases future maintenance cost, Trust Debt increases \textbf{incident probability}---and as Section~\ref{sec:economic_imperative} quantifies, the remediation costs triggered by that probability range from $47\times$ to $900\times$ the prevention cost that was deferred.
+
+Trust Debt accrues through two mechanisms and is repaid through two routes:
+
+\begin{description}
+  \item[Omission Debt:] A defense layer was never implemented (e.g., deploying a diagnostic AI without DP-SGD noise calibration).
+  \item[Erosion Debt:] A defense layer was implemented but has degraded (e.g., a DP privacy budget exhausted by accumulated queries without re-calibration; a fairness-audited model that has drifted outside its demographic constraints without detection by a Trustworthy MLOps pipeline).
+  \item[Proactive Repayment:] Implementing the missing layer before an incident occurs. The RAV framework (Section~\ref{sec:economic_imperative}) quantifies the return on this investment.
+  \item[Reactive Repayment:] Remediating the system after an incident. This is the $47\times$--$900\times$ remediation scenario. The debt is repaid, but at catastrophic cost.
+\end{description}
+
+\begin{svgraybox}
+\textbf{Trust Debt Warning for the Reader:} Each chapter that follows introduces one layer of the Trustworthy AI Stack. For each layer, ask: \emph{``What is the Trust Debt of a system that skips this?''} Chapter~\ref{chap:attm} formalizes this question into a quantified \textbf{Trust Debt Score}---a structured gap analysis mapping every missing defense to an explicit financial exposure. Keep this framing active throughout the book: the MLOps and Compliance chapters of Part VII exist precisely because trust is not a one-time deployment decision. It is a continuous operational commitment that accrues or erodes with every release, every query, and every data drift event.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\section{The Economic Imperative: Trust as Return on Investment}
+\label{sec:economic_imperative}
+% ------------------------------------------------------------------
+
+The motivations established above---regulatory necessity, societal harm prevention, and sovereign infrastructure---are compelling but often insufficient in a commercial context. The most powerful argument the Trustworthy AI Architect carries into a CFO meeting is a financial one: \textbf{trust is a return on investment, not a cost center.}
+
+The four financial autopsies detailed in Appendix~\ref{app:rav} reveal a consistent pattern across the 2025 crisis events: the cost ratio between \emph{prevention} and \emph{remediation} ranges from $47\times$ to over $900\times$. For every dollar invested in Differential Privacy, Zero-Knowledge verification, or TEE-protected inference before deployment, a breached organization spends between \$47 and \$900 in regulatory fines, litigation, reputational recovery, and operational disruption.
+
+\subsection{The Risk-Adjusted Value (RAV) Framework}
+\label{subsec:rav_preview}
+
+Appendix~\ref{app:rav} provides the complete \textbf{Risk-Adjusted Value (RAV)} framework for quantifying this return. The preview formula is:
+
+\begin{equation}
+\text{RAV}(m) = L \cdot \bigl(p_{\text{base}} - p_{\text{residual}}(m)\bigr) - C(m)
+\label{eq:rav_preview}
+\end{equation}
+
+\noindent where $L$ is the total loss exposure of an incident class, $p_{\text{base}}$ is the baseline incident probability without the mechanism, $p_{\text{residual}}(m)$ is the residual probability after deploying mechanism $m$, and $C(m)$ is the implementation cost of $m$. A positive RAV means the mechanism generates net financial value. The trust investment pays for itself.
+
+\begin{table}[ht]
+\centering
+\caption{Trust ROI Preview: indicative prevention costs vs.\ remediation cost ratios for the four primary incident classes (full framework in Appendix~\ref{app:rav}).}
+\label{tab:trust_roi}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.5cm} p{3.8cm} p{2.5cm} p{2.0cm}}
+\toprule
+\textbf{Incident Class} & \textbf{Prevention Mechanism} & \textbf{Est.\ Prevention Cost} & \textbf{Remediation Ratio} \\
+\midrule
+PII Breach & Differential Privacy (Ch.~5) & \$50K--\$200K & $47\times$ \\
+Autonomous Agent Fraud & Constitutional AI + ZK-Audit (Ch.~3, 21) & \$80K--\$300K & $180\times$ \\
+Re-identification Attack & k-Anonymity + DP Pipeline (Ch.~4--5) & \$30K--\$100K & $90\times$ \\
+Supply-Chain Poisoning & SBOM + Provenance (Ch.~24) & \$20K--\$80K & $900\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Sovereign AI Scorecard (Table~\ref{tab:trust_stack_2026}) and the Trust Debt Score introduced in Chapter~\ref{chap:attm} are not only governance tools---they are the technical underwriting evidence that enables AI insurance policies and satisfies procurement security requirements. Appendix~\ref{app:rav} provides the full RAV calculator, default probability tables calibrated to the 2025 ASEAN incident record, and a worked example for a Vietnamese fintech deployment.
 
 Trust is no longer a luxury feature; it is the substrate of our future digital civilization. In the following chapters, we build this stack from the ground up, starting with the mapping of social norms through \textbf{Contextual Integrity}.
