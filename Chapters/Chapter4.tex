@@ -845,8 +845,7 @@ process rather than to a query function.
 The practical workflow for a privacy-preserving synthetic data
 pipeline is shown in Listing~\ref{lst:dp-synthetic}.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Conceptual DP-Synthetic Data Pipeline using CTGAN and
            Opacus-style DP-SGD.},
   label={lst:dp-synthetic}
@@ -916,7 +915,7 @@ Even a DP-trained generative model should not be released without a final automa
 
 The threshold is $\text{AUC}_{\text{MIA}} < 0.60$ (Sovereign AI Scorecard, Chapter~\ref{chap:attm}): a score at or above this level indicates membership leakage distinguishable from chance at a practically significant level.
 
-\begin{lstlisting}[style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Synthetic Verification Gateway: automated MIA-S audit middleware. The certificate hash provides an immutable, verifiable link between the published dataset and its privacy audit---satisfying Decree 356 documentation requirements.},
   label={lst:synth-gateway}]
 # Synthetic Verification Gateway

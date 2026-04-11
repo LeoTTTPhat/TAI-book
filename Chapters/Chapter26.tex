@@ -43,12 +43,7 @@ Beyond accuracy, we must monitor the stability of our trust pillars:
 % ------------------------------------------------------------------
 %  Colour definitions for Trust Debt section
 % ------------------------------------------------------------------
-\definecolor{debtred}   {RGB}{220,  53,  53}
-\definecolor{debtamber} {RGB}{255, 180,   0}
-\definecolor{debtgreen} {RGB}{ 56, 168,  80}
-\definecolor{debtgray}  {RGB}{130, 130, 130}
-\definecolor{scenariobg}{RGB}{245, 247, 250}
-\definecolor{warningbg} {RGB}{255, 243, 220}
+% Colour definitions consolidated in book.tex preamble
 
 % ------------------------------------------------------------------
 %  tcolorbox styles for Trust Debt section
@@ -798,8 +793,7 @@ implementation of the Trust Debt Registry, including the
 Debt Score calculator, the four debt detectors, and the
 registry persistence layer.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Trust Debt Registry: unified tracking and scoring
            for all four Trustworthy AI debt types across the
            full mechanism stack.},

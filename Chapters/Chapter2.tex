@@ -75,7 +75,11 @@ The Gatekeeper acts as a stateless validator that enforces the Norm Matrix at th
 \subsection{Policy-as-Code: The Pythonic PrivacyChecker}
 In a modern 2026 stack, we implement the Gatekeeper as a decorator or wrapper around the agent"s core execution method. Below is a simplified representation of a CI-aware middleware loop:
 
-\begin{verbatim}
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={PrivacyChecker Middleware: a simplified representation of a
+           Contextual Integrity (CI) enforcement loop for autonomous
+           AI agents.},
+  label={lst:privacy-checker}]
 def privacy_checker_middleware(agent_action, session_context):
     # 1. Extract CI Parameters
     params = {
@@ -93,7 +97,7 @@ def privacy_checker_middleware(agent_action, session_context):
         
     # 3. Authorized Disclosure
     return execute_tool_call(agent_action)
-\end{verbatim}
+\end{lstlisting}
 
 By implementing this "Gatekeeper Pattern," the architect ensures that the agent"s intelligence is always bounded by the system"s integrity.
 

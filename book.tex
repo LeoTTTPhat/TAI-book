@@ -26,6 +26,28 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{url}
 \usepackage{xcolor}
+% --- Consolidated Architectural Color Palette ---
+\definecolor{costlow}{RGB}{198, 239, 206}     % Low overhead (Green)
+\definecolor{costmed}{RGB}{255, 235, 156}     % Medium overhead (Amber)
+\definecolor{costhigh}{RGB}{255, 199, 206}    % High overhead (Red)
+\definecolor{costvhigh}{RGB}{220, 100,  80}    % Critical overhead (Dark Red)
+\definecolor{stategreen}{RGB}{  56, 168,  80} % Status: Safe
+\definecolor{stateamber}{RGB}{ 255, 180,   0} % Status: Warning
+\definecolor{statered}{RGB}{   220,  53,  53} % Status: Critical
+\definecolor{stategray}{RGB}{  130, 130, 130} % Status: Suspended/Offline
+\definecolor{debtred}   {RGB}{220,  53,  53}  % Trust Debt: Critical
+\definecolor{debtamber} {RGB}{255, 180,   0}  % Trust Debt: Warning
+\definecolor{debtgreen} {RGB}{ 56, 168,  80}  % Trust Debt: Sustainable
+\definecolor{debtgray}  {RGB}{130, 130, 130}  % Trust Debt: Unknown/External
+\definecolor{losscol}{RGB}{220,  53,  53}     % Economic Case: Potential Loss
+\definecolor{gaincol}{RGB}{ 56, 168,  80}     % Economic Case: Potential Gain
+\definecolor{costcol}{RGB}{255, 180,   0}     % Economic Case: Implementation Cost
+\definecolor{uibg}{RGB}{       245, 247, 250}  % UI/Dashboard Background
+\definecolor{casebg} {RGB}{245, 247, 250}     % Appendix Case Study Background
+\definecolor{scenariobg}{RGB}{245, 247, 250}  % MLOps Scenario Background
+\definecolor{patternbg}{RGB}{  235, 243, 255} % Design Pattern Box Background
+\definecolor{formulabg}{RGB}{235, 243, 255}   % Formula/Math Box Background
+\definecolor{warningbg} {RGB}{255, 243, 220}  % MLOps Warning Background
 \usepackage{mdframed}
 \usepackage{listings}          % code listings (Ch.4 Synthetic Data)
 \usepackage{tikz}              % diagrams (PUF Trilemma, CA-RLHF)
@@ -82,6 +104,7 @@
   numbersep=5pt,
   xleftmargin=15pt
 }
+\renewcommand{\lstlistlistingname}{List of Algorithms}
 
 \newmdenv[
   linecolor=gray,
@@ -114,6 +137,10 @@
 \include{acknowledgement}
 
 \tableofcontents
+
+\listoffigures
+\listoftables
+\lstlistoflistings
 
 \include{acronym}
 

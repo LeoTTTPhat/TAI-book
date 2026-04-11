@@ -63,7 +63,7 @@ The goal of a Membership Inference Attack is to answer the question: \textit{``W
 
 Understanding the MIA threat theoretically is necessary but not sufficient. The following code lab---runnable on any dataset---makes the attack concrete using a simplified shadow-model approach. The AUC output is the same metric used by the Synthetic Verification Gateway of Chapter~\ref{chap:anonymization}.
 
-\begin{lstlisting}[style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Simplified Membership Inference Attack simulation. AUC $>0.60$ indicates membership leakage above the Sovereign AI Scorecard threshold; apply DP-SGD with $\varepsilon \leq 2.0$ to reduce it below 0.55 in most practical cases.},
   label={lst:mia_simulation}]
 import numpy as np

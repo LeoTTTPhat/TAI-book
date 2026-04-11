@@ -241,8 +241,7 @@ four-phase protocol, connecting the Trust Dashboard Controller
 (Listing~\ref{lst:policy-engine}) and the Trust Debt Registry
 (Listing~\ref{lst:trust-debt-registry}).
 
-\begin{lstlisting}[
-  language=Python,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={HiC Transition Controller: orchestrates the four-phase
            Post-Brake Recovery Protocol, enforcing state mutation before
            agent re-engagement.},
@@ -542,12 +541,7 @@ The practical tools for closing the Consent Gap---the Expert-to-Consumer Transla
 % ------------------------------------------------------------------
 %  Colour palette for UI state indicators
 % ------------------------------------------------------------------
-\definecolor{stategreen}{RGB}{  56, 168,  80}
-\definecolor{stateamber}{RGB}{ 255, 180,   0}
-\definecolor{statered}{RGB}{   220,  53,  53}
-\definecolor{stategray}{RGB}{  130, 130, 130}
-\definecolor{uibg}{RGB}{       245, 247, 250}
-\definecolor{patternbg}{RGB}{  235, 243, 255}
+% Colour definitions consolidated in book.tex preamble
 
 % ------------------------------------------------------------------
 %  tcolorbox style for design-pattern callouts
@@ -1148,8 +1142,7 @@ the Conformal Prediction output of
 Section~\ref{sec:uncertainty_handover} to the five design
 patterns above.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Trust Dashboard Controller: maps Conformal Prediction
            set cardinality to Operational States and triggers the
            appropriate design pattern.},

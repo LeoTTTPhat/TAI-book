@@ -67,10 +67,7 @@ To build sustainable trust, architectures must prioritize \textbf{Green-by-Desig
 % ------------------------------------------------------------------
 %  Colour definitions for the trade-off matrix heat-map
 % ------------------------------------------------------------------
-\definecolor{costlow}{RGB}{198, 239, 206}
-\definecolor{costmed}{RGB}{255, 235, 156}
-\definecolor{costhigh}{RGB}{255, 199, 206}
-\definecolor{costvhigh}{RGB}{220, 100,  80}
+% Colour definitions consolidated in book.tex preamble
 
 % ==================================================================
 \section{Measuring the Carbon Cost of Trust: The
@@ -629,8 +626,7 @@ implementation of the Trust-Carbon Budget calculator, enabling
 architects to programmatically evaluate mechanism trade-offs
 during system design.
 
-\begin{lstlisting}[
-  style=pythonstyle,
+\begin{lstlisting}[language=Python, style=pythonstyle,
   caption={Carbon-Aware Trust Mechanism Selector: computes
            deployment-scale CO2 costs for each trust mechanism
            and returns the optimal selection given a minimum
