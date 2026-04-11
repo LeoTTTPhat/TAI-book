@@ -39,6 +39,18 @@
 \usepackage{tcolorbox}         % design-pattern boxes (Ch.3 Trust Dashboards)
 \tcbuselibrary{skins,breakable}
 
+% --- Pedagogical Box Styles ---
+\tcbset{
+  challengebox/.style={
+    enhanced, colback=blue!5!white, colframe=blue!75!black,
+    fonttitle=\bfseries, left=8pt, right=8pt, top=8pt, bottom=8pt, breakable
+  },
+  scorecardbox/.style={
+    enhanced, colback=green!5!white, colframe=green!70!black,
+    fonttitle=\bfseries, left=8pt, right=8pt, top=8pt, bottom=8pt, breakable
+  }
+}
+
 % --- Clickable TOC, cross-references, and URLs ---
 \usepackage[
   colorlinks=true,

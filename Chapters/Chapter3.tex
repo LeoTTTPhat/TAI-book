@@ -880,3 +880,35 @@ Consider a 2026 autonomous triage system deployed in a Vietnamese rural clinic. 
 The Strategic Vision \& Foundations of Trustworthy AI are now complete. We have the \textbf{2026 Vision} (Chapter 1), the \textbf{Sociotechnical Norms} (Chapter 2), and the \textbf{Human Agency Framework} (Chapter 3). 
 
 We have established that trust is built on four action-oriented pillars: Security, Privacy, Verifiability, and Alignment. In Part II, we descend from these high-level philosophies into the rigorous technical landscape of \textbf{Privacy Engineering \& Data Defense}, beginning with the classical methods that formed the bedrock of early privacy technology.
+
+% ------------------------------------------------------------------
+\section{From the Trenches: Practitioner's Challenge}
+\label{sec:ch3_challenge}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[challengebox, title={Scenario: The Triage Infinite Loop}]
+\textbf{The Context:} 
+Your hospital deployed a Level-4 autonomous LLM triage agent. During the first week, an edge-case patient symptom triggered the Emergency Brake because it violated the \textit{First, Do No Harm} Datalog predicate. The agent suspended operations as designed.
+
+\textbf{The Architect's Dilemma:} 
+The clinical supervisor clicked the "Approve/Resume" button on the Trust Dashboard to restart the system. Immediately, the agent re-evaluated the same patient context, hit the same Datalog predicate, and suspended itself again. Within 10 seconds, the system locked the entire waiting room queue in an infinite read-suspend-resume loop. How do you redesign the fallback interface?
+\end{tcolorbox}
+
+\begin{tcolorbox}[scorecardbox, title={Sovereign AI Scorecard Evaluation}]
+\textbf{Option A: Automatic Predicate Relaxing (HOTL Bypass)}
+\begin{itemize}
+    \item \textit{Cost:} Low (simple software toggle).
+    \item \textit{Utility:} High (queue resolves immediately).
+    \item \textit{Safety Resilience:} \textbf{Fail.} Automatically relaxing a safety predicate because it triggered too many times abandons the core architecture. It trains the LLM that escalating bad outputs eventually forces the firewall to drop.
+\end{itemize}
+
+\textbf{Option B: The Human-in-Command (HiC) Transition Protocol}
+\begin{itemize}
+    \item \textit{Cost:} Moderate (requires complex UI dashboard and state-mutation tools).
+    \item \textit{Utility:} Moderate (operator must spend 30-45 seconds diagnosing the fault).
+    \item \textit{Safety Resilience:} \textbf{Pass.} Implementing true HiC requires that an Emergency Brake cannot simply be "un-paused." The supervisor must explicitly mutate the context (e.g., removing the offending tool from the agent, or injecting a system-prompt override) before re-engaging the run loop, breaking the causal failure chain safely.
+\end{itemize}
+
+\textbf{The Verdict: Option B.} 
+A hard pause without a required state mutation is a UX failure masquerading as a safety feature. To prevent infinite loops, true Trustworthy AI demands that humans actively command the context, not passively click "Resume."
+\end{tcolorbox}

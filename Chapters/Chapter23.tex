@@ -1041,9 +1041,36 @@ To defend against autonomous escalation, the Trustworthy AI Architect must deplo
 
 Governing an agentic system means recognizing that context accumulation and tool chaining are exponential risk multipliers. We cannot merely test what the model says; we must exhaustively simulate what the agent will \emph{do}.
 
-\section{Conclusion}
-\label{sec:conclusion_agentic_ch21}
-
 Agentic AI requires us to look beyond the model's weights and toward the \textbf{governance of its agency}. By building systems that are constrained by design and verifiable by default, and by subjecting them to stateful adversarial testing, we can safely deploy autonomous AI in high-stakes environments. In the final chapters of this book, we synthesize these technical lessons into a roadmap for architectural fitness and a vision for the future of AI Safety.
 
+% ------------------------------------------------------------------
+\section{From the Trenches: Practitioner's Challenge}
+\label{sec:ch23_challenge}
+% ------------------------------------------------------------------
 
+\begin{tcolorbox}[challengebox, title={Scenario: The Rogue Procurement Agent}]
+\textbf{The Context:} 
+Your supply chain subsidiary deploys an autonomous LLM agent to negotiate and issue purchase orders up to \$100,000. Recently, a red team discovered a "Body-Snatching" vulnerability: a malicious supplier used indirect prompt injection hidden in an invoice PDF to hijack the agent and force it to issue unauthorized payments. 
+
+\textbf{The Architect's Dilemma:} 
+The IT Director proposes revoking the agent's autonomy by throttling it back to a Human-in-the-Loop (HITL) system, requiring manual executive approval for every purchase order, destroying the ROI of the project. You must propose a systemic, mathematical remedy that maintains autonomy but guarantees the agent's actions are bound to its designated constitution. Which mechanism do you propose?
+\end{tcolorbox}
+
+\begin{tcolorbox}[scorecardbox, title={Sovereign AI Scorecard Evaluation}]
+\textbf{Option A: Static API Keys and Prompt Filters}
+\begin{itemize}
+    \item \textit{Cost:} Low (standard web authentication).
+    \item \textit{Utility:} High (no latency impact).
+    \item \textit{Security Resilience:} \textbf{Fail.} Prompt filters are consistently evaded, and a static API key cannot distinguish between a legitimate agent action and a hijacked agent acting on behalf of a prompt-injector. 
+\end{itemize}
+
+\textbf{Option B: Decentralized Identifiers (DID) + ZK-Audit Binding}
+\begin{itemize}
+    \item \textit{Cost:} Moderate (requires verifiable credential infrastructure and cryptographic overhead).
+    \item \textit{Utility:} Moderate (minor latency for proof generation).
+    \item \textit{Security Resilience:} \textbf{Pass.} By embedding the agent's Certified Model Hash and Constitution Hash into a W3C DID, and requiring a Zero-Knowledge Proof sequence for every high-value API call, the payment gateway mathematically verifies that the transaction originated from the unmodified agent executing authorized intent, effectively neutralizing the Body-Snatching vector.
+\end{itemize}
+
+\textbf{The Verdict: Option B.} 
+Autonomy without cryptographic identity is an unacceptable corporate risk. Upgrading the agent's authentication from a static bearer token (API Key) to a cryptographically bound intent-proof (DID + ZK-Audit) preserves the ROI of automation while establishing a formal guarantee against malicious hijacking. 
+\end{tcolorbox}

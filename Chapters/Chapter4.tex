@@ -878,3 +878,35 @@ underpins both DP-trained generative models and the broader class of
 privacy-preserving mechanisms: \textbf{Differential Privacy}, the
 gold standard that transforms these empirical defences into provable
 guarantees.
+
+% ------------------------------------------------------------------
+\section{From the Trenches: Practitioner's Challenge}
+\label{sec:ch4_challenge}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[challengebox, title={Scenario: The Cross-Border Health Audit}]
+\textbf{The Context:} 
+A European research hospital wants to collaborate with your ASEAN-based health-tech startup. They require access to a 50,000-record dataset of patient triage outcomes to train their LLM diagnostic assistant. 
+
+\textbf{The Architect's Dilemma:} 
+The legal team demands that the data \"cannot be linked to any individual.\" Your lead data scientist suggests achieving $k=10$ anonymity and suppressing Zip codes. Your compliance officer suggests using an off-the-shelf LLM to generate a synthetic sibling dataset. Which mechanism do you deploy, and how do you justify it to the C-suite and the EU regulators?
+\end{tcolorbox}
+
+\begin{tcolorbox}[scorecardbox, title={Sovereign AI Scorecard Evaluation}]
+\textbf{Option A: $k$-Anonymity ($k=10$)}
+\begin{itemize}
+    \item \textit{Cost:} Low (O(nd log n) complexity).
+    \item \textit{Utility:} Moderate (coarsens data features).
+    \item \textit{Regulatory Compliance:} \textbf{Fail.} High-dimensional medical datasets routinely suffer from the Curse of Dimensionality. European regulators consider $k$-anonymity insufficient against modern background-knowledge and Linkage attacks (as seen in the Netflix Prize breach).
+\end{itemize}
+
+\textbf{Option B: DP-Synthetic Data ($\varepsilon = 1.0$)}
+\begin{itemize}
+    \item \textit{Cost:} High (requires DP-SGD training on generative models).
+    \item \textit{Utility:} Good (retains statistical properties without 1-to-1 matching).
+    \item \textit{Regulatory Compliance:} \textbf{Pass.} A DP-trained generative model provides formal mathematical deniability against Membership Inference Attacks, satisfying GDPR's strict anonymisation exemption while cleanly passing through ASEAN data localization checks.
+\end{itemize}
+
+\textbf{The Verdict: Option B.} 
+At 50,000 records, the dataset is large enough for DP-SGD to converge with reasonable fidelity. The computational overhead of DP-Synthetic Data is justified by the outright elimination of regulatory cross-border transfer risk.
+\end{tcolorbox}
