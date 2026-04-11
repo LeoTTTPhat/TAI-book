@@ -758,57 +758,85 @@ present to the CFO.
 \end{figure}
 
 % ------------------------------------------------------------------
-\section{The CFO Conversation: A One-Page Summary Template}
+% ------------------------------------------------------------------
+\section{The CFO Conversation: Trust ROI Calculator \& Summary}
 \label{sec:cfo-summary}
 % ------------------------------------------------------------------
 
-The following template translates the RAV framework output
-into the language a financial decision-maker requires.
-Architects should populate this template with their
-organisation-specific values before any budget discussion.
+The RAV framework culminates in the CFO conversation. To make this dialogue immediately actionable, architects must translate abstract risk into concrete financial sums using jurisdictional benchmarks, and present the final calculation in a standardised worksheet.
+
+\subsection{Cost-per-Record Benchmarks (ASEAN vs. EU)}
+\label{subsec:cost-per-record}
+
+To calculate the Loss Exposure $L_m$ for PII-related incident classes (such as the McHire breach), architects must convert the volume of exposed records into a financial sum.
+
+Table~\ref{tab:cost-per-record} provides baseline Cost-per-Record estimates aggregating regulatory fines, legal settlements, and incident response overheads. The drastic discrepancy between the EU and ASEAN highlights why the Trustworthy AI Stack is no longer optional for cross-border deployments.
+
+\begin{table}[ht]
+\centering
+\caption{Default Cost-per-Record estimates (2025/2026 projected) for PII breaches, segmented by regulatory jurisdiction and data sensitivity. Derived from industry breach reports and adjusted for GDPR and Vietnam Decree 13 penalty structures.}
+\label{tab:cost-per-record}
+\small
+\begin{tabular}{p{3.8cm}rr}
+\hline\noalign{\smallskip}
+\textbf{Data Sensitivity Tier}
+  & \textbf{ASEAN (Decree 13 / PDPA)}
+  & \textbf{EU (GDPR / AI Act)} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Standard PII (Names, Contact) & \$15 -- \$25 & \$140 -- \$180 \\
+Financial (Credit, Txns) & \$45 -- \$70 & \$210 -- \$260 \\
+Health / Biometric & \$80 -- \$120 & \$350 -- \$450 \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\paragraph{Applying the Benchmarks.}
+If a Vietnamese fintech agent exposes 500,000 financial records, the baseline loss $L = 500,000 \times \$55$ (midpoint) = \$27.5M. If that same database includes EU citizens, the GDPR blending pushes the expected loss over \$100M, radically changing the RAV calculation and justifying immediate investment in Differential Privacy and TEEs.
+
+\subsection{The One-Page RAV Summary Worksheet}
+\label{subsec:rav-worksheet}
+
+The following template translates the RAV framework output into the exact language a financial decision-maker requires. Architects should populate this template before any budget discussion.
 
 \begin{tcolorbox}[formulabox,
-  title={One-Page RAV Summary Template}]
+  title={Trust ROI Calculator: CFO Summary Worksheet}]
 
-\textbf{Organisation:} \underline{\hspace{4cm}}
-\quad
-\textbf{Deployment:} \underline{\hspace{4cm}}
-\quad
-\textbf{Date:} \underline{\hspace{2cm}}
+\textbf{1. Context \& Exposure} \\
+\textbf{Organisation:} \underline{\hspace{3.5cm}} \quad \textbf{System:} \underline{\hspace{3.5cm}} \\
+\textbf{Data Volume:} \underline{\hspace{2cm}} records \quad \textbf{Jurisdiction(s):} \underline{\hspace{3cm}} \\
+\textbf{Target Incident Class:} \underline{\hspace{6.8cm}} \\
+\textbf{Calculated Loss Exposure ($L$):} \$ \underline{\hspace{3.5cm}}
 
 \medskip
+\hrule
+\medskip
+
+\textbf{2. The Trustworthy AI Stack Investment}
 \begin{tabular}{@{}p{5cm} r@{}}
-Total annual loss exposure (unprotected) &
-  \$ \underline{\hspace{2.5cm}} \\
-Proposed trust mechanism stack &
-  \underline{\hspace{2.5cm}} \\
-Total annual mechanism cost $\sum C_{m_i}$ &
-  \$ \underline{\hspace{2.5cm}} \\
-Portfolio RAV $\mathrm{RAV}(M)$ &
-  \$ \underline{\hspace{2.5cm}} \\
-RAV Ratio $\rho = \mathrm{RAV}(M) / \sum C_{m_i}$ &
-  \underline{\hspace{2.5cm}}$\times$ \\
-Residual risk after stack $p_{\mathrm{residual}}^{(k)}$ &
-  \underline{\hspace{2.5cm}}\% per year \\
-Regulatory mandate driving investment &
-  \underline{\hspace{2.5cm}} \\
+Proposed Mechanism(s) & \underline{\hspace{5.5cm}} \\
+Total Annual Cost ($\sum C_{m_i}$) & \$ \underline{\hspace{5.5cm}} \\
+Current Probability ($p$) & \underline{\hspace{5cm}} \% \\
+Residual Risk after Stack ($p_{\mathrm{residual}}^{(k)}$) & \underline{\hspace{5cm}} \% \\
 \end{tabular}
 
 \medskip
-\textbf{The ask:}
-Approve \$\underline{\hspace{1.5cm}} in annual trust mechanism
-investment to reduce expected annual loss from
-\$\underline{\hspace{1.5cm}} (unprotected) to
-\$\underline{\hspace{1.5cm}} (protected), delivering a
-\underline{\hspace{0.8cm}}$\times$ return on every dollar
-invested in trust.
+\hrule
+\medskip
+
+\textbf{3. The Return on Investment (ROI)}
+\begin{tabular}{@{}p{5cm} r@{}}
+Expected Loss Reduction & \$ \underline{\hspace{5.5cm}} \\
+\textbf{Portfolio RAV $\mathrm{RAV}(M)$} & \textbf{\$ \underline{\hspace{5.5cm}}} \\
+\textbf{RAV Ratio ($\rho$)} & \textbf{\underline{\hspace{5.2cm}}$\times$} \\
+\end{tabular}
 
 \medskip
-\textbf{The regulatory floor:}
-Under \underline{\hspace{2cm}} [Decree~13 / AI Law / EU AI Act],
-non-compliance carries a mandatory minimum penalty of
-\$\underline{\hspace{1.5cm}}, making the proposed investment
-a legal requirement independent of the RAV calculation.
+\textbf{The Ask:} \\
+Approve \$\underline{\hspace{1.5cm}} in annual trust mechanism investment to reduce expected annual loss from \$\underline{\hspace{1.5cm}} to \$\underline{\hspace{1.5cm}}, delivering a \underline{\hspace{0.8cm}}$\times$ return on every security dollar invested.
+
+\medskip
+\textbf{The Regulatory Floor:} \\
+Under \underline{\hspace{2.5cm}} [Decree~13 / AI Law / EU AI Act], non-compliance carries a mandatory minimum penalty of \$\underline{\hspace{1.5cm}}, making this baseline investment a legal necessity independent of the RAV calculation.
 \end{tcolorbox}
 
 % ------------------------------------------------------------------
