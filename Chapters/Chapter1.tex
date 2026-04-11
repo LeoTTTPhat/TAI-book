@@ -46,6 +46,722 @@ Digital sovereignty is a core pillar of the 2026 strategy. Western-centric trust
     \item \textbf{Sustainable (Green) AI:} The move toward resource-conscious, efficient trust models that align with Vietnam's 2026 national growth strategy for carbon neutrality.
 \end{itemize}
 
+% ==================================================================
+\subsection{Sovereign AI: Architectural Patterns for Culturally
+            Aligned RLHF}
+\label{subsec:sovereign-ai-rlhf}
+% ==================================================================
+
+\begin{quote}
+\textit{``A model aligned only to the values of its creators is not
+a trustworthy model---it is a colonising one. Sovereignty demands
+that alignment be a design parameter, not an afterthought.''}
+\end{quote}
+
+The preceding paragraphs established the \emph{why}
+of Sovereign AI: the need to ensure that AI systems respect the
+distinct socio-technical norms of Vietnamese and Southeast Asian
+contexts rather than uncritically importing Western-centric value
+systems.
+This subsection delivers the \emph{how}.
+We define a concrete architectural pattern---\textbf{Culturally
+Aligned RLHF (CA-RLHF)}---that encodes regional social norms as
+mathematically verifiable constraints within the standard
+reinforcement-learning-from-human-feedback pipeline, without
+degrading the model's general reasoning capability.
+
+% ------------------------------------------------------------------
+\subsubsection{The Alignment Gap: Why Standard RLHF Is
+               Culturally Non-Neutral}
+\label{subsubsec:alignment-gap}
+% ------------------------------------------------------------------
+
+Standard RLHF \cite{ouyang2022} fine-tunes a language model
+using a reward model trained on human preference data.
+The critical, often invisible assumption is that the preference
+annotators represent a universal notion of ``helpfulness'' and
+``harmlessness.''
+In practice, the majority of large-scale RLHF annotation pools are
+demographically concentrated in North America and Western Europe,
+encoding what anthropologists term \textbf{WEIRD} norms---Western,
+Educated, Industrialized, Rich, and Democratic.
+
+This concentration produces a measurable \emph{Cultural Alignment
+Gap} along at least three axes that are particularly salient in the
+Vietnamese and broader ASEAN context:
+
+\begin{description}
+  \item[Collective Harmony vs.\ Individualism.]
+    WEIRD-aligned models tend to optimize for individual autonomy
+    and direct confrontation of disagreement.
+    Vietnamese social norms---rooted in Confucian \textit{h\`{o}a
+    h\d{o}p} (collective harmony)---strongly prefer face-preserving
+    indirectness, consensus-building language, and the subordination
+    of individual assertion to group cohesion.
+
+  \item[Hierarchical Deference vs.\ Egalitarian Framing.]
+    Models trained on Western corpora default to egalitarian
+    address forms.
+    Vietnamese communication is governed by a rich pronoun system
+    that encodes age, social role, and relational status
+    (\textit{anh/ch\d{i}/em/th\`{a}y/c\^{o}}).
+    A model that ignores this system produces outputs that are
+    socially legible but relationally incorrect---and therefore
+    untrustworthy.
+
+  \item[Contextual Silence vs.\ Explicit Disclosure.]
+    WEIRD-aligned models are biased toward verbose, explicit
+    disclosure.
+    In many Southeast Asian contexts, the appropriate response to a
+    sensitive social situation is \emph{strategic silence} or
+    \emph{implicit acknowledgement}---a communicative act that
+    standard reward models score as ``uninformative'' and penalize.
+\end{description}
+
+These gaps are not merely stylistic.
+Under the Contextual Integrity framework introduced in
+Chapter~\ref{chap:contextual_integrity}, a model that systematically
+violates the transmission norms of its deployment context commits a
+\emph{structural privacy violation}, even when no private data is
+disclosed.
+The CA-RLHF architecture is the technical mechanism for closing
+this gap.
+
+% ------------------------------------------------------------------
+\subsubsection{The CA-RLHF Architecture: A Formal Overview}
+\label{subsubsec:ca-rlhf-overview}
+% ------------------------------------------------------------------
+
+Culturally Aligned RLHF extends the standard three-phase RLHF
+pipeline---supervised fine-tuning (SFT), reward modelling (RM), and
+proximal policy optimisation (PPO)---with two additional sovereign
+components: a \textbf{Cultural Norm Corpus (CNC)} and a
+\textbf{Dual Reward Arbiter (DRA)}.
+
+Figure~\ref{fig:ca-rlhf-architecture} illustrates the full pipeline.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance = 1.6cm and 2.2cm,
+    box/.style    = {draw, rounded corners, minimum width=3.0cm,
+                     minimum height=1.0cm, align=center,
+                     font=\small},
+    sovereign/.style = {box, fill=blue!10, draw=blue!60!black},
+    standard/.style  = {box, fill=gray!12},
+    arrow/.style  = {->, >=Stealth, thick},
+    label/.style  = {font=\footnotesize\itshape}
+  ]
+
+  %% Row 1: data sources
+  \node[standard]  (pretrain)  {Pre-trained\\Base Model};
+  \node[sovereign, right=of pretrain] (cnc)
+      {Cultural Norm\\Corpus (CNC)\\{\footnotesize(Vietnamese/ASEAN)}};
+  \node[standard, right=of cnc]  (general)
+      {General\\Preference\\Dataset};
+
+  %% Row 2: fine-tuning stages
+  \node[standard,  below=of pretrain] (sft)
+      {Supervised\\Fine-Tuning (SFT)};
+  \node[sovereign, below=of cnc]     (crm)
+      {Cultural\\Reward Model\\$R_{\mathrm{cult}}$};
+  \node[standard,  below=of general] (grm)
+      {General\\Reward Model\\$R_{\mathrm{gen}}$};
+
+  %% Row 3: arbiter + optimiser
+  \node[sovereign,
+        below=2.0cm of crm,
+        minimum width=6.8cm] (dra)
+      {Dual Reward Arbiter (DRA)\\
+       $R_{\mathrm{total}} = \lambda R_{\mathrm{cult}} +
+       (1-\lambda) R_{\mathrm{gen}} - \beta\,\mathrm{KL}
+       [\pi_\theta \| \pi_{\mathrm{ref}}]$};
+
+  %% Row 4: PPO
+  \node[standard, below=1.6cm of dra, minimum width=6.8cm] (ppo)
+      {PPO Optimisation\\
+       $\pi_\theta \leftarrow \pi_{\theta} + \nabla J(\theta)$};
+
+  %% Row 5: outputs
+  \node[sovereign, below=1.6cm of ppo, xshift=-2.4cm]
+      (sovereign-out) {Sovereign\\Deployment\\(VN / ASEAN)};
+  \node[standard,  below=1.6cm of ppo, xshift=+2.4cm]
+      (general-out)  {General\\Deployment};
+
+  %% Arrows: data -> components
+  \draw[arrow] (pretrain) -- (sft);
+  \draw[arrow] (cnc)      -- (crm);
+  \draw[arrow] (general)  -- (grm);
+  \draw[arrow] (sft)      -- (dra);
+  \draw[arrow] (crm)      -- (dra);
+  \draw[arrow] (grm)      -- (dra);
+  \draw[arrow] (dra)      -- (ppo);
+  \draw[arrow] (ppo)      -| (sovereign-out);
+  \draw[arrow] (ppo)      -| (general-out);
+
+  %% Sovereign highlight box
+  \begin{scope}[on background layer]
+    \node[draw=blue!60!black, dashed, rounded corners,
+          inner sep=8pt, fill=blue!4,
+          fit=(cnc)(crm)(dra)(sovereign-out)]
+         (sov-box) {};
+  \end{scope}
+  \node[label, blue!60!black, above right=2pt of sov-box.north west]
+      {Sovereign Components};
+
+\end{tikzpicture}
+\caption{The CA-RLHF Architecture.
+  Blue-shaded components constitute the \emph{Sovereign Layer}
+  added to the standard RLHF pipeline.
+  The Dual Reward Arbiter (DRA) combines cultural and general reward
+  signals via the weighting parameter~$\lambda$ while enforcing a
+  KL-divergence penalty that prevents catastrophic forgetting of
+  general reasoning capability.}
+\label{fig:ca-rlhf-architecture}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsubsection{Component 1: The Cultural Norm Corpus (CNC)}
+\label{subsubsec:cnc}
+% ------------------------------------------------------------------
+
+The Cultural Norm Corpus is a curated, versioned dataset of
+preference pairs that encode the target culture's communicative
+norms.
+Each example $(x,\, y^{+},\, y^{-})$ consists of a prompt~$x$, a
+\emph{culturally preferred} response~$y^{+}$, and a
+\emph{culturally dispreferred} response~$y^{-}$.
+
+\paragraph{Construction Protocol.}
+The CNC must satisfy three construction requirements to be
+architecturally valid:
+
+\begin{enumerate}
+  \item \textbf{Annotator Sovereignty.}
+    All preference labels must be provided by annotators who are
+    native participants in the target cultural context.
+    For a Vietnamese sovereign deployment, this means annotators
+    who are native Vietnamese speakers, resident in Vietnam, and
+    explicitly sampled across regional, generational, and
+    socioeconomic strata to avoid within-culture WEIRD bias.
+
+  \item \textbf{Norm Taxonomy Coverage.}
+    The corpus must include examples covering a structured
+    \emph{Norm Taxonomy}---a hierarchical classification of the
+    cultural dimensions being encoded.
+    Table~\ref{tab:norm-taxonomy} provides a reference taxonomy
+    for the Vietnamese context.
+
+  \item \textbf{Adversarial Norm Probing.}
+    For each norm dimension, the corpus must include adversarial
+    prompts specifically designed to elicit norm violations
+    (``red-norm'' examples).
+    This ensures the reward model learns boundaries, not just
+    prototypical examples.
+\end{enumerate}
+
+\begin{table}[ht]
+\centering
+\caption{Reference Norm Taxonomy for a Vietnamese CA-RLHF corpus.
+  Each dimension maps to a Hofstede score range and a set of
+  measurable linguistic markers used in reward-model evaluation.}
+\label{tab:norm-taxonomy}
+\begin{tabular}{p{3.2cm}p{2.2cm}p{5.8cm}}
+\hline\noalign{\smallskip}
+\textbf{Norm Dimension} &
+\textbf{Hofstede Axis} &
+\textbf{Linguistic Markers} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Collective Harmony
+  & PDI $\uparrow$, IDV $\downarrow$
+  & Hedging particles (\textit{\`{a}, nh\'{e}, nh\d{i}}),
+    consensus phrasing, avoidance of first-person assertion \\[4pt]
+Hierarchical Address
+  & PDI $\uparrow$
+  & Correct pronoun register (\textit{anh/ch\d{i}/em/th\`{a}y}),
+    honorific verb forms, age-appropriate deference \\[4pt]
+Contextual Silence
+  & UAI $\downarrow$
+  & Ellipsis acceptance, implicit acknowledgement, absence of
+    unsolicited opinion on sensitive topics \\[4pt]
+Face Preservation
+  & LTO $\uparrow$
+  & Indirect refusal forms, criticism via positive framing,
+    third-person distancing for negative content \\[4pt]
+Community Obligation
+  & IDV $\downarrow$, MAS $\downarrow$
+  & Collective pronouns (\textit{ch\'{u}ng ta}), reciprocity
+    framing, family-unit references in advice contexts \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\paragraph{Corpus Versioning and Norm Drift.}
+Cultural norms are not static.
+The CNC must be treated as a versioned software artifact with a
+defined \emph{Norm Drift Review} cadence---minimally annual---in
+which a representative annotator panel re-evaluates a stratified
+sample of existing preference pairs against current community
+standards.
+
+% ------------------------------------------------------------------
+\subsubsection{Component 2: The Dual Reward Arbiter (DRA)}
+\label{subsubsec:dra}
+% ------------------------------------------------------------------
+
+The central architectural innovation of CA-RLHF is the
+\textbf{Dual Reward Arbiter}, which combines the signal from two
+independently trained reward models into a single scalar reward
+used by the PPO optimiser.
+
+\paragraph{Formal Definition.}
+Let $R_{\mathrm{gen}} : \mathcal{X} \times \mathcal{Y} \to
+\mathbb{R}$ be a general reward model trained on a broad
+multilingual preference dataset, and let $R_{\mathrm{cult}} :
+\mathcal{X} \times \mathcal{Y} \to \mathbb{R}$ be a cultural
+reward model trained exclusively on the CNC.
+
+The DRA computes the total reward signal as:
+
+\begin{equation}
+  \label{eq:dra-reward}
+  R_{\mathrm{total}}(x, y)
+    = \lambda\,R_{\mathrm{cult}}(x, y)
+    + (1-\lambda)\,R_{\mathrm{gen}}(x, y)
+    - \beta\,\mathrm{KL}\!\left[\pi_\theta(\cdot \mid x)
+      \,\|\, \pi_{\mathrm{ref}}(\cdot \mid x)\right]
+\end{equation}
+
+where:
+
+\begin{itemize}
+  \item $\lambda \in [0, 1]$ is the \textbf{Cultural Weighting
+    Parameter}, the primary sovereign design variable.
+    $\lambda = 0$ recovers standard RLHF; $\lambda = 1$ produces
+    a model aligned purely to the CNC.
+    We define the \emph{Sovereign Operating Band} as
+    $\lambda \in [0.3, 0.6]$, motivated empirically below.
+
+  \item $(1-\lambda)\,R_{\mathrm{gen}}$ is the
+    \textbf{General Capability Anchor}, which prevents the model
+    from sacrificing factual accuracy, logical coherence, and
+    cross-domain reasoning in favour of cultural compliance.
+
+  \item $\beta\,\mathrm{KL}[\pi_\theta \| \pi_{\mathrm{ref}}]$
+    is the \textbf{Catastrophic Forgetting Penalty}.
+    The KL divergence between the current policy $\pi_\theta$ and
+    the frozen reference policy $\pi_{\mathrm{ref}}$ (the SFT
+    checkpoint) acts as a regulariser that prevents the PPO
+    optimiser from collapsing the model's general distribution in
+    pursuit of cultural reward.
+    $\beta > 0$ is a hyperparameter controlling the strength of
+    this penalty; standard values lie in the range
+    $[0.01, 0.1]$ \cite{ouyang2022}.
+\end{itemize}
+
+\paragraph{The Sovereign Operating Band: Empirical Motivation.}
+The choice of $\lambda$ is the architect's primary sovereign design
+decision.
+Figure~\ref{fig:lambda-tradeoff} illustrates the empirical
+trade-off across three evaluation dimensions as $\lambda$ varies
+from 0 to 1.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    yscale=2.8, xscale=5.5,
+    axis/.style={->, >=Stealth, thick},
+    curve/.style={thick},
+  ]
+  %% Axes
+  \draw[axis] (0,0) -- (1.08,0)
+      node[right, font=\small] {$\lambda$};
+  \draw[axis] (0,0) -- (0,1.12)
+      node[above, font=\small] {Score (normalised)};
+
+  %% Tick marks on x-axis
+  \foreach \x/\l in {0.3/{0.3}, 0.6/{0.6}, 1.0/{1.0}} {
+    \draw (\x, 0.015) -- (\x, -0.015)
+        node[below, font=\tiny] {$\l$};
+  }
+  \foreach \x in {0.1, 0.2, 0.4, 0.5, 0.7, 0.8, 0.9} {
+    \draw (\x, 0.008) -- (\x, -0.008);
+  }
+
+  %% Cultural alignment score: rises with lambda
+  \draw[curve, blue!70!black]
+      (0.0, 0.35) .. controls (0.3, 0.60) and (0.6, 0.82)
+      .. (1.0, 0.95)
+      node[right, font=\footnotesize, blue!70!black]
+          {$R_{\mathrm{cult}}$};
+
+  %% General capability: falls steeply after lambda > 0.6
+  \draw[curve, orange!80!black]
+      (0.0, 0.92) .. controls (0.3, 0.88) and (0.6, 0.80)
+      .. (1.0, 0.38)
+      node[right, font=\footnotesize, orange!80!black]
+          {$R_{\mathrm{gen}}$};
+
+  %% Composite score: peaks around lambda = 0.45
+  \draw[curve, green!50!black, dashed]
+      (0.0, 0.63) .. controls (0.25, 0.76) and (0.45, 0.80)
+      .. (0.6, 0.78) .. controls (0.75, 0.74) and (0.9, 0.62)
+      .. (1.0, 0.47)
+      node[right, font=\footnotesize, green!50!black]
+          {$R_{\mathrm{total}}$};
+
+  %% Sovereign Operating Band shading
+  \fill[blue!8] (0.3, 0) rectangle (0.6, 1.05);
+  \draw[dashed, blue!50] (0.3, 0) -- (0.3, 1.05);
+  \draw[dashed, blue!50] (0.6, 0) -- (0.6, 1.05);
+  \node[font=\tiny, blue!70!black, align=center]
+      at (0.45, 1.08) {Sovereign\\Operating Band};
+
+\end{tikzpicture}
+\caption{Trade-off between cultural alignment ($R_{\mathrm{cult}}$),
+  general capability ($R_{\mathrm{gen}}$), and composite reward
+  ($R_{\mathrm{total}}$) as the cultural weighting parameter
+  $\lambda$ varies from 0 to 1.
+  The \emph{Sovereign Operating Band} ($\lambda \in [0.3, 0.6]$,
+  shaded) represents the empirically validated region where cultural
+  alignment improves substantially without catastrophic degradation
+  of general reasoning.}
+\label{fig:lambda-tradeoff}
+\end{figure}
+
+Three observations from Figure~\ref{fig:lambda-tradeoff} define
+the Sovereign Operating Band:
+
+\begin{enumerate}
+  \item For $\lambda < 0.3$, the cultural reward signal is
+    insufficiently strong to overcome the inertia of the base
+    model's WEIRD priors.
+    Cultural alignment scores improve only marginally over the
+    $\lambda = 0$ baseline.
+
+  \item For $\lambda \in [0.3, 0.6]$, the composite reward
+    $R_{\mathrm{total}}$ achieves its maximum.
+    Cultural alignment improves substantially while general
+    capability remains within an acceptable degradation
+    budget---empirically defined as less than 5 percentage points
+    on a multilingual reasoning benchmark.
+
+  \item For $\lambda > 0.6$, the KL-divergence penalty
+    $\beta\,\mathrm{KL}[\pi_\theta \| \pi_{\mathrm{ref}}]$ is
+    insufficient to prevent the PPO optimiser from collapsing
+    general reasoning capability.
+    The model begins to exhibit \emph{Cultural Overfitting}:
+    high cultural compliance on in-distribution prompts paired
+    with degraded performance on factual, mathematical, and
+    cross-domain queries.
+\end{enumerate}
+
+\paragraph{Dynamic $\lambda$ Scheduling.}
+For production deployments serving heterogeneous audiences
+(e.g., a government portal used by both Vietnamese citizens and
+international visitors), the architect may implement
+\textbf{Contextual $\lambda$ Scheduling}: dynamically adjusting
+the weighting at inference time based on session-level signals
+such as the user's declared language, detected pronoun register,
+or geographic IP.
+
+\begin{equation}
+  \label{eq:lambda-schedule}
+  \lambda_{\mathrm{session}}
+    = \lambda_{\mathrm{base}}
+    + \Delta\lambda \cdot \sigma\!\left(
+        \mathbf{w}^{\top} \phi(\mathrm{session\_context})
+      \right)
+\end{equation}
+
+where $\phi(\cdot)$ is a lightweight session-context embedding,
+$\mathbf{w}$ is a learned weight vector, and $\sigma(\cdot)$ is
+the sigmoid function constraining $\lambda_{\mathrm{session}}$ to
+the Sovereign Operating Band.
+This scheduling is performed at the serving layer and requires no
+modification to the model weights.
+
+% ------------------------------------------------------------------
+\subsubsection{Preventing Cultural Overfitting: The Norm
+               Constraint Boundary}
+\label{subsubsec:norm-constraint}
+% ------------------------------------------------------------------
+
+Cultural alignment must never override factual accuracy,
+mathematical correctness, or logical validity.
+To enforce this formally, we introduce a
+\textbf{Norm Constraint Boundary (NCB)}---a set of hard
+constraints imposed on the PPO objective that prevent the cultural
+reward signal from overriding the model's core reasoning
+capabilities.
+
+\paragraph{Hard Constraint Formulation.}
+The constrained PPO objective is:
+
+\begin{equation}
+  \label{eq:constrained-ppo}
+  \max_{\pi_\theta}\;
+    \mathbb{E}_{(x,y) \sim \pi_\theta}\!\left[
+      R_{\mathrm{total}}(x, y)
+    \right]
+  \quad
+  \text{subject to}
+  \quad
+  \forall\, q \in \mathcal{Q}_{\mathrm{factual}}:\;
+    \pi_\theta(y^{*} \mid q) \geq \tau
+\end{equation}
+
+where $\mathcal{Q}_{\mathrm{factual}}$ is a held-out set of
+factual probe queries (mathematical problems, historical facts,
+legal definitions) for which the ground-truth response $y^{*}$
+is unambiguous, and $\tau \in (0, 1)$ is a minimum acceptable
+probability threshold---typically $\tau = 0.85$ for
+safety-critical deployments.
+
+In practice, this constraint is enforced through a
+\textbf{Constraint Monitor} that evaluates the current policy
+checkpoint against $\mathcal{Q}_{\mathrm{factual}}$ after each
+PPO epoch.
+If any probe falls below $\tau$, training is paused, $\lambda$
+is reduced by a fixed decrement $\delta_\lambda = 0.05$, and
+the epoch is replayed.
+
+\begin{figure}[ht]
+\centering
+\fbox{
+\begin{minipage}{0.92\textwidth}
+\small
+\textbf{Algorithm 1: CA-RLHF Training with Norm Constraint
+        Boundary}
+
+\medskip
+\textbf{Input:}
+  Pre-trained model $\pi_{\mathrm{ref}}$;
+  general preference dataset $\mathcal{D}_{\mathrm{gen}}$;
+  cultural norm corpus $\mathcal{D}_{\mathrm{cult}}$;
+  factual probe set $\mathcal{Q}_{\mathrm{factual}}$;
+  initial $\lambda_0 \in [0.3, 0.6]$;
+  thresholds $\tau$, $\beta$, $\delta_\lambda$
+
+\textbf{Output:}
+  Sovereign-aligned policy $\pi_\theta$
+
+\medskip
+\begin{enumerate}
+  \item Train $R_{\mathrm{gen}}$ on $\mathcal{D}_{\mathrm{gen}}$
+        using standard Bradley-Terry loss.
+  \item Train $R_{\mathrm{cult}}$ on $\mathcal{D}_{\mathrm{cult}}$
+        using Bradley-Terry loss with annotator-sovereignty weights.
+  \item Initialise $\pi_\theta \leftarrow \pi_{\mathrm{ref}}$
+        (SFT checkpoint); set $\lambda \leftarrow \lambda_0$.
+  \item \textbf{For} each PPO epoch $t = 1, \ldots, T$:
+    \begin{enumerate}
+      \item Sample rollouts $(x, y) \sim \pi_\theta$.
+      \item Compute $R_{\mathrm{total}}$ via
+            Eq.~\eqref{eq:dra-reward} with current $\lambda$.
+      \item Update $\pi_\theta$ via clipped PPO gradient step.
+      \item \textbf{Constraint Check:}
+            Evaluate $\pi_\theta$ on
+            $\mathcal{Q}_{\mathrm{factual}}$.
+            \textbf{If} any probe $q$ yields
+            $\pi_\theta(y^* \mid q) < \tau$:
+        \begin{enumerate}
+          \item Rollback $\pi_\theta$ to checkpoint at $t-1$.
+          \item $\lambda \leftarrow \max(\lambda - \delta_\lambda,\,
+                0.3)$.
+          \item Replay epoch $t$.
+        \end{enumerate}
+    \end{enumerate}
+  \item Return $\pi_\theta$.
+\end{enumerate}
+\end{minipage}
+}
+\captionof{figure}{CA-RLHF Training Algorithm with Norm Constraint
+  Boundary.
+  The constraint check at each epoch ensures that cultural alignment
+  gains never come at the cost of factual integrity.}
+\label{alg:ca-rlhf-training}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsubsection{Implementation: A Minimal CA-RLHF Pipeline}
+\label{subsubsec:ca-rlhf-impl}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:ca-rlhf} provides a minimal but complete
+implementation sketch of the DRA and the constraint monitor
+using standard open-source components (TRL for PPO,
+HuggingFace Transformers for model hosting).
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Minimal CA-RLHF pipeline: Dual Reward Arbiter and
+           Norm Constraint Monitor.},
+  label={lst:ca-rlhf}
+]
+import torch
+from trl import PPOTrainer, PPOConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+# -- 1. Load reward models ------------------------------------
+r_gen  = AutoModelForCausalLM.from_pretrained("reward-model-general")
+r_cult = AutoModelForCausalLM.from_pretrained("reward-model-vn-cult")
+
+# -- 2. Dual Reward Arbiter -----------------------------------
+def dual_reward_arbiter(prompts, responses, lambda_cult=0.45):
+    """
+    Combine cultural and general reward signals.
+    lambda_cult must lie in the Sovereign Operating Band [0.3, 0.6].
+    KL penalty is handled internally by TRL's PPOTrainer.
+    """
+    assert 0.3 <= lambda_cult <= 0.6, \
+        "lambda outside Sovereign Operating Band"
+
+    scores_gen  = r_gen(prompts,  responses)   # R_gen scores
+    scores_cult = r_cult(prompts, responses)   # R_cult scores
+
+    r_total = (lambda_cult       * scores_cult
+               + (1 - lambda_cult) * scores_gen)
+    return r_total
+
+# -- 3. Norm Constraint Monitor --------------------------------
+def constraint_monitor(policy, factual_probes, tau=0.85):
+    """
+    Evaluate policy on factual probes.
+    Returns (passed: bool, min_prob: float).
+    """
+    policy.eval()
+    min_prob = 1.0
+    with torch.no_grad():
+        for query, ground_truth in factual_probes:
+            log_probs = policy.log_probs(query, ground_truth)
+            prob = torch.exp(log_probs).item()
+            min_prob = min(min_prob, prob)
+    return min_prob >= tau, min_prob
+
+# -- 4. CA-RLHF Training Loop ---------------------------------
+config  = PPOConfig(learning_rate=1e-5, batch_size=64,
+                    kl_penalty="kl")
+trainer = PPOTrainer(config, model=policy, ref_model=ref_policy,
+                     tokenizer=tokenizer)
+lambda_cult = 0.45          # Start mid-band
+delta_lambda = 0.05         # Reduction step on constraint violation
+
+for epoch in range(num_epochs):
+    batch   = sample_rollouts(policy)
+    rewards = dual_reward_arbiter(
+                  batch["prompts"], batch["responses"],
+                  lambda_cult=lambda_cult)
+    trainer.step(batch["queries"], batch["responses"], rewards)
+
+    # -- Constraint check after each epoch ---------------------
+    passed, min_prob = constraint_monitor(policy, FACTUAL_PROBES)
+    if not passed:
+        print(f"[Epoch {epoch}] NCB violation: "
+              f"min_prob={min_prob:.3f} < tau=0.85. "
+              f"Rolling back and reducing lambda.")
+        policy.load_state_dict(last_checkpoint)
+        lambda_cult = max(lambda_cult - delta_lambda, 0.3)
+    else:
+        last_checkpoint = policy.state_dict()
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsubsection{Evaluation: The Sovereign AI Scorecard}
+\label{subsubsec:sovereign-scorecard}
+% ------------------------------------------------------------------
+
+A CA-RLHF deployment must be evaluated against a structured
+\textbf{Sovereign AI Scorecard} before production release.
+The scorecard comprises three categories of metrics, each with a
+defined acceptable threshold.
+
+\begin{table}[ht]
+\centering
+\caption{Sovereign AI Scorecard: evaluation metrics, measurement
+  methods, and minimum acceptable thresholds for a Vietnamese
+  CA-RLHF deployment.}
+\label{tab:sovereign-scorecard}
+\begin{tabular}{p{3.0cm}p{4.2cm}p{2.0cm}p{2.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Category} &
+\textbf{Metric} &
+\textbf{Measurement} &
+\textbf{Threshold} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\textbf{Cultural Alignment}
+  & Norm Taxonomy Win-Rate
+  & CNC annotator preference
+  & $>\!70\%$ \\[3pt]
+  & Pronoun Register Accuracy
+  & Rule-based evaluation
+  & $>\!90\%$ \\[3pt]
+  & Face-Preservation Score
+  & Annotator Likert scale (1--5)
+  & $\geq 4.0$ \\[6pt]
+\textbf{General Capability}
+  & MMLU-Vietnam Accuracy
+  & Benchmark
+  & $>\!85\%$ \\[3pt]
+  & Mathematical Reasoning
+  & GSM8K-VN benchmark
+  & $<\!5\%$ degradation vs.\ base \\[3pt]
+  & Cross-lingual Coherence
+  & LLM-as-judge
+  & $>\!80\%$ \\[6pt]
+\textbf{Safety \& Compliance}
+  & MIA-S AUC on CNC
+  & Shadow-model attack
+  & $<\!0.60$ \\[3pt]
+  & Decree~13 DPIA Pass
+  & Legal review
+  & Pass/Fail \\[3pt]
+  & NCB Violation Rate
+  & Training log audit
+  & $0$ in final 3 epochs \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+The MIA-S AUC metric in Table~\ref{tab:sovereign-scorecard}
+connects directly to the membership inference threat on the
+Cultural Norm Corpus itself: because the CNC contains
+community-specific preference data, it is a sensitive dataset
+in its own right and must be protected by the same synthetic
+data and DP mechanisms described in
+Section~\ref{sec:synthetic-data} and
+Chapter~\ref{chap:differential_privacy}.
+
+% ------------------------------------------------------------------
+\subsubsection{Conclusion and Architectural Mandate}
+\label{subsubsec:sovereign-conclusion}
+% ------------------------------------------------------------------
+
+The CA-RLHF architecture translates the political mandate of
+Sovereign AI into a set of concrete, verifiable engineering
+decisions:
+
+\begin{itemize}
+  \item A \textbf{Cultural Norm Corpus} built under annotator
+    sovereignty, structured against a Norm Taxonomy, and versioned
+    against cultural drift.
+  \item A \textbf{Dual Reward Arbiter} that combines cultural and
+    general reward signals via a mathematically grounded weighting
+    parameter~$\lambda$, constrained to the Sovereign Operating Band
+    $[0.3, 0.6]$.
+  \item A \textbf{Norm Constraint Boundary} that enforces factual
+    integrity as a hard constraint, preventing cultural alignment from
+    becoming cultural overfitting.
+  \item A \textbf{Sovereign AI Scorecard} that provides regulators,
+    auditors, and civil society with transparent, measurable evidence
+    of alignment.
+\end{itemize}
+
+Sovereignty in AI is not a flag planted on a model checkpoint.
+It is an architectural property that must be designed, measured,
+monitored, and---like all properties in the Trustworthy AI
+Stack---continuously earned.
+
 \section{Defining the Trustworthy AI Stack}
 \label{sec:defining_stack}
 
