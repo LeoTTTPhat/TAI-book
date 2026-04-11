@@ -37,6 +37,124 @@ The Trustworthy AI Architect translates these legal prose into technical configu
     \item To fulfill the \textbf{GDPR's} security requirements, we use \textbf{Differential Privacy} (Chapter 5) and \textbf{ZK-ML} (Chapter 21) to provide mathematical proofs of protection.
 \end{itemize}
 
+% ------------------------------------------------------------------
+\section{Heuristic for Regulatory Collision}
+\label{sec:regulatory_collision}
+% ------------------------------------------------------------------
+
+The comparative analysis of Section~\ref{sec:regulatory_analysis} presents each regulation as a self-consistent framework. In practice, the Trustworthy AI Architect frequently encounters a more dangerous scenario: two legally binding obligations that are \textbf{mutually contradictory} when applied to the same system. This section provides a structured heuristic for resolving the most common class of regulatory collision---the conflict between a \textbf{data subject right} (e.g., GDPR's Right to be Forgotten) and a \textbf{legal retention mandate} (e.g., a financial audit obligation).
+
+\subsection{The Banking Agent Collision: A Running Example}
+\label{sec:banking_collision}
+
+Consider an autonomous banking agent deployed in a Vietnamese fintech that serves EU-resident customers, placing it simultaneously under the GDPR and Vietnam's Circular 09/2020 on electronic transactions, which mandates 10-year retention of all financial audit records. A customer exercises their GDPR Article 17 Right to be Forgotten. The agent's legal obligations simultaneously demand:
+
+\begin{itemize}
+  \item \textbf{GDPR Art.~17:} Erase all personal data without undue delay.
+  \item \textbf{Circular 09/2020 + Basel III:} Retain all transaction records for a minimum of 10 years for financial audit purposes.
+\end{itemize}
+
+A naive ``Full Deletion'' approach violates the financial retention mandate. A naive ``No Action'' approach violates GDPR. Neither is architecturally acceptable.
+
+\subsection{The Three-Step Collision Resolution Heuristic}
+\label{sec:collision_heuristic}
+
+\begin{description}
+  \item[Step 1: Classify the Conflict Type.]
+    Determine whether the collision is between (a) two \emph{data subject rights}, (b) a \emph{data subject right vs.\ a legal retention obligation}, or (c) two \emph{national sovereignty mandates} (e.g., conflicting data localization requirements). Each type requires a different resolution pattern. The banking example is Type (b).
+
+  \item[Step 2: Apply GDPR Article 18 ``Restricted Processing'' as the Intermediate State.]
+    GDPR Article 18 provides a legally recognized intermediate state between full retention and full erasure: \textbf{Restricted Processing}. Under this regime, the data is retained solely for the conflicting legal obligation, locked from all other processing (model training, analytics, profiling). The data subject is notified of the restriction, its legal basis, and the expected retention end date. This satisfies the ``legitimate interest'' exemption of GDPR Art.~17(3)(b) while honoring the data subject's intent.
+
+  \item[Step 3: Implement the Dual-Silo Architectural Pattern.]
+    The architect physically separates the restricted data from the production ML pipeline using a \textbf{Dual-Silo Architecture}: a cryptographically sealed \textbf{Legal Retention Silo} (write-once, read-only for authorized auditors, with a time-lock smart contract triggering automatic deletion upon the retention period's expiry) and an \textbf{Active ML Silo} from which the data has been fully unlearned (Chapter~\ref{chap:unlearning}). The two silos are logically and technically firewalled; a record's presence in the Legal Retention Silo does not imply its presence in the Active ML Silo's training distribution.
+\end{description}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.4cm and 3.0cm,
+    font=\small,
+    silo_box/.style={draw, rounded corners, inner sep=9pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    legal_box/.style={silo_box, fill=orange!10, draw=orange!80!black},
+    ml_box/.style={silo_box,    fill=blue!10,   draw=blue!80!black},
+    req_box/.style={silo_box,   fill=red!10,    draw=red!80!black},
+    res_box/.style={silo_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70},
+    barrow/.style={->, >=stealth, thick, dashed, draw=red!60}
+]
+
+\node (request) [req_box, text width=6cm]
+    {\textbf{Deletion Request (GDPR Art.~17)}\\
+     Customer exercises Right to be Forgotten};
+
+\node (step1) [res_box, below=of request, text width=6cm]
+    {\textbf{Step 1: Classify Collision (Type b)}\\
+     Legal retention basis: Circular 09 / Basel III\\
+     $\Rightarrow$ Restricted Processing (Art.~18)};
+
+\node (legal) [legal_box, below=1.4cm of step1, text width=5.5cm]
+    {\textbf{Legal Retention Silo}\\
+     Write-once; audit-read-only\\
+     Time-lock: auto-delete at year 10};
+
+\node (ml) [ml_box, right=3cm of legal, text width=5.5cm]
+    {\textbf{Active ML Silo}\\
+     Machine Unlearning executed (Ch.~19)\\
+     Unlearning Receipt issued};
+
+\draw [arrow]  (request.south) -- node[right, font=\scriptsize] {Trigger collision check} (step1.north);
+\draw [arrow]  (step1.south)   -- node[right, font=\scriptsize] {Lock to Legal Silo} (legal.north);
+\draw [arrow]  (step1.east)    -- ++(1.5,0) |- node[right, font=\scriptsize, pos=0.25] {Unlearn from ML Silo} (ml.north);
+\draw [barrow] (legal.east)    -- node[above, font=\scriptsize] {Cryptographic firewall} (ml.west);
+
+\end{tikzpicture}
+\caption{The Dual-Silo Pattern for regulatory collision resolution: a deletion request triggers Restricted Processing under GDPR Art.~18, routing data to a time-locked Legal Retention Silo, while Machine Unlearning simultaneously removes its influence from the Active ML Silo. A cryptographic firewall enforces separation.}
+\label{fig:dual_silo}
+\end{figure}
+
+\subsection{Jurisdiction Priority Table for ASEAN Architects}
+\label{sec:jurisdiction_priority}
+
+Table~\ref{tab:jurisdiction_heuristic} provides a practical collision resolution reference for the most frequent regulatory pairs encountered by ASEAN-operating AI architects.
+
+\begin{table}[ht]
+\centering
+\caption{Regulatory Collision Heuristic: recommended architectural resolution patterns for the most common conflict pairs in the ASEAN context.}
+\label{tab:jurisdiction_heuristic}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{3.2cm} p{3.2cm} p{2.0cm} p{3.8cm}}
+\toprule
+\textbf{Obligation A} & \textbf{Obligation B} & \textbf{Type} & \textbf{Resolution Pattern} \\
+\midrule
+GDPR Art.~17 (Erasure) &
+Financial Audit Retention &
+b &
+Dual-Silo + Art.~18 Restricted Processing \\
+
+GDPR Art.~20 (Portability) &
+Decree 13 Data Localization &
+c &
+Federated Portability (FL, no raw cross-border export) \\
+
+EU AI Act Transparency &
+Trade Secret Protection &
+b &
+ZK-ML Proof (proves property without revealing model weights) \\
+
+GDPR Art.~22 (No Auto-Decision) &
+SLA Latency Requirement &
+b &
+HOTL with async human confirmation queue \\
+
+Decree 13 Cross-Border Restriction &
+GDPR Art.~20 Portability &
+c &
+Sovereign Data Enclave + bilateral transfer agreement \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Conclusion}
 \label{sec:conclusion_compliance}
 

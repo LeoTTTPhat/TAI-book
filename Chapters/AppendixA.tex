@@ -895,6 +895,74 @@ limitations:
 \end{enumerate}
 
 % ------------------------------------------------------------------
+\section{The Sovereign AI Scorecard as Underwriting Evidence}
+\label{sec:ai-insurance}
+% ------------------------------------------------------------------
+
+A nascent but rapidly maturing market is emerging at the intersection of this book's technical frameworks and the global financial system: \textbf{AI Insurance}. Specialist underwriters at Lloyd's of London, Munich Re, and Beazley began offering dedicated AI liability and cyber-resilience policies in 2025, but face a fundamental actuarial challenge: \emph{how do you price a risk you cannot directly observe?}
+
+The answer lies in the technical artefacts already produced by the Trustworthy AI Stack. The \textbf{Sovereign AI Scorecard} (Table~1.2) and the \textbf{Trust Debt Score} (Section~\ref{sec:trust-debt}) are not merely internal governance tools---they are precisely the kind of structured, verifiable, mechanism-level evidence that actuarial underwriting requires. A system's DP-SGD privacy budget is as observable as a sprinkler system; its ATTM gap score is as auditable as a fire safety inspection report.
+
+\subsection{The Underwriting Evidence Map}
+\label{sec:underwriting_map}
+
+Table~\ref{tab:underwriting_evidence} maps each dimension of the Sovereign AI Scorecard to its corresponding insurance underwriting category and the expected premium impact of a strong technical score, based on emerging actuarial frameworks from the 2025--2026 AI insurance market.
+
+\begin{table}[ht]
+\centering
+\caption{Sovereign AI Scorecard as Actuarial Underwriting Evidence: mapping technical scores to insurance underwriting categories and indicative premium impact.}
+\label{tab:underwriting_evidence}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{2.9cm} p{3.6cm} p{3.6cm} p{2.2cm}}
+\toprule
+\textbf{Scorecard Dimension} & \textbf{Technical Evidence} & \textbf{Underwriting Category} & \textbf{Premium Impact} \\
+\midrule
+Privacy Guarantee &
+DP-SGD with $\varepsilon \leq 2.0$ (Ch.~5);\newline MIA resistance score &
+PII breach liability;\newline regulatory fine exposure &
+$-15\%$ to $-30\%$ \\
+
+Security Posture &
+TEE-protected inference (Ch.~9);\newline SBOM provenance (Ch.~24) &
+Cyber incident;\newline supply-chain breach &
+$-10\%$ to $-25\%$ \\
+
+Verifiability Score &
+ZK-ML fairness proof (Ch.~21);\newline ATTM gap score (Ch.~25) &
+Discrimination liability;\newline audit failure &
+$-20\%$ to $-35\%$ \\
+
+Alignment Rating &
+Constitutional AI + Emergency Brake\newline (Ch.~3, 23) &
+Autonomous agent liability;\newline bodily harm coverage &
+$-25\%$ to $-40\%$ \\
+
+Trust Debt Score &
+ATTM gap analysis (Ch.~25) &
+Overall policy deductible tier &
+$\pm 10\%$ per tier \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The Trust Debt Score as a Technical Credit Rating}
+\label{sec:trust-debt-rating}
+
+The \textbf{Trust Debt Score} functions, in the insurance context, as a \textbf{technical credit rating}---analogous to a FICO score for financial risk, but measuring the accumulated architectural liability of an AI deployment. A system with a high Trust Debt Score (many ATTM gaps unfilled, no formal verification, no DP guarantees) is actuarially equivalent to a building with no fire suppression: the exposure is observable, quantifiable, and directly priceable.
+
+The practical implication for architects is significant. A documented ATTM gap report (Chapter~\ref{chap:attm}) submitted at policy inception can:
+
+\begin{enumerate}
+  \item \textbf{Reduce the deductible tier} by demonstrating proactive, structured risk awareness to the underwriter.
+  \item \textbf{Unlock incident response coverage} for specific threat classes---Membership Inference Attacks, prompt injection, model inversion---whose mitigations are evidenced in the scorecard.
+  \item \textbf{Satisfy the pre-loss audit requirement}, replacing a bespoke third-party technical assessment with the standardized ATTM framework, reducing underwriting friction and cost.
+\end{enumerate}
+
+\begin{svgraybox}
+\textbf{Regulatory Precedent (2025--2026):} The UK Financial Conduct Authority (FCA) and the Monetary Authority of Singapore (MAS) jointly issued guidance requiring that AI systems used in regulated financial services maintain an auditable ``AI Risk Dossier'' as a condition of professional indemnity coverage. The RAV framework of this appendix, combined with the ATTM scorecard and the Sovereign AI Scorecard, constitutes a complete and compliant AI Risk Dossier under both jurisdictions.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
 \section{Conclusion: Trust as a Financial Instrument}
 \label{sec:app-conclusion}
 % ------------------------------------------------------------------

@@ -1340,6 +1340,68 @@ Consider a 2026 autonomous triage system deployed in a Vietnamese rural clinic. 
 \end{itemize}
 
 % ------------------------------------------------------------------
+\section{Designing for Informed Consent in Agentic Systems}
+\label{sec:informed_consent_ux}
+% ------------------------------------------------------------------
+
+The Trust Dashboards of Section~\ref{sec:trust-dashboards} address interfaces for \emph{expert operators}---clinicians, financial supervisors, civic administrators---who possess domain knowledge sufficient to interpret a conformal prediction set or an uncertainty flag. However, the Social Trust pillar of the Trustworthy AI Stack rests on a second, equally critical audience: the \textbf{end-user}, the non-technical consumer whose personal data fuels the system and whose rights the mathematical guarantees of this book protect.
+
+The challenge is acute. A $(\varepsilon, \delta)$-Differential Privacy guarantee is meaningless to a user who has never encountered calculus. A confirmation that ``your data has been unlearned from the model weights'' (Chapter~\ref{chap:unlearning}) is legally insufficient if the user cannot verify or understand what it means. Under \textbf{GDPR Article 7} and \textbf{EU AI Act Article 13}, consent must be ``freely given, specific, informed, and unambiguous''---a standard requiring cognitive accessibility, not merely legal disclosure.
+
+\subsection{The Expert-to-Consumer Translation Layer}
+\label{sec:translation_layer}
+
+The Trustworthy AI Architect must design an \textbf{Expert-to-Consumer Translation Layer} that renders mathematical privacy properties into cognitively accessible, legally sufficient plain-language representations. Table~\ref{tab:consent_translation} provides the canonical translation map for the four primary guarantees of this book.
+
+\begin{table}[ht]
+\centering
+\caption{Expert-to-Consumer Translation Layer: mapping technical privacy guarantees to plain-language consent representations and their legal anchors.}
+\label{tab:consent_translation}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{3.5cm} p{4.8cm} p{4.0cm}}
+\toprule
+\textbf{Technical Guarantee} & \textbf{Plain-Language Representation} & \textbf{Legal Anchor} \\
+\midrule
+$\varepsilon$-DP ($\varepsilon \leq 1.0$) &
+``Your data cannot be identified from our AI, even if an attacker already knows everything about you.'' &
+GDPR Art.~25 (Privacy by Design); EU AI Act Art.~9 \\
+
+Machine Unlearning (Ch.~\ref{chap:unlearning}) &
+``We have removed your data's influence from our AI. Your information no longer affects any of its predictions. We can prove this mathematically.'' &
+GDPR Art.~17 (Right to Erasure); PDPD Art.~9 \\
+
+Conformal Prediction Handover &
+``Our AI is uncertain about this answer. A human expert will review it before any decision is made that affects you.'' &
+EU AI Act Art.~14 (Human Oversight); PDPD Art.~26 \\
+
+ZK-ML Fairness Proof (Ch.~\ref{chap:zkml}) &
+``An independent mathematical proof confirms our AI does not treat you differently because of your age, gender, or background.'' &
+EU AI Act Art.~10 (Data Governance); GDPR Art.~22 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Three Principles for Agentic Consent UX}
+\label{sec:consent_ux_principles}
+
+Informed consent for agentic systems differs structurally from static consent checkboxes. An agent that acts autonomously over time---booking appointments, executing transactions, generating clinical notes---requires a \textbf{dynamic consent model}. Three design principles govern this:
+
+\begin{description}
+  \item[Principle 1: Contextual Consent, Not Blanket Consent.]
+    A single ``I agree to all AI processing'' checkbox is legally insufficient under GDPR Article 7 and cognitively deceptive. The architect must implement \textbf{purpose-specific consent gates}: a medical triage agent must request separate consent for (a) acute diagnosis assistance, (b) longitudinal health tracking, and (c) anonymized research contribution. Each purpose must be independently revocable without affecting the others.
+
+  \item[Principle 2: Privacy-Budget Traffic Lights.]
+    For systems with a finite privacy budget ($\varepsilon_{\text{total}}$), expose budget status to the user as a \textbf{three-state visual indicator}: \textit{Green} ($\varepsilon_{\text{consumed}} < 0.5\,\varepsilon_{\text{total}}$), \textit{Amber} ($0.5$--$0.8\,\varepsilon_{\text{total}}$), and \textit{Red} (${>}\,0.8\,\varepsilon_{\text{total}}$). At Red, the agent must notify the user that further queries will consume the remaining budget and offer a ``Privacy Pause'' option. This transforms an abstract mathematical limit into a tangible, user-controlled resource.
+
+  \item[Principle 3: Verifiable Unlearning Receipts.]
+    When a user invokes the Right to be Forgotten (Chapter~\ref{chap:unlearning}), the system must issue a \textbf{Machine Unlearning Receipt}: a timestamped, cryptographically signed confirmation (using the agent's DID from Chapter~\ref{chap:agents}) that the unlearning protocol was executed on a specific model version. The receipt must be human-readable (plain-language summary), machine-verifiable (hash of pre- and post-unlearning model checkpoints), and legally admissible (signed by the data controller's DID).
+\end{description}
+
+\begin{svgraybox}
+\textbf{Design Benchmark (2026):} The EU AI Act's standardization body (CEN-CENELEC) has proposed that High-Risk AI systems must achieve a \textbf{Consent Comprehension Score} of at least 80\% in a standardized user study with non-technical participants before receiving market authorization. Architects must design consent interfaces that pass this test---not merely legal review.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
 \section{Full-Stack Blueprint: Trustworthy Civic AI Governance}
 \label{sec:blueprint_civic_ai}
 % ------------------------------------------------------------------
