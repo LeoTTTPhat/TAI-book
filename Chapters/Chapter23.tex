@@ -2014,6 +2014,54 @@ Together, these three mechanisms provide the Verifiable Architecture that
 the 2026 multi-agent ecosystem demands.
 
 % ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Verifiable Autonomous Procurement Agent}
+\label{sec:blueprint_procurement_agent}
+% ------------------------------------------------------------------
+
+To conclude Part VI, we synthesize the three Verifiable Architecture techniques---ZK-ML proofs, Formal Verification, and Agentic AI Governance---into a single \textbf{Full-Stack Blueprint} for a corporate supply-chain subsidiary deploying an autonomous procurement agent. This blueprint directly addresses the ``Body-Snatching'' vulnerability explored in the Practitioner's Challenge below.
+
+In this architecture, every high-value transaction initiated by the agent is bound to a \textbf{W3C Decentralized Identifier (DID)} carrying the agent's certified model hash and constitution hash (Security Layer). Before any payment API call is executed, the agent generates a \textbf{Zero-Knowledge Proof} confirming that the intended transaction falls within its authorized budget envelope---without revealing the full procurement plan (Privacy Layer, Chapter 21). The payment gateway validates the transaction against a set of \textbf{Formally Verified spending constraints} proved in Dafny (Verifiability Layer, Chapter 22): amount $\leq$ limit, supplier $\in$ approved set. If the ZK-proof passes but the \textbf{Constitutional Policy Engine} (Alignment Layer, Chapter 23) detects a misalignment with the agent's constitution---such as a supplier flagged by an indirect prompt injection---the \textbf{Emergency Brake} halts the transaction and escalates to a human supervisor, breaking the hijack chain.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.6cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (did)    [sec_box, text width=5.8cm]
+    {\textbf{1. DID-Bound Agent Identity}\\(Security Layer, W3C DID)\\
+     Certified model hash + constitution hash\\defeats Body-Snatching};
+
+\node (zk)     [priv_box, right=2.6cm of did, text width=5.8cm]
+    {\textbf{2. ZK-Proof of Authorization}\\(Privacy Layer, Ch.~21)\\
+     Transaction $\in$ budget envelope\\without revealing full plan};
+
+\node (formal) [ver_box, below=1.5cm of zk, text width=5.8cm]
+    {\textbf{3. Formally Verified Constraint}\\(Verifiability Layer, Ch.~22)\\
+     Dafny invariants: amount $\leq$ limit\\supplier $\in$ approved set};
+
+\node (const)  [align_box, below=1.5cm of did, text width=5.8cm]
+    {\textbf{4. Constitutional Policy Engine}\\(Alignment Layer, Ch.~23)\\
+     Misalignment flag $\Rightarrow$ Emergency Brake\\human supervisor escalation};
+
+\draw [arrow] (did.east)    -- node[above, font=\scriptsize] {Identity token} (zk.west);
+\draw [arrow] (zk.south)    -- node[right, font=\scriptsize] {ZK-proof} (formal.north);
+\draw [arrow] (formal.west) -- node[above, font=\scriptsize] {Constraint result} (const.east);
+\draw [arrow] (did.south)   -- node[left,  font=\scriptsize] {Constitution hash} (const.north);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part VI): A verifiable autonomous procurement agent integrating DID-bound agent identity (Security), ZK-proof authorization (Privacy), formally verified spending constraints in Dafny (Verifiability), and a constitutional policy engine with Emergency Brake (Alignment).}
+\label{fig:blueprint_procurement_agent}
+\end{figure}
+
+% ------------------------------------------------------------------
 \section{From the Trenches: Practitioner's Challenge}
 \label{sec:ch23_challenge}
 % ------------------------------------------------------------------

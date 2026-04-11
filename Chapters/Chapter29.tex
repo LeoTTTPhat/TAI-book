@@ -24,6 +24,54 @@ The roadmap for the next decade is defined by three primary convergences:
         Protecting the holistic privacy of systems that see, hear, and read simultaneously (Chapter 18), ensuring that cross-modal leakage does not create new vulnerabilities.
 \end{description}
 
+% ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Enterprise AI Lifecycle Governance}
+\label{sec:blueprint_lifecycle}
+% ------------------------------------------------------------------
+
+To conclude Part VII---and the book itself---we present the most comprehensive \textbf{Full-Stack Blueprint}: an enterprise-grade AI lifecycle governance system for a fintech firm operating a production credit-risk model. This blueprint is the capstone integration of all seven Parts, showing how each pillar of the Trustworthy AI Stack operates in the context of a real production system over its full deployment lifetime.
+
+The lifecycle begins with \textbf{SBOM-verified model provenance} (Security Layer, Chapter 24): every weight file, training dataset hash, and dependency is recorded in a Software Bill of Materials before the model enters the pipeline, preventing the ``Phantom Model'' attack. The model then passes through the \textbf{ATTM gap analysis} (Verifiability Layer, Chapter 25), which generates a structured gap report across all 17 threat categories of the AI Trust Threat Matrix. The Privacy Layer deploys \textbf{Continuous DP Budget Monitoring} via a Trustworthy MLOps pipeline (Chapter 26), raising an automated alert if data drift causes the effective privacy expenditure $\varepsilon_{\text{actual}}$ to exceed the regulator-approved limit. Finally, the Alignment Layer enforces a \textbf{Global Compliance Checkpoint} (Chapter 27)---validating against GDPR Article 22, EU AI Act Article 9, and Vietnam Decree 13---and feeds into a \textbf{Quantum-Readiness Roadmap} (Chapters 14 and 29) that tracks the migration timeline from classical to post-quantum cryptographic primitives.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.8cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (sbom)   [sec_box, text width=5.8cm]
+    {\textbf{1. SBOM + Model Provenance}\\(Security Layer, Ch.~24)\\
+     Weight hash + dataset manifest\\+ dependency graph};
+
+\node (attm)   [ver_box, right=2.8cm of sbom, text width=5.8cm]
+    {\textbf{2. ATTM Gap Analysis}\\(Verifiability Layer, Ch.~25)\\
+     17-category threat scorecard\\(automated gap report)};
+
+\node (dpmon)  [priv_box, below=1.5cm of sbom, text width=5.8cm]
+    {\textbf{3. Continuous DP Budget Monitor}\\(Privacy Layer, Ch.~26)\\
+     MLOps alert if $\varepsilon_{\text{actual}} > \varepsilon_{\text{limit}}$\\(data drift detection)};
+
+\node (comply) [align_box, below=1.5cm of attm, text width=5.8cm]
+    {\textbf{4. Global Compliance + Quantum Roadmap}\\(Alignment Layer, Ch.~27--29)\\
+     GDPR / EU AI Act / Decree 13 checkpoint\\+ PQC migration tracker};
+
+\draw [arrow] (sbom.east)   -- node[above, font=\scriptsize] {Provenance record} (attm.west);
+\draw [arrow] (sbom.south)  -- node[left,  font=\scriptsize] {Live pipeline} (dpmon.north);
+\draw [arrow] (attm.south)  -- node[right, font=\scriptsize] {Gap report} (comply.north);
+\draw [arrow] (dpmon.east)  -- node[above, font=\scriptsize] {DP alert} (comply.west);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part VII): An enterprise AI lifecycle governance system integrating SBOM model provenance (Security), ATTM gap analysis (Verifiability), continuous DP budget monitoring via MLOps (Privacy), and a global compliance checkpoint with a post-quantum readiness roadmap (Alignment).}
+\label{fig:blueprint_lifecycle}
+\end{figure}
+
 \section{Vietnam and ASEAN: Leading from the Middle}
 \label{sec:asean_vision}
 

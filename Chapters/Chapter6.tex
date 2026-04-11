@@ -70,6 +70,58 @@ Data Poisoning occurs during the training phase. An attacker injects malicious s
 \textbf{Research Insight (ACOMP 2020) \cite{trantruong2020}:} Early research by Tran-Truong et al. on poisoning attacks found that even a poisoning rate of less than 5 percent can significantly degrade model accuracy or introduce specific "backdoors." For example, a poisoned fraud model could be trained to ignore all transactions from a specific attacker's account while appearing perfectly normal for all other queries.
 \end{svgraybox}
 
+% ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Secure Medical Research Data Pipeline}
+\label{sec:blueprint_medical_research}
+% ------------------------------------------------------------------
+
+To conclude Part II, we synthesize the three Privacy Engineering tools---k-Anonymity, Differential Privacy, and the attack landscape---into a single \textbf{Full-Stack Blueprint} for a multi-hospital cancer screening research consortium.
+
+In this pipeline, raw patient records are first sanitized through a \textbf{k-Anonymity pre-filter} ($k=10$), removing obvious quasi-identifiers that enable re-identification. The resulting dataset is then fed into a \textbf{DP-SGD training loop} with a carefully calibrated privacy budget ($\varepsilon = 2.0$, $\delta = 10^{-5}$) that injects Gaussian noise to defeat Membership Inference Attacks (Chapter 6). The Security Layer enforces \textbf{AES-256 encryption at rest} for the data lake. The Verifiability Layer maintains a \textbf{Privacy Budget Ledger}---an immutable log of every query and the epsilon consumed---ensuring the consortium can demonstrate regulatory compliance. Finally, the Alignment Layer gates every data release through an \textbf{Institutional Review Board (IRB) approval step}, closing the accountability loop before any research output leaves the system.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.0cm and 3.0cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (kanon) [priv_box, text width=5.5cm]
+    {\textbf{1. k-Anonymity Pre-filter}\\(Privacy Layer, $k=10$)\\
+     Suppresses quasi-identifiers};
+
+\node (dp)    [priv_box, below=1.2cm of kanon, text width=5.5cm]
+    {\textbf{2. DP-SGD Training Loop}\\(Privacy Layer, $\varepsilon{=}2.0$)\\
+     Gaussian noise injection};
+
+\node (enc)   [sec_box, below=1.2cm of dp, text width=5.5cm]
+    {\textbf{3. Encrypted Data Lake}\\(Security Layer, AES-256)\\
+     Data-at-rest protection};
+
+\node (ledger) [ver_box, right=3cm of kanon, text width=5.5cm]
+    {\textbf{4. Privacy Budget Ledger}\\(Verifiability Layer)\\
+     Immutable $\varepsilon$-query audit log};
+
+\node (irb)   [align_box, right=3cm of enc, text width=5.5cm]
+    {\textbf{5. IRB Approval Gate}\\(Alignment Layer)\\
+     Human ethical review\\before data release};
+
+\draw [arrow] (kanon.south) -- (dp.north);
+\draw [arrow] (dp.south)    -- (enc.north);
+\draw [arrow] (dp.east)     -- node[above, font=\scriptsize] {Logs $\varepsilon$ consumed} (ledger.west);
+\draw [arrow] (enc.east)    -- node[above, font=\scriptsize] {Release request} (irb.west);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part II): A privacy-preserving medical research pipeline integrating k-Anonymity pre-filtering, DP-SGD noise calibration ($\varepsilon{=}2.0$), AES-256 encrypted storage, an immutable Privacy Budget Ledger, and an IRB approval gate.}
+\label{fig:blueprint_medical_research}
+\end{figure}
+
 \section{Conclusion}
 \label{sec:conclusion_attacks}
 

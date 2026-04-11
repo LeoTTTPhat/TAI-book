@@ -54,6 +54,54 @@ The update with the lowest score (the one most typical of the group) is selected
 \textbf{The Architect's Dilemma:} There is a fundamental conflict between \textbf{Secure Aggregation} (which hides individual updates from the server to protect privacy) and \textbf{Robust Aggregation} (which requires the server to inspect or sort individual updates to detect malicious ones). If the updates are cryptographically masked, the server cannot see which one is an outlier. This "Privacy-Integrity" trade-off is a core area of ongoing research and a critical design decision for any secure distributed system.
 \end{svgraybox}
 
+% ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Cross-Border Federated Fraud Detection}
+\label{sec:blueprint_federated_fraud}
+% ------------------------------------------------------------------
+
+To conclude Part III, we synthesize the four Secure Distributed Systems pillars---Federated Learning, Secure Aggregation, Hardware-Rooted Trust, and Robust Aggregation---into a single \textbf{Full-Stack Blueprint} for a Southeast Asian bank consortium building a shared fraud detection model without pooling customer transaction data.
+
+In this architecture, each bank operates a \textbf{TEE-protected FL client} (Chapter 9), where local gradient updates are computed inside an Intel SGX enclave, ensuring the host bank's own infrastructure cannot observe the raw gradients. Before transmission, each update is processed through a \textbf{Secure Aggregation protocol} combining MPC masking and DP-SGD noise (Chapter 8), so the central server receives only the masked, privacy-calibrated aggregate. The central server then applies \textbf{Byzantine-Krum filtering} (Chapter 10) to discard outlier updates from potentially compromised participants. A \textbf{Central Bank Regulator Audit Interface} (the Alignment Layer) receives a per-round summary of which participants were flagged as anomalies, ensuring human oversight of the distributed learning process without exposing individual bank data.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm and 2.6cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (tee)    [sec_box, text width=5.8cm]
+    {\textbf{1. TEE-Protected FL Clients}\\(Security Layer, Intel SGX)\\
+     Local training inside enclave\\(gradients private from host OS)};
+
+\node (secagg) [priv_box, right=2.6cm of tee, text width=5.8cm]
+    {\textbf{2. SecAgg + DP-SGD}\\(Privacy Layer)\\
+     MPC masking + Gaussian noise\\($\varepsilon{=}3.0$ per round)};
+
+\node (robust) [ver_box, below=1.5cm of secagg, text width=5.8cm]
+    {\textbf{3. Byzantine-Krum Filter}\\(Verifiability Layer)\\
+     Outlier gradient rejection\\(Trimmed Mean fallback)};
+
+\node (reg)    [align_box, below=1.5cm of tee, text width=5.8cm]
+    {\textbf{4. Central Bank Audit Interface}\\(Alignment Layer)\\
+     Per-round anomaly report\\(human regulator oversight)};
+
+\draw [arrow] (tee.east)    -- node[above, font=\scriptsize] {Masked updates} (secagg.west);
+\draw [arrow] (secagg.south)-- node[right, font=\scriptsize] {Aggregated gradient} (robust.north);
+\draw [arrow] (robust.west) -- node[above, font=\scriptsize] {Anomaly flags} (reg.east);
+\draw [arrow] (tee.south)   -- node[left,  font=\scriptsize] {Round report} (reg.north);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part III): A cross-border federated fraud detection network integrating TEE-protected client training (Security), DP-SGD + SecAgg privacy (Privacy), Byzantine-Krum outlier filtering (Verifiability), and a Central Bank audit interface (Alignment).}
+\label{fig:blueprint_federated_fraud}
+\end{figure}
+
 \section{Conclusion}
 \label{sec:conclusion_robustness}
 

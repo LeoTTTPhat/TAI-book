@@ -37,6 +37,53 @@ To protect the immersive boundary, we must implement:
     \item \textbf{On-Device Spatial Filtering:} Ensuring that 3D mapping data is processed entirely within a Hardware-Rooted TEE (Chapter 9) and that only "low-fidelity" navigation results are exposed to the application layer.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Trustworthy Clinical LLM Documentation Assistant}
+\label{sec:blueprint_clinical_llm}
+% ------------------------------------------------------------------
+
+To conclude Part V, we synthesize the four Generative AI safety pillars---LLM guardrails, multimodal privacy, machine unlearning, and spatial contextual integrity---into a single \textbf{Full-Stack Blueprint} for a hospital deploying an LLM assistant for clinical documentation.
+
+In this system, a doctor's voice input passes first through a \textbf{Prompt Injection Guard and PII Sanitizer} (Security Layer, Chapter 17), which strips Protected Health Information identifiers and blocks adversarial instruction injections before they reach the model context. A \textbf{Differentially Private Retrieval-Augmented Generation (DP-RAG)} system (Privacy Layer, Chapter 17) fetches relevant clinical knowledge while ensuring no individual patient record is surfaced in the context window without authorization. The LLM generates a draft note, which is scored by a \textbf{Hallucination Confidence Engine} and stamped with a \textbf{C2PA output watermark} (Verifiability Layer, Chapter 16). If the confidence score falls below the clinical threshold $\tau_{\text{clinical}}$, the \textbf{Constitutional AI Guardrail} (Alignment Layer, Chapter 17) triggers the \textbf{Uncertainty Handover Panel} (Chapter 3), routing the note to a senior physician rather than risking an unchecked hallucination in a medical record.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.5cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (guard)  [sec_box, text width=7.5cm]
+    {\textbf{1. Prompt Guard + PII Sanitizer}\\(Security Layer, Ch.~17)\\
+     Blocks injection attacks; strips PHI identifiers};
+
+\node (dprag)  [priv_box, below=of guard, text width=7.5cm]
+    {\textbf{2. DP-RAG Knowledge Retrieval}\\(Privacy Layer, Ch.~17)\\
+     $\varepsilon$-private context fetch --- no individual record memorized};
+
+\node (halluc) [ver_box, below=of dprag, text width=7.5cm]
+    {\textbf{3. Hallucination Scorer + C2PA Watermark}\\(Verifiability Layer, Ch.~16)\\
+     Confidence $p \in [0,1]$ + cryptographic output provenance};
+
+\node (const)  [align_box, below=of halluc, text width=7.5cm]
+    {\textbf{4. Constitutional Guardrail + Handover Panel}\\(Alignment Layer, Ch.~17)\\
+     If $p < \tau_{\text{clinical}}$: route to senior physician\\(Uncertainty Handover, Ch.~3)};
+
+\draw [arrow] (guard.south)  -- node[right, font=\scriptsize] {Sanitized prompt} (dprag.north);
+\draw [arrow] (dprag.south)  -- node[right, font=\scriptsize] {LLM draft output} (halluc.north);
+\draw [arrow] (halluc.south) -- node[right, font=\scriptsize] {Scored + watermarked note} (const.north);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part V): A trustworthy clinical LLM documentation assistant integrating prompt injection guards (Security), DP-RAG privacy (Privacy), hallucination scoring with C2PA watermarking (Verifiability), and constitutional guardrails with uncertainty handover (Alignment).}
+\label{fig:blueprint_clinical_llm}
+\end{figure}
+
 \section{Conclusion}
 \label{sec:conclusion_metaverse}
 

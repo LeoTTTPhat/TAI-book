@@ -1339,6 +1339,53 @@ Consider a 2026 autonomous triage system deployed in a Vietnamese rural clinic. 
     \item \textbf{Verification:} Every triage decision is recorded with a ZK-proof that verifies the model was executed correctly against the clinic's authorized safety weights from the Ministry of Health.
 \end{itemize}
 
+% ------------------------------------------------------------------
+\section{Full-Stack Blueprint: Trustworthy Civic AI Governance}
+\label{sec:blueprint_civic_ai}
+% ------------------------------------------------------------------
+
+To conclude Part I, we synthesize the three foundational pillars---the 2026 Vision, Contextual Integrity, and Human Agency---into a single governance-level \textbf{Full-Stack Blueprint}. This diagram maps how a Smart City AI service router, such as those proposed for Hanoi's administrative digitization initiative, must coordinate all four Trust Pillars before issuing a single civic recommendation.
+
+In this architecture, a citizen's service request first passes through a \textbf{Contextual Integrity Gate} (Chapter 2), which verifies that the data flow is contextually appropriate: a request for traffic routing must never cascade into political profiling. The Privacy Layer enforces \textbf{Data Minimization}---only the attributes strictly necessary for the decision are forwarded downstream. Every AI decision is committed to a \textbf{Tamper-Evident Audit Log} (the Verifiability Layer), enabling post-hoc accountability. Finally, the Alignment Layer surfaces any ambiguous decision to the \textbf{Human-in-Command (HiC) Dashboard} (Chapter 3), where a civic supervisor holds the Emergency Brake authority.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.6cm,
+    font=\small,
+    layer_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.2cm},
+    align_box/.style={layer_box, fill=purple!10, draw=purple!80!black},
+    priv_box/.style={layer_box,  fill=blue!10,   draw=blue!80!black},
+    sec_box/.style={layer_box,   fill=red!10,    draw=red!80!black},
+    ver_box/.style={layer_box,   fill=green!10,  draw=green!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (ci)   [sec_box,  text width=7cm]
+    {\textbf{1. Contextual Integrity Gate}\\(Security Layer)\\
+     Blocks cross-context data flow\\(traffic data $\not\to$ political profiling)};
+
+\node (priv) [priv_box, below=of ci, text width=7cm]
+    {\textbf{2. Data Minimization Engine}\\(Privacy Layer)\\
+     Forwards only task-relevant attributes\\(Purpose Limitation Filter)};
+
+\node (ver)  [ver_box, below=of priv, text width=7cm]
+    {\textbf{3. Tamper-Evident Audit Log}\\(Verifiability Layer)\\
+     Hash-chained decision records\\(post-hoc accountability)};
+
+\node (hic)  [align_box, below=of ver, text width=7cm]
+    {\textbf{4. Human-in-Command Dashboard}\\(Alignment Layer)\\
+     Conformal uncertainty flag $\to$ Emergency Brake\\(civic supervisor override)};
+
+\draw [arrow] (ci.south)   -- node[right, font=\scriptsize] {Approved context} (priv.north);
+\draw [arrow] (priv.south) -- node[right, font=\scriptsize] {Minimized data} (ver.north);
+\draw [arrow] (ver.south)  -- node[right, font=\scriptsize] {Audited decision} (hic.north);
+
+\end{tikzpicture}
+\caption{Full-Stack Blueprint (Part I): A Trustworthy Civic AI governance stack showing how Contextual Integrity gating, Data Minimization, Tamper-Evident Audit Logging, and Human-in-Command controls integrate into a single service router for a smart city.}
+\label{fig:blueprint_civic_ai}
+\end{figure}
+
 \section{Conclusion of Part I}
 \label{sec:conclusion_part1}
 
