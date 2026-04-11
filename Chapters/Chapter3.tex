@@ -1,0 +1,66 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Socio-Technical Trust and Human Agency
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Trust is not a mathematical proof; it is a shared expectation between human and machine. In the agentic era, accountability requires a clear hand on the steering wheel.}
+
+\chapter{Socio-Technical Trust and Human Agency}
+\label{chap:hitl}
+
+\abstract{True trustworthiness exists at the intersection of technical reliability and human agency. By 2026, the industry has realized that a system providing perfectly private answers remains a failure if it lacks "Social Legibility" and a clear hierarchy of control. This chapter explores the evolution of Socio-Technical Trust, specifically the regulatory and architectural shift toward Human-on-the-Loop (HOTL) and Human-in-Command (HiC) models. We analyze the technical implementation of "The Emergency Brake," explore the move toward rigorous Conformal Prediction for uncertainty quantification, and provide a 2026 case study on autonomous healthcare triage.}
+
+\section{The Interdependency of Trust}
+\label{sec:interdependency_trust}
+
+In 2026, the "Trust Gap" has become the primary bottleneck for AI adoption. This gap is the distance between what an autonomous agent \textit{can} do and what a human operator \textit{understands} it is doing. We have moved beyond the "Black Box" era into one where **Social Legibility** is a technical requirement.
+
+Trust is highest when two layers are harmonized:
+\begin{description}
+  \item[Technical Trust:] The model's inherent stability, resilience, and mathematical privacy guarantees (e.g., $\epsilon$-DP, robust recovery).
+  \item[Social Trust:] The presence of "Institutional Backstops"---regulations, audit trails, and the assurance that a human or organization remains responsible for the agent's actions.
+\end{description}
+
+\section{HITL, HOTL, and Human-in-Command (HiC)}
+\label{sec:agency_spectrum}
+
+The 2026 regulatory environment, specifically Vietnam's AI Law and the updated NIST framework, defines a spectrum of human agency that architects must implement:
+
+\begin{description}
+  \item[Human-in-the-Loop (HITL):] Active human participation in every decision (e.g., a doctor approving every individual prescription from an AI).
+  \item[Human-on-the-Loop (HOTL):] The agent acts autonomously, but a human monitors the stream and can intervene or override in real-time.
+  \item[Human-in-Command (HiC):] A high-level governing requirement where humans set the boundaries, constitutional constraints, and "Emergency Brakes" within which the agent operates.
+\end{description}
+
+Architecturally, the **Emergency Brake Pattern** is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
+
+\section{Calibrated Confidence \& Conformal Prediction}
+\label{sec:uncertainty_handover}
+
+A trustworthy agent must not only be accurate but also "self-aware." We have moved past simple softmax probabilities, which were prone to "Confident Hallucinations," toward \textbf{Conformal Prediction} \cite{ouyang2022}. By integrating human feedback directly into the model"s behavioral policy through techniques like **Reinforcement Learning from Human Feedback (RLHF)** \cite{ouyang2022}, we create a system that is fundamentally aligned with human agency.
+
+Conformal Prediction provides a mathematical framework for generating prediction sets that are guaranteed to contain the true value with a pre-specified probability (e.g., $95 percent$). When the prediction set grows too large (indicating high ambiguity), the agent initiates an **Uncertainty Handover**, passing the decision to a human expert.
+
+\section{Socio-Technical Oversight Architecture}
+\label{sec:oversight_arch}
+
+Designing for oversight requires addressing the "Multi-Stakes Pattern," where the interests of the Subject, the Architect, and the Auditor must be balanced. Key components include:
+\begin{itemize}
+    \item \textbf{Verifiable Audit Trails:} Using immutable ledgers or Zero-Knowledge logs to record agent actions without exposing raw sensitive training data.
+    \item \textbf{Cognitive Ergonomics:} Reducing "AI Noise" by filtering agent logs into a human-readable **Trust Dashboard** that highlights only the most critical decision-branches for review.
+\end{itemize}
+
+\section{Case Study: Agentic Healthcare Triage}
+\label{sec:healthcare_triage}
+
+Consider a 2026 autonomous triage system deployed in a Vietnamese rural clinic. The system handles initial patient intake:
+\begin{itemize}
+    \item \textbf{Autonomy:} It processes vitals and medical history using a localized SLM.
+    \item \textbf{The Handover:} Using conformal prediction, if a patient's symptoms are outside its high-confidence training distribution, it flags the file for an "Urgent Human Review."
+    \item \textbf{Verification:} Every triage decision is recorded with a ZK-proof that verifies the model was executed correctly against the clinic's authorized safety weights from the Ministry of Health.
+\end{itemize}
+
+\section{Conclusion of Part I}
+\label{sec:conclusion_part1}
+
+The Strategic Vision \& Foundations of Trustworthy AI are now complete. We have the **2026 Vision** (Chapter 1), the **Sociotechnical Norms** (Chapter 2), and the **Human Agency Framework** (Chapter 3). 
+
+We have established that trust is built on four action-oriented pillars: Security, Privacy, Verifiability, and Alignment. In Part II, we descend from these high-level philosophies into the rigorous technical landscape of \textbf{Privacy Engineering \& Data Defense}, beginning with the classical methods that formed the bedrock of early privacy technology.

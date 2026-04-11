@@ -1,0 +1,65 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 23 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Agentic AI Governance: Privacy for Autonomous Systems
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{In the transition from AI as a tool to AI as an agent, the most critical architectural component is the governance of its autonomy.}
+
+\chapter{Agentic AI Governance: Privacy for Autonomous Systems}
+\label{chap:agentic_governance}
+
+\abstract{The evolution of AI from passive predictors to autonomous agents introduces a new dimension of risk. Agentic AI systems can plan multi-step tasks, interact with external APIs, and maintain long-term memory, creating vulnerabilities in context accumulation and tool authorization. This chapter defines the unique threat landscape of agentic systems and proposes a "Safe Agent Architecture" that orchestrates existing defenses---such as sandboxed execution and ZK-audit logging---into a coherent governance framework. We emphasize the transition Toward systems that are not only intelligent but also strictly constrained by architectural guardrails.}
+
+\section{From Tools to Agents}
+\label{sec:tools_to_agents_ch21}
+
+For most of this book, we have treated AI primarily as a high-dimensional tool: the user provides an input, and the model provides an output. However, the paradigm is shifting toward \textbf{Agentic AI}. These systems do not just predict; they plan, they interact with external tools (browsers, code executors, databases), and they act autonomously toward long-term goals.
+
+As an AI system gains the ability to "act" in the digital world, the consequences of a privacy breach or a security failure become proactive rather than reactive. If an agent is compromised, it can proactively exfiltrate data or perform harmful actions across multiple connected services.
+
+\section{Unique Risks of Agentic AI}
+\label{sec:agentic_risks_ch21}
+
+The Trustworthy AI Architect must address three new categories of risk:
+
+\begin{description}
+  \item[Context Accumulation:] 
+        Agents often maintain long-term memory across sessions. A user might share sensitive information in one context that the agent later inadvertently uses or reveals in a completely different, unauthorized context.
+  \item[Autonomous Tool Use:]
+        Agents can call external APIs. A malicious or misconfigured agent could be manipulated via prompt injection to send proprietary data to an external server under the guise of an authorized tool call.
+  \item[Goal Misalignment:]
+        Autonomous agents prioritize goal achievement. If the "constitution" of the agent is not mathematically aligned with the architect's values, the agent might take efficient but harmful shortcuts to reach its objective.
+\end{description}
+
+\section{The Safe Agent Architecture}
+\label{sec:safe_agent_arch_ch21}
+
+To govern autonomy, we must orchestrate our existing defensive primitives into a coherent loop. A trustworthy agent architecture must include:
+
+\begin{enumerate}
+    \item \textbf{Encrypted and Noisy Memory:} Using Differential Privacy to ensure that long-term memory stores abstract patterns rather than specific sensitive records.
+    \item \textbf{Sandboxed Tool Registry:} Ensuring that all external actions (API calls, code execution) happen in isolated environments with strictly whitelisted permissions.
+    \item \textbf{ZK-Audit Logging:} Using Zero-Knowledge proofs to log agent actions verifiably, allowing an auditor to check that the agent followed its "constitution" without revealing the sensitive data processed during the actions.
+\end{enumerate}
+
+\section{Constitutional Alignment: Programming the Soul of the Agent}
+\label{sec:constitutional_alignment}
+
+To ensure that autonomous agents remain "strictly constrained by architectural guardrails," we move beyond simple instruction-following toward **Constitutional AI** \cite{bai2022}. This framework ensures that an agent's multi-step planning and tool use are governed by a foundational "Constitution"---a set of hard-coded ethical principles and behavioral norms.
+
+\subsection{Reinforcement Learning from AI Feedback (RLAIF)}
+The technical implementation of Constitutional AI relies on **RLAIF**. Unlike traditional RLHF \cite{ouyang2022}, which requires humans to label millions of agent behaviors, RLAIF uses a "Critic Model" to evaluate the agent's actions against the written Constitution:
+\begin{enumerate}
+    \item \textbf{Supervised Stage (Critique):} The agent generates multiple potential plans for a task. The Critic Model analyzes these plans and identifies violations of Constitutional principles (e.g., "Do not access unauthorized user directories").
+    \item \textbf{Reinforcement Stage:} The Critic's feedback is used to train a preference model \cite{bai2022}, which then fine-tunes the original agent using Proximal Policy Optimization (PPO).
+\end{enumerate}
+
+\subsection{The Constitution-as-a-Policy Framework}
+For a Trustworthy AI Architect, the Constitution is not a vague legal document but a **Policy Asset**. We implement this as a set of **Datalog-style constraints** or **Formal Logic Predicates** that are checked before any tool call is authorized. If an agent"s plan violates a predicate (e.g., attempting a cross-border \$10K transfer without secondary TEE-verification), the "Emergency Brake Pattern" (introduced in Chapter 3) is automatically triggered.
+
+By "Programming the Soul" of the agent through RLAIF and formal predicates, we ensure that as the agent gains autonomy, it also gains architectural accountability.
+
+\section{Conclusion}
+\label{sec:conclusion_agentic_ch21}
+
+Agentic AI requires us to look beyond the model's weights and toward the \textbf{governance of its agency}. By building systems that are constrained by design and verifiable by default, we can safely deploy autonomous AI in high-stakes environments. In the final chapters of this book, we synthesize these technical lessons into a roadmap for architectural fitness and a vision for the future of AI Safety.
+
+

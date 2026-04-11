@@ -1,0 +1,45 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 20 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Privacy in the Metaverse: Spatial & Immersive Trust
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{In the metaverse, your privacy is no longer just about your data; it is about the integrity of your identity in multiple dimensions.}
+
+\chapter{Privacy in the Metaverse: Spatial \& Immersive Trust}
+\label{chap:metaverse_privacy}
+
+\abstract{As AI moves from flat screens into the three-dimensional "Metaverse" of Augmented and Virtual Reality (AR/VR), privacy risks become increasingly spatial and immersive. This chapter explores the unique vulnerabilities of immersive AI, from the tracking of "gaze" and biometrics to the risk of "spatial reconstruction attacks" where an adversary regenerates a user's private physical environment from sensor data. We propose a framework for Immersive Trust, emphasizing the use of on-device spatial processing and "privacy-preserving rendering" to ensure that as we build more realistic digital worlds, we do not sacrifice the sovereignty of our physical ones.}
+
+\section{The Shift beyond the Screen}
+\label{sec:metaverse_shift}
+
+While the preceding chapters have focused on traditional data types---text, images, and sensors---the rise of the Metaverse introduces a new class of \textbf{Immersive Data}. AR/VR devices don't just process what we type; they process where we look (gaze tracking), how we move (skeleton tracking), and the physical layout of our homes (spatial mapping).
+
+For the Trustworthy AI Architect, this is the ultimate challenge in Contextual Integrity. In a virtual world, the "context" is constant and total. An AI agent in the metaverse might know more about a user's subconscious reactions than the user themselves.
+
+\section{Spatial Reconstruction and Gaze Attacks}
+\label{sec:spatial_threats}
+
+Two primary immersive threats emerge:
+
+\begin{description}
+  \item[Spatial Reconstruction:] 
+        The ability of an adversary to use the sparse point-cloud mapping from an AR device to reconstruct high-fidelity 3D models of a user's private workspace or home, potentially exposing sensitive documents or layout blueprints.
+  \item[Gaze Leakage:]
+        Micro-movements of the eyes can be used by AI models to infer a user's interests, sexual orientation, or medical conditions (e.g., early signs of Parkinson's) without the user's explicit knowledge or consent.
+\end{description}
+
+\section{Architectural Defenses for the Metaverse}
+\label{sec:metaverse_defenses}
+
+To protect the immersive boundary, we must implement:
+
+\begin{enumerate}
+    \item \textbf{Local Differential Privacy for Gaze Data:} Adding noise to high-frequency eye-tracking data such that the model can understand the "general intent" of a gaze without capturing the individual's specific biometric signature.
+    \item \textbf{On-Device Spatial Filtering:} Ensuring that 3D mapping data is processed entirely within a Hardware-Rooted TEE (Chapter 9) and that only "low-fidelity" navigation results are exposed to the application layer.
+\end{enumerate}
+
+\section{Conclusion}
+\label{sec:conclusion_metaverse}
+
+Metaverse privacy represents the "spatialization" of trust. As we blur the lines between physical and digital reality, we must ensure that our privacy architectures are as immersive as the worlds they protect. This chapter concludes Part V. In Part VI, we take our final leap into the \textbf{Verifiable Architecture} that makes all these defenses accountable.
+
+

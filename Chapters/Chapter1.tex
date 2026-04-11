@@ -1,0 +1,76 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 1 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The Vision: Why Trustworthy AI Matters Now
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{In the age of autonomous agency, the defining question is no longer "What can the model say?" but "What is the agent allowed to do?"}
+
+\chapter{The Vision: Why Trustworthy AI Matters Now}
+\label{chap:vision}
+
+\abstract{The era of AI experimentation is over. By 2026, the industry has moved past the "Generation Hype" of the early 2020s and entered the era of autonomous agency and total accountability. This chapter establishes the high-stakes reality of the mission-critical AI Architect. We analyze the shift from chatbots to Large Action Models (LAMs), learn from the catastrophic trust failures of 2025, and map the 2026 regulatory landscape---including Vietnam's landmark AI Law. Finally, we define the four pillars of the modern Trustworthy AI Stack: Security, Privacy, Verifiability, and Alignment.}
+
+\section{The Great Shift: From Generation to Agency}
+\label{sec:generation_to_agency}
+
+In 2023, the world was mesmerized by the ability of Large Language Models to generate text. By 2026, however, the architectural focus has shifted to \textbf{Large Action Models (LAMs)}. We have bypassed Chatbots in favor of autonomous agents that execute financial transactions, manage complex APIs, and orchestrate critical infrastructure.
+
+This shift has created a \textbf{Visibility Crisis}. Currently, nearly 50\% of organizations cannot effectively monitor "Machine-to-Machine" (M2M) autonomous traffic. When an agent acts on behalf of a human, the traditional UI-based trust models collapse. Trust must now be built directly into the execution layer, not just the interface.
+
+\section{The ``Lessons Learned'' from the 2025 Crisis}
+\label{sec:crisis_2025}
+
+The urgency of this transition is grounded in the "Great Audit" of 2025. This year saw high-profile failures that permanently eroded public confidence:
+\begin{itemize}
+    \item \textbf{The McHire Security Breach:} An autonomous recruitment agent was manipulated via prompt injection to leak the PII of two million applicants.
+    \item \textbf{Deepfake-Enabled Corporate Fraud:} A CEO's agent was mimicked to authorize a \$50 million cross-border transfer, highlighting the failure of unverified agency.
+    \item \textbf{Hallucination-in-Healthcare:} Miscalibrated diagnostic agents emphasized accuracy over safety, leading to unrepresentative treatment recommendations for minority groups.
+\end{itemize}
+
+These incidents have turned AI from "Experimental Magic" into "Critical Infrastructure," demanding the same rigor we apply to bridges or power grids.
+
+\section{The Regulatory Landscape: Global and Local}
+\label{sec:regulation_2026}
+
+As of \textbf{March 1, 2026}, Vietnam's comprehensive AI Law has gone into effect, setting a global precedent for high-risk governance.
+
+\begin{description}
+  \item[The Risk-Based Model:] Vietnam's law classifies systems into Low, Medium, and High risk. High-risk systems (e.g., critical infrastructure, biometric ID) now require mandatory \textbf{Conformity Assessments} and formal verification before deployment \cite{vn-decree13}.
+  \item[International Alignment:] This framework aligns with the EU AI Act \cite{eu-ai-act} and the latest \textbf{NIST AI RMF (2026)} updates, creating a standardized "Global Passport" for trustworthy systems.
+\end{description}
+
+\section{Digital Sovereignty and Cultural Context}
+\label{sec:digital_sovereignty}
+
+Digital sovereignty is a core pillar of the 2026 strategy. Western-centric trust models often fail in the socio-technical environments of Southeast Asia. To protect national sovereignty, architects must prioritize:
+\begin{itemize}
+    \item \textbf{Localized Integrity:} Ensuring models respect local Vietnamese norms and are compliant with both the AI Law and the Vietnam PDPD.
+    \item \textbf{Sustainable (Green) AI:} The move toward resource-conscious, efficient trust models that align with Vietnam's 2026 national growth strategy for carbon neutrality.
+\end{itemize}
+
+\section{Defining the Trustworthy AI Stack}
+\label{sec:defining_stack}
+
+The Role of the Architect has evolved from a "Model Selector" to a "System Guardian." This guardian oversees a stack built on four action-oriented pillars:
+
+\begin{description}
+  \item[Security:] Resilience against adversarial evasion, poisoning, and autonomous escalation.
+  \item[Privacy:] Mathematical and cryptographic guarantees of data anonymity during use.
+  \item[Verifiability:] Using formal methods and Zero-Knowledge proofs (ZK-ML) to provide mathematical certainty of execution.
+  \item[Alignment:] Behavioral consistency with human intent, ethics, and specific social norms.
+\end{description}
+
+\begin{table}[h]
+\caption{The 2026 Trustworthy AI Stack: Core Pillars and Governing Standards}
+\label{tab:trust_stack_2026}
+\centering
+\begin{tabular}{p{2.5cm}p{3cm}p{3cm}p{3cm}}
+\hline\noalign{\smallskip}
+Layer & 2026 Objective & Core Technology & Regulatory Pivot \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\textbf{Security} & Adversarial Resilience & Robust Aggregation / TEEs & Conformity Assessment \\
+\textbf{Privacy} & Anonymity-in-Use & Differential Privacy (DP) & Decree 356 (Vietnam) \\
+\textbf{Verifiability} & Certainty of Execution & ZK-ML / Formal Methods & EU AI Act (High-Risk) \\
+\textbf{Alignment} & Behavioral Integrity & Constitutional AI / HITL & NIST AI RMF 2026 \\
+\end{tabular}
+\end{table}
+
+Trust is no longer a luxury feature; it is the substrate of our future digital civilization. In the following chapters, we build this stack from the ground up, starting with the mapping of social norms through \textbf{Contextual Integrity}.

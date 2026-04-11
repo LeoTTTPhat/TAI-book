@@ -1,0 +1,58 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 26 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Trustworthy MLOps: Continuous Monitoring & Drift Detection
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Trust is not a static certification; it is a dynamic performance that must be verified with every heartbeat of the system.}
+
+\chapter{Trustworthy MLOps: Continuous Monitoring \& Drift Detection}
+\label{chap:mlops_monitoring}
+
+\abstract{A model that is verifiably trustworthy at the moment of deployment is not guaranteed to remain so as the world evolves. In this chapter, we address the operational reality of "Trustworthy MLOps"---the practice of maintaining security, privacy, and robustness in production. We explore technical mechanisms for detecting Data and Concept Drift using statistical distance metrics, analyze the unique challenges of monitoring Differential Privacy budgets in streaming environments, and define the architectural triggers for automated "Self-Healing" via rollback and retraining.}
+
+\section{The Trust Decay Problem}
+\label{sec:trust_decay}
+
+In the "Strategic Vision" of Part I, we established that trust is built on mathematical and architectural foundations. However, even the most rigorously verified model is subject to \textbf{Performance Decay} once it encounters the entropy of the real world. 
+
+For the Trustworthy AI Architect, "Deployment" is not the end of the project, but the beginning of a continuous monitoring cycle. Trust degrades when the statistical properties of the incoming production data shift away from the training distribution, or when the underlying relationship between inputs and outputs changes due to societal or environmental factors.
+
+\section{Continuous Monitoring: Detecting Drift}
+\label{sec:drift_detection}
+
+To maintain trust, we must monitor two primary types of drift:
+
+\subsection{Data Drift: Monitoring the Input}
+Data drift occurs when the feature distribution of production data changes. Architects implement automated statistical tests, such as the \textbf{Population Stability Index (PSI)} or \textbf{Kullback-Leibler (K-L) Divergence}, to measure the distance between the training and production distributions ($P$ and $Q$).
+\begin{equation}
+D_{KL}(P \| Q) = \sum_{x \in X} P(x) \log\left(\frac{P(x)}{Q(x)}\right)
+\end{equation}
+If the divergence exceeds a pre-defined "Trust Threshold," the system triggers a diagnostic alert.
+
+\subsection{Concept Drift: Monitoring the Target}
+Concept drift is more insidious; it occurs when the "ground truth" changes. For example, a fraud detection model may fail as criminal tactics evolve, even if the input distribution remains the same. We use algorithms like \textbf{ADWIN (Adaptive Windowing)} to identify sudden changes in model accuracy or loss, indicating that the model's internal map of the world is no longer accurate.
+
+\section{Privacy and Robustness Monitoring}
+\label{sec:privacy_monitoring}
+
+Beyond accuracy, we must monitor the stability of our trust pillars:
+
+\begin{itemize}
+    \item \textbf{Privacy Budget Monitoring:} For systems that use online learning or interactive queries, the architect must track the cumulative **Privacy Budget ($\epsilon$)** in real-time. If the budget approaches its limit, the system must automatically restrict query access or cease fine-tuning to prevent information leakage.
+    \item \textbf{Robustness Drift:} We monitor for shifts in the success rate of our internal "continuous red teaming" (from Chapter 17). If the model's resilience against known adversarial patterns drops, it indicates that the model's decision boundaries have become brittle due to new data.
+\end{itemize}
+
+\section{The Self-Healing Lifecycle}
+\label{sec:self_healing}
+
+A Trustworthy MLOps pipeline is not just a dashboard; it is an active control loop. We implement **Automated Fallbacks**:
+\begin{enumerate}
+    \item \textbf{Silent Monitoring:} The new model runs in parallel with a known-safe baseline.
+    \item \textbf{Threshold Breach:} If drift or privacy risks exceed limits, the system diverts traffic back to the baseline model.
+    \item \textbf{Automated Retraining:} The system initiates a retraining loop using curated, recently localized data (following the integrity rules of Chapter 24).
+\end{enumerate}
+
+\section{Conclusion}
+\label{sec:conclusion_mlops}
+
+Trustworthy MLOps ensures that our systems are resilient to the passage of time. By closing the loop between deployment and monitoring, we move from "One-Time Trust" to "Continuous Accountability." With these operational safeguards in place, we can now navigate the global regulatory environment with the confidence that our systems remain compliant in practice, not just in theory. In the next chapter, we provide a comparative guide to \textbf{Global Compliance}.
+
+

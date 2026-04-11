@@ -1,0 +1,64 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 10 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Robust Aggregation: Surviving Byzantine Adversaries
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{In open Federated Learning settings, the threat often comes from the clients themselves. A single malicious update can corrupt the entire global model.}
+
+\chapter{Robust Aggregation: Surviving Byzantine Adversaries}
+\label{chap:robust_aggregation}
+
+\abstract{This chapter addresses the critical challenge of maintaining model integrity when some participants in a Federated Learning network are malicious or fail in unpredictable ways. We define the Byzantine threat model, distinguishing between data poisoning and model poisoning attacks. We analyze robust aggregation rules designed to filter out malicious updates, including Coordinate-Wise Trimmed Mean and Krum \cite{blanchard2017}. Finally, we explore the inherent conflict between privacy (hiding updates) and robustness (inspecting updates), providing a roadmap for balancing these two pillars in a secure system.}
+
+\section{When Clients Turn Malicious}
+\label{sec:malicious_clients}
+
+In previous chapters, we focused on protecting the privacy of honest clients from a curious server. However, in many real-world Federated Learning settings, the server must defend itself from the clients. A motivated adversary might participate in the training process with the goal of corrupting the global model, inserting a hidden backdoor, or simply disrupting the convergence of the model for all other users. This category of threats is known as the \textbf{Byzantine Attack}.
+
+\section{The Byzantine Threat Model}
+\label{sec:byzantine_threat}
+
+Byzantine clients do not follow the protocol and may send arbitrary or even strategically malicious updates. We categorize these attacks based on their goal and methodology:
+
+\begin{description}
+  \item[Data Poisoning:] 
+        The attacker corrupts the local training data (e.g., flipping labels from "Fraud" to "Safe") to influence the model's boundaries.
+  \item[Model Poisoning:]
+        The attacker manipulates the model updates directly, often sending extremely large gradients to dominate the weighted average in the aggregation step.
+  \item[Backdoor Attacks:]
+        The attacker inserts a hidden trigger into the model (e.g., a specific physical sticker that causes a traffic sign model to misclassify a "Stop" sign as a "Speed Limit" sign) while maintaining high accuracy for normal inputs.
+\end{description}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/ch10_robust.png}
+\caption{Robust Aggregation: A network graph showing the filtering of Byzantine (malicious) updates to maintain the integrity of the global model aggregation.}
+\label{fig:ch10_robust}
+\end{figure}
+
+\section{Robust Aggregation Rules}
+\label{sec:aggregation_rules}
+
+To survive these attacks, the Trustworthy AI Architect must replace the standard simple average (FedAvg) with robust aggregation rules that can filter or penalize outliers.
+
+\paragraph{1. Coordinate-Wise Trimmed Mean} works by sorting the updates received from all clients for each coordinate of the model and discarding the $\beta$ largest and $\beta$ smallest values before computing the average. This prevents a single client from pulling the global model in a specific direction using extreme gradient values.
+
+\paragraph{2. Krum (Distance-Based Selection)} selects a single "best" update based on its distance to its neighbors. For each update $w_i$, the server calculates a score:
+\begin{equation}
+\text{Score}(i) = \sum_{j \in \text{Neighbors}(i)} \|w_i - w_j\|^2
+\end{equation}
+The update with the lowest score (the one most typical of the group) is selected as the global update for that round.
+
+\section{The Privacy-Robustness Conflict}
+\label{sec:privacy_robustness_conflict}
+
+\begin{svgraybox}
+\textbf{The Architect's Dilemma:} There is a fundamental conflict between \textbf{Secure Aggregation} (which hides individual updates from the server to protect privacy) and \textbf{Robust Aggregation} (which requires the server to inspect or sort individual updates to detect malicious ones). If the updates are cryptographically masked, the server cannot see which one is an outlier. This "Privacy-Integrity" trade-off is a core area of ongoing research and a critical design decision for any secure distributed system.
+\end{svgraybox}
+
+\section{Conclusion}
+\label{sec:conclusion_robustness}
+
+Part III has transitioned us from single-point data defense into the complex world of Secure Distributed Systems. We have moved from simple Federated Learning (Chapter 7) toward the cryptographic protection of updates (Chapter 8), hardware-rooted trust (Chapter 9), and Byzantine-resistant aggregation (Chapter 10). 
+
+With these distributed foundations in place, we move into Part IV, which shifts the focus to the internal properties of the models themselves: \textbf{Model Robustness \& Transparency}.
+
+

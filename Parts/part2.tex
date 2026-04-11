@@ -1,0 +1,18 @@
+%%%%%%%%%%%%%%%%%%%%%part2.tex%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% Part II: Privacy Engineering & Data Defense
+%
+%%%%%%%%%%%%%%%%%%%%%%%% Springer Nature %%%%%%%%%%%%%%%%%%%%%%
+
+\begin{partbacktext}
+\part{Privacy Engineering \& Data Defense}
+\noindent Having established the vision and foundations of Trustworthy AI, we now turn to the concrete technical methodologies for protecting data. This second part of the book explores the transition from classical, heuristic-based anonymization techniques to the modern, rigorous standard of \textbf{Differential Privacy}.
+
+We begin with \textbf{Chapter 4}, where we dismantle the myth of simple "name removal" through an analysis of k-Anonymity and l-Diversity. In \textbf{Chapter 5}, we explore the mathematical gold standard of Differential Privacy (DP), and in \textbf{Chapter 6}, we analyze the very attacks—Membership Inference, Model Inversion, and Data Poisoning—that these defenses are designed to thwart. 
+
+This section provides the "Data Defense" toolkit necessary for any architect building secure AI pipelines.
+
+\begin{casestudy} 
+In the summer of 2025, the MediConnect research consortium released an "anonymized" dataset of 50,000 patient records to accelerate cancer research. The data was cleaned using standard $k$-anonymity ($k=5$) and masked identifiers. However, within 48 hours, security researchers linked the records with a high-dimensional employer database leaked in a separate corporate breach. By combining Zip Code, Gender, and minor behavioral tags, they re-identified 5,000 sensitive patient records. This disaster proved that in the 2026 data landscape, simple suppression is a fragile shield, leading to the rigorous mathematical protections of Part II. 
+\end{casestudy} 
+\end{partbacktext}

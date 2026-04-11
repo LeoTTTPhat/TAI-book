@@ -1,0 +1,54 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 21 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Zero-Knowledge Machine Learning (ZK-ML)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Zero-Knowledge Machine Learning (ZK-ML) allows you to prove that a model was executed correctly without ever revealing the model's weights or the user's private inputs.}
+
+\chapter{Zero-Knowledge Machine Learning (ZK-ML)}
+\label{chap:zk_ml}
+
+\abstract{Building on the foundations of privacy and security, this chapter introduces the third pillar of trust: Verifiability. Zero-Knowledge Machine Learning (ZK-ML) uses sophisticated cryptographic proofs to prove that a specific machine learning model was executed correctly on specific input data, producing a specific output, all while keeping the inputs and model weights completely private. We analyze the transition of neural networks into arithmetic circuits, the Rank-1 Constraint System (R1CS), and the practical implementation of verifiable AI using the ezkl framework. By enabling high-performance server-side execution with lightweight client-side verification, ZK-ML provides the ultimate architectural tool for accountability in the age of AI.}
+
+\section{The Verifiability Gap}
+\label{sec:verifiability_gap_ch19}
+
+In previous chapters, we have seen how to protect data (Differential Privacy) and how to training models securely (Federated Learning). However, a fundamental gap remains: How can a client verify that the model they are querying is actually the one they were promised? How can an auditor verify that a model is unbiased without requiring the company to reveal its proprietary weights or its sensitive training data?
+
+Traditional encryption protects data at rest and in transit, but it does not prove that a computation happened correctly. \textbf{Zero-Knowledge Machine Learning (ZK-ML)} \cite{shrestha2023} solves this by generating a cryptographic proof that a computation was performed according to a predefined "circuit" of operations.
+
+\section{How ZK-ML Works: From Neural Networks to Arithmetic Circuits}
+\label{sec:zkml_mechanics_ch19}
+
+To prove a model's execution, ZK-ML converts the neural network's layers into an arithmetic circuit that can be validated using \textbf{zk-SNARKs} (Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge). The computation is expressed as a \textbf{Rank-1 Constraint System (R1CS)}, where each operation must satisfy a specific polynomial constraint:
+\begin{equation}
+\langle a_i, w \rangle \cdot \langle b_i, w \rangle = \langle c_i, w \rangle
+\end{equation}
+Here, $w$ represents the "witness"---the collection of all inputs, weights, and intermediate values. The Prover uses their secret witness to generate a proof $\pi$, while the Verifier uses a public verification key to check that the constraints were satisfied.
+
+\section{The Power of Asymmetry}
+\label{sec:asymmetry_ch19}
+
+One of the most powerful properties of ZK-ML is its asymmetry. While generating the proof (the "Prover" side) is computationally intensive and often requires server-class hardware, verifying the proof (the "Verifier" side) takes only milliseconds and consumes negligible memory. This allows lightweight edge devices, such as smartphones or IoT sensors, to verify that a massive server-side model has processed their data correctly without ever seeing the model's internals.
+
+\section{Applications of Verifiable AI}
+\label{sec:zkml_applications_ch19}
+
+\begin{table}
+\caption{ZK-ML Architectural Benefits}
+\label{tab:zkml_benefits_ch19}
+\begin{tabular}{p{3.5cm}p{7cm}}
+\hline\noalign{\smallskip}
+Use Case & Architect's Benefit \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Private Inference & User data stays encrypted; server proves correct computation. \\
+Verifiable Ownership & Prove model integrity and pedigree without exposing IP weights. \\
+Compliance & Prove model fairness to auditors without exposing dataset details. \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+\label{sec:conclusion_zkml_ch19}
+
+Zero-Knowledge Machine Learning transforms AI from a "trust-me" black box into a verifiably correct utility. By anchoring trust in cryptographic proof rather than institutional promises, we enable a new class of secure and accountable applications. While ZK-ML provides a proof of \textit{execution}, it does not necessarily prove the model's \textit{correctness} or \textit{safety} properties in all possible states. To achieve that, we must turn to \textbf{Formal Verification}, which we explore in the next chapter.
+
+

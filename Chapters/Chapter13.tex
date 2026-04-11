@@ -1,0 +1,55 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 13 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Algorithmic Fairness: Measuring and Mitigating Bias
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{A model that is statistically accurate but demographically biased is a model that has failed its architect. Trust is not built on averages, but on equity.}
+
+\chapter{Algorithmic Fairness: Measuring and Mitigating Bias}
+\label{chap:fairness_bias}
+
+\abstract{Algorithmic fairness is the third pillar of the Trustworthy AI paradigm. In this chapter, we address the risk that machine learning models can perpetuate or even amplify existing societal biases. We define the sources of bias in the AI lifecycle---from skewed training data to biased optimization objectives---and introduce the primary mathematical metrics for measuring fairness, including Demographic Parity and Equalized Odds \cite{hardt2016}. Finally, we explore technical mitigation strategies at the pre-processing, in-processing, and post-processing stages \cite{verma2018}, providing architects with the tools to build equitable systems for diverse populations.}
+
+\section{The Bias Pipeline}
+\label{sec:bias_pipeline}
+
+Bias is rarely the result of a single malicious actor; instead, it is often a silent passenger in the data pipeline. For the Trustworthy AI Architect, identifying bias requires a forensic approach to the AI lifecycle:
+
+\begin{description}
+  \item[Historical Bias:] 
+        Data that reflects past discriminatory practices (e.g., historical hiring data that favors certain demographics regardless of qualification).
+  \item[Representation Bias:]
+        When certain groups are under-represented or over-represented in the training set, leading the model to fail on the minority "tail" of the distribution.
+  \item[Aggregation Bias:]
+        When a single model is used for a diverse population, ignoring the distinct characteristics of sub-groups (e.g., a medical model trained on a global average that fails to account for regional genetic differences).
+\end{description}
+
+\section{Mathematical Fairness Metrics}
+\label{sec:fairness_metrics}
+
+To engineer fairness, we must first be able to measure it. Three primary metrics dominate the literature:
+
+\begin{enumerate}
+    \item \textbf{Demographic Parity:} Ensuring that the likelihood of a positive outcome is the same across all protected groups (e.g., $P(\hat{Y}=1 | A=0) = P(\hat{Y}=1 | A=1)$).
+    \item \textbf{Equalized Odds:} Ensuring the model has the same true positive rate and false positive rate across all groups, providing equity in both opportunity and error.
+    \item \textbf{Predictive Rate Parity:} Ensuring that a "High Risk" score means the same probability of default regardless of the subject's demographic.
+\end{enumerate}
+
+\section{Bias Mitigation Techniques}
+\label{sec:bias_mitigation}
+
+Trustworthy AI Architects implement defenses at three stages of the pipeline:
+
+\begin{description}
+  \item[Pre-processing (Data Level):] 
+        Techniques like \textbf{Reweighing} (adjusting the weight of samples to balance the groups) or \textbf{Disparate Impact Removal} (modifying feature values to hide sensitive attributes).
+  \item[In-processing (Model Level):]
+        Integrating fairness constraints directly into the loss function during training. \textbf{Adversarial Debiasing} is a powerful method where a secondary "adversary" network tries to predict the protected attribute from the primary network's features, forcing the primary model to learn "color-blind" representations.
+  \item[Post-processing (Decision Level):]
+        Adjusting the final decision thresholds for different groups to ensure that the final outputs meet fairness targets (e.g., \textbf{Calibrated Equality of Odds}).
+\end{description}
+
+\section{Conclusion}
+\label{sec:conclusion_fairness}
+
+Algorithmic fairness ensures that our systems are not just technically sound, but socially responsible. By incorporating fairness as a primary architectural requirement alongside privacy and security, we fulfill the promise of a truly inclusive AI. With our foundational pillars of robustness (Ch 11), explainability (Ch 12), and fairness (Ch 13) established, we are now ready to secure these systems against future threats, beginning with the transition to \textbf{Post-Quantum Privacy}.
+
+

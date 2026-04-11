@@ -1,0 +1,107 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 2 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Contextual Integrity (CI): Mapping Privacy to Social Norms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Privacy is not the absence of information flow, but the presence of appropriate information flow.}
+
+\chapter{Contextual Integrity: Mapping Privacy to Social Norms}
+\label{chap:contextual_integrity}
+
+\abstract{While technical defenses like Differential Privacy protect data from unauthorized access, they do not always address authorized flows that violate social expectations. This chapter explores the theory of Contextual Integrity (CI), which defines privacy as the appropriate flow of information within specific social contexts. We move beyond the binary model of "public vs. private" to a five-parameter analytical framework. We analyze the "Data Food Chain" in AI, the risks of contextual bleed in enterprise systems, and introduce specific implementation patterns for CI-aware autonomous agents, including CI-Reasoning and the Gatekeeper Pattern.}
+
+\section{The Philosophy of Information Flow}
+\label{sec:ci_philosophy}
+
+The traditional "Binary Privacy" model---viewing information as either purely \textit{private} (to be hidden) or purely \textit{public} (to be shared)---fails in complex AI ecosystems. If I share my heart rate with a doctor, it is not "public," but it is also no longer "private" to just me. This movement is an example of an \textbf{Appropriate Flow}.
+
+Proposed by Helen Nissenbaum \cite{science-online}, \textbf{Contextual Integrity (CI)} shifts the architectural goal from "stopping data" to "governing movement." Privacy is maintained when information flow conforms to the norms of a specific context. In the realm of the Trustworthy AI Architect, this means designing systems that respect the social boundaries of the domains they inhabit.
+
+\section{The Five-Parameter Analytical Model}
+\label{sec:ci_five_parameters}
+
+To map a social norm to a technical requirement, we use the five-parameter model of a normative flow:
+
+\begin{enumerate}
+    \item \textbf{The Subject:} The individual whom the data describes.
+    \item \textbf{The Sender:} The entity initiating the transfer.
+    \item \textbf{The Recipient:} The entity receiving the data.
+    \item \textbf{The Information Type:} The specific attributes and their sensitivities.
+    \item \textbf{The Transmission Principle:} The terms of the flow (e.g., confidentiality, consent, or legal mandate).
+\end{enumerate}
+
+Building a "Norm Matrix" for system requirements involves ensuring that every API call or data packet can be validated against these parameters. If any parameter shifts without justification (e.g., a doctor sends medical data to an insurer), the integrity is broken.
+
+\section{Contexts as Social Domains}
+\label{sec:contextual_domains}
+
+Contexts are social spheres like Healthcare, Finance, or Education, each with its own internal logic. In modern software, we can use \textbf{Microservices as Contextual Boundaries}. 
+
+\textbf{Case Study: Contextual Bleed.} A common failure occurs when a "Social" context merges with a "Workplace" context. For example, an enterprise AI analyzing employee communications on Slack to predict "burnout" often violates the norm of informal social interaction, leading to a collapse of trust known as contextual bleed.
+
+\section{The "Data Food Chain" in AI}
+\label{sec:data_food_chain}
+
+In AI systems, data rarely stays in its raw form. It moves up the "Data Food Chain":
+\begin{center}
+\textit{Raw Data (GPS pings) $\rightarrow$ Activity Logs $\rightarrow$ High-Order Inferences (Religious or Health status).}
+\end{center}
+
+This creates the \textbf{Inversion Problem}: AI can infer sensitive attributes for which no social norms yet exist. To combat this, architects must implement \textbf{Context-Aware Tagging} in data pipelines, ensuring that the origin and intended purpose of a data point are tracked as it is transformed into higher-level insights.
+
+\section{The Gatekeeper Architecture: Implementing CI in Autonomous Agents}
+\label{sec:ci_agents_gatekeeper}
+
+Autonomous agents pose a unique challenge because they make disclosure decisions in real-time, often without direct human supervision. To govern these agents, we move from passive observation to active \textbf{Protocol-Level Interception}. We implement Contextual Integrity through three primary architectural patterns:
+
+\begin{description}
+  \item[CI-Reasoning (CI-CoT):] Using Chain-of-Thought prompting, the agent is instructed to "pause" before any tool call or external disclosure. It must explicitly reason through the Five-Parameter model: "Who is the Subject? Who is the Recipient? Does this flow violate the Transmission Principle of confidentiality established in this legal context?" only proceeding if the reasoning confirms an Appropriate Flow.
+  \item[The Gatekeeper Pattern:] This is a \textbf{PrivacyChecker Middleware} that sits between the agent and the external world. Every output is intercepted, parsed for sensitive entities, and validated against a registered Norm Matrix before being released.
+  \item[RLCF (Reinforcement Learning from Contextual Feedback):] During the fine-tuning phase, the model is penalized not just for inaccuracy, but for "Social Boundary Violations." This creates an internal heuristic that identifies "inappropriate" flows even in ambiguous settings where strict rules might fail.
+\end{description}
+
+\subsection{The rRPD Loop: Responsibility, Proxy, and Delegation}
+A trustworthy agent architecture follows the \textbf{rRPD Loop}, ensuring that autonomous decisions are always traceable to a human principal. This framework is essential for preventing "Agentic Drift," where long-running autonomous tasks gradually deviate from the architect"s intent. By integrating human feedback directly into the model"s behavioral policy through techniques like \textbf{Reinforcement Learning from Human/AI Feedback (RLHF/RLAIF)} \cite{ouyang2022}, we create a system that is fundamentally aligned with human agency.
+
+\subsection{The PrivacyChecker Middleware: An Architectural Interception Loop}
+\label{sec:privacychecker_middleware}
+
+The Gatekeeper acts as a stateless validator that enforces the Norm Matrix at the edge. The architectural loop follows four distinct steps:
+\begin{enumerate}
+    \item \textbf{Intent Capture:} The agent prepares an action (e.g., "Send medical summary to InsuranceAPI").
+    \item \textbf{Parameter Extraction:} The Middleware extracts the five CI parameters from the intent and the current session metadata.
+    \item \textbf{Policy Evaluation:} A Policy Engine (such as a localized OPA agent) evaluates the parameters against the context's specific norms.
+    \item \textbf{Enforcement:} The output is either \textbf{Released} (Appropriate), \textbf{Blocked} (Inappropriate), or \textbf{Sanitized} (e.g., substituting specific identifiers with k-anonymized tokens).
+\end{enumerate}
+
+\subsection{Policy-as-Code: The Pythonic PrivacyChecker}
+In a modern 2026 stack, we implement the Gatekeeper as a decorator or wrapper around the agent"s core execution method. Below is a simplified representation of a CI-aware middleware loop:
+
+\begin{verbatim}
+def privacy_checker_middleware(agent_action, session_context):
+    # 1. Extract CI Parameters
+    params = {
+        "subject": agent_action.target_user,
+        "sender": "HealthAgent_v2",
+        "recipient": agent_action.tool_name,
+        "info_type": detect_sensitivity(agent_action.payload),
+        "principle": session_context.legal_mandate
+    }
+    
+    # 2. Evaluate against Norm Matrix
+    if not norm_engine.is_appropriate(params):
+        logging.report_violation(params)
+        return trigger_emergency_brake("Contextual Integrity Violation")
+        
+    # 3. Authorized Disclosure
+    return execute_tool_call(agent_action)
+\end{verbatim}
+
+By implementing this "Gatekeeper Pattern," the architect ensures that the agent"s intelligence is always bounded by the system"s integrity.
+
+\section{Conflict Resolution and Norm Evolution}
+\label{sec:ci_conflicts}
+
+Norms are not static. When norms collide---such as in multi-agent interactions across different jurisdictions---the architect must design for \textbf{Heuristic Resolution}. 
+
+For uncharted territories like Neural-link data or Metaverse spatial tracking, architects should follow the \textbf{Principle of Conservative Flow}: minimize disclosure until a stable social consensus on appropriate behavior emerges.
+
+\input{references}

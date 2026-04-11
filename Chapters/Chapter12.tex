@@ -1,0 +1,58 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 12 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The Explainability Stack: Implementing XAI
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Transparency is the bridge between a complex algorithm and a human's trust.}
+
+\chapter{The Explainability Stack: Implementing XAI}
+\label{chap:explainability_stack}
+
+\abstract{As AI models become more complex, the "Black Box" problem becomes a significant barrier to trust. This chapter explores the "Explainability Stack" (XAI)---the suite of tools and methodologies used to make model decisions interpretable to humans. We analyze post-hoc explanation methods, such as SHAP (Shapley Additive Explanations) and LIME (Local Interpretable Model-agnostic Explanations), and discuss the importance of providing both global and local feature importance. Finally, we explore how to design interfaces that communicate uncertainty and justification, ensuring that AI remains accountable to its human operators.}
+
+\section{The Black Box Problem}
+\label{sec:black_box}
+
+High-performance models like deep neural networks and gradient-boosted trees often operate as "black boxes." While they can achieve superhuman accuracy, they cannot easily explain \textit{why} a specific decision was reached. In safety-critical or highly regulated domains---such as healthcare diagnosis or credit scoring---an accurate but inexplicable answer is often legally and ethically insufficient.
+
+To bridge this gap, the Trustworthy AI Architect must implement an Explainability Stack: a layer of transparency that translates high-dimensional mathematical transformations into human-understandable justifications.
+
+\section{Post-hoc Explanations: SHAP and LIME}
+\label{sec:xai_methods}
+
+The most popular methods for explaining complex models are \textit{post-hoc}---they analyze the model's behavior after it has been trained.
+
+\begin{description}
+  \item[LIME:] 
+        Local Interpretable Model-agnostic Explanations work by perturbing an individual input and observing how the model's predictions change, creating a simple "surrogate" model to explain that specific local decision \cite{ribeiro2016}.
+  \item[SHAP:]
+        Shapley Additive Explanations provide a mathematically rigorous way to assign "credit" to each input feature based on cooperative game theory \cite{lundberg2017}.
+\end{description}
+
+The formula for the \textbf{Shapley value} ($\phi_i$) of a feature $i$ is:
+\begin{equation}
+\phi_i = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|! (|N| - |S| - 1)!}{|N|!} \left[ f(S \cup \{i\}) - f(S) \right]
+\end{equation}
+
+This ensures that the total "payout" (the model's prediction) is fairly distributed among the features (the players), providing a robust global and local explanation.
+
+\section{Visualizing Transparency: Saliency and Attribution}
+\label{sec:visualization}
+
+For computer vision and text models, numerical feature importance is often not enough. We use:
+\begin{itemize}
+    \item \textbf{Saliency Maps:} Highlighting the pixels in an image that most influenced the classification (e.g., Grad-CAM).
+    \item \textbf{Integrated Gradients:} Attributing a model's prediction to its input features by integrating the gradients along a path from a "baseline" input to the actual input.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/ch12_xai.png}
+\caption{Visualizing Transparency: A medical XAI dashboard displaying feature importance heatmaps and SHAP values for a diagnostic prediction.}
+\label{fig:ch12_xai}
+\end{figure}
+
+\section{Conclusion}
+\label{sec:conclusion_xai}
+
+Implementing the Explainability Stack is an exercise in accountability. By providing justifications for model behavior, we allow human experts to calibrate their trust and identify potential biases before they cause real-world harm. However, adding these transparency layers often increases the computational burden on the system. In the next chapter, we address the ethical dimension of these decisions through \textbf{Algorithmic Fairness}, ensuring that our models do not perpetuate historical biases.
+
+

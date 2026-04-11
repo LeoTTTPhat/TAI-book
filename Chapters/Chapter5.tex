@@ -1,0 +1,86 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 5 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Differential Privacy: The Mathematical Gold Standard
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Differential Privacy ensures that the output of an analysis looks roughly the same, whether any single individual's data is included or not.}
+
+\chapter{Differential Privacy: The Mathematical Gold Standard}
+\label{chap:differential_privacy}
+
+\abstract{This chapter explores the mathematical gold standard of modern privacy: \textbf{Differential Privacy (DP)}. Unlike heuristic anonymization, which can be broken with auxiliary data, DP provides a non-probabilistic, quantifiable guarantee of privacy that is independent of an adversary's computational power or external knowledge \cite{science-mono}. We analyze the fundamental trade-off between privacy and utility (the "Privacy Budget"), explore the mechanics of noise injection, and discuss the practical implementation of DP in large-scale machine learning systems using frameworks like Opacus \cite{opacus}. By the end of this chapter, the architect will be able to design a DP-aware pipeline that satisfies both regulatory compliance and model performance requirements.}
+
+\section{The Privacy-Utility Paradox}
+\label{sec:privacy_utility_paradox}
+
+In previous chapters, we established that Trustworthy AI requires more than just heuristic anonymization. We need a way to \textit{measure} privacy loss. Imagine a researcher analyzing medical records for a cure. They need access to patterns within the data, but the patients need access to a guarantee that their specific participation will not be leaked.
+
+Enter \textbf{Differential Privacy (DP)}. Conceptually, DP provides a "mathematical shield" that allows us to find the "forest" (the statistical patterns) without being able to identify any single "tree" (the individual record).
+
+\begin{svgraybox}
+\textbf{The Salary Box Analogy:} Imagine a crowded room where everyone whispers their salary into a box. The box adds a random amount of money (noise) to the total before announcing the average. You can know the average salary of the room, but you cannot determine any specific person's income---even if you know everyone else's.
+\end{svgraybox}
+
+\section{The Formal Definition of Privacy}
+\label{sec:dp_formal_definition}
+
+Differential Privacy is defined by how much information an attacker can gain about an individual by observing the output of a query.
+
+\begin{definition}
+\textbf{($\epsilon$, $\delta$)-Differential Privacy:} A randomized algorithm $M$ gives ($\epsilon$, $\delta$)-differential privacy if for all neighboring datasets $D$ and $D'$ (differing by one record) and all possible outputs $S$:
+\begin{equation}
+P[M(D) \in S] \le e^{\epsilon} \times P[M(D') \in S] + \delta
+\end{equation}
+\end{definition}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/ch5_dp_noise.png}
+\caption{Mathematics of Differential Privacy: Gaussian noise addition ensures that the distributions of neighboring datasets D and D' overlap, achieving $(\epsilon, \delta)$-indistinguishability.}
+\label{fig:ch5_dp_noise}
+\end{figure}
+
+\begin{description}
+  \item[Epsilon ($\epsilon$):] 
+        The "Privacy Budget." A smaller $\epsilon$ (e.g., 0.1) means higher privacy but more noise; a larger $\epsilon$ (e.g., 10) means lower privacy but higher utility.
+  \item[Delta ($\delta$):]
+        The probability of "failure"---where the bound might not hold. Typically, $\delta$ is kept smaller than $1/N$, where $N$ is the dataset size.
+\end{description}
+
+\section{Achieving Privacy via Noise Injection}
+\label{sec:dp_mechanisms}
+
+To satisfy the DP definition, we inject random noise into our computations proportional to the \textbf{Sensitivity} of the query---the maximum change a single record can cause to the output.
+
+\begin{table}
+\caption{Fundamental DP Mechanisms}
+\label{tab:dp_mechanisms}
+\begin{tabular}{p{2cm}p{4cm}p{4cm}}
+\hline\noalign{\smallskip}
+Mechanism & Noise Addition & Best For \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Laplace & $f(x) + \text{Lap}(\Delta f / \epsilon)$ & Numerical queries, Pure $\epsilon$-DP \\
+Gaussian & $f(x) + \mathcal{N}(0, \sigma^2)$ & Deep Learning, ($\epsilon, \delta$)-DP \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\section{Privacy in Deep Learning: DP-SGD}
+\label{sec:dp_sgd}
+
+Standard Stochastic Gradient Descent (SGD) is vulnerable; an individual record's gradient can be extracted from the model's weights. \textbf{DP-SGD} (Differentially Private SGD) fixes this through two critical modifications:
+
+\begin{enumerate}
+    \item \textbf{Per-Sample Gradient Clipping:} Each individual gradient is clipped to a maximum norm $C$, ensuring no single data point has an outsized impact on the update.
+    \item \textbf{Noise Addition:} Gaussian noise is added to the aggregated gradients before the optimizer update.
+\end{enumerate}
+
+\section{Privacy Accounting and Composition}
+\label{sec:dp_composition}
+
+In deep learning, we query the data every single step. Privacy loss \textit{accumulates}. \textbf{Composition} is the study of how these small "leaks" add up over time. Modern architects use \textbf{Rényi Differential Privacy (RDP)} or \textbf{Gaussian DP (GDP)} to track this budget much more accurately than simple addition, enabling thousands of training steps while keeping $\epsilon$ under control.
+
+\section{Conclusion}
+\label{sec:conclusion_dp}
+
+Differential Privacy is the only framework that provides a provable guarantee against future attackers with arbitrary background knowledge. It represents the "Gold Standard" for the Privacy Engineering pillar. However, a shield is only useful if we know what we are defending against. In the next chapter, we look at the specific attacks---from Membership Inference to Data Poisoning---that target the vulnerabilities DP is designed to close.
+
+

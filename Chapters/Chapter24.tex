@@ -1,0 +1,49 @@
+%%%%%%%%%%%%%%%%%%%%% Chapter 24 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AI Supply Chain Security: SBOM & Provenance
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\motto{Trust is not just about the final model weights; it is about the integrity of every link in the AI supply chain.}
+
+\chapter{AI Supply Chain Security: SBOM \& Provenance}
+\label{chap:supply_chain}
+
+\abstract{A modern AI model is the product of an incredibly complex supply chain involving raw datasets, open-source base models, third-party libraries, and highly specialized hardware. In this chapter, we address the security of the entire machine learning pipeline. We define the concept of a "Software Bill of Materials" (SBOM) for AI, explore methods for tracking Model Provenance and lineage, and analyze frameworks like SLSA (Supply-chain Levels for Software Artifacts) for ensuring the integrity of the transformation from raw data to a deployed model. Securing the supply chain ensures that the trust we build into the model cannot be undermined by a compromised dependency or a hidden vulnerability.}
+
+\section{The ML Supply Chain: A New Surface for Attack}
+\label{sec:ml_supply_chain}
+
+The Trustworthy AI Architect must look beyond the weights of the final model and toward the process that created them. The ML supply chain includes three primary vectors:
+
+\begin{description}
+  \item[Data Integrity:] Ensuring that the training data has not been poisoned (Chapter 6) or tampered with before reaching the training pipeline.
+  \item[Model Ancestry:] Tracking the lineage of base models (e.g., Llama-3, PhoGPT) to ensure they have not been compromised with backdoors.
+  \item[Code Provenance:] Verifying the integrity of the libraries (Opacus, Flower, PyTorch) and the CI/CD pipelines used to train and deploy the model.
+\end{description}
+
+\section{SBOM for AI: Documenting the Ingredients}
+\label{sec:sbom_ai}
+
+Just as food products list their ingredients, AI models must provide a \textbf{Software Bill of Materials (SBOM)}. An AI SBOM is a formal, machine-readable record of all the components that went into the model's creation. This includes the versions of the training scripts, the checksums of the datasets, and the specific hyperparameter configurations.
+
+By maintaining an SBOM, an organization can quickly identify if it is vulnerable to a newly discovered security flaw in one of its dependencies or if its training data has been subject to a known poisoning campaign.
+
+\section{Model Provenance: Tracking Lineage}
+\label{sec:provenance_lineage}
+
+\textbf{Model Provenance} is the ability to reconstruct the "autobiography" of an AI model. The architect should maintain a signed lineage graph that tracks:
+\begin{itemize}
+    \item \textbf{Input Artifacts:} Digital signatures for datasets and base models.
+    \item \textbf{Transformation Logs:} Records of the training environments and hardware root-of-trust (Chapter 9).
+    \item \textbf{Certification Proofs:} Links to formal verification proofs (Chapter 23) and ZK-verification keys (Chapter 22).
+\end{itemize}
+
+\section{Securing the Pipeline with SLSA}
+\label{sec:slsa}
+
+To achieve high levels of supply chain security, architects should adopt the \textbf{SLSA} framework. SLSA provides a set of incrementally more rigorous requirements for building software, ensuring that artifacts are built in isolated, ephemeral environments and that every build step is recorded in a non-falsifiable audit trail. For AI, this means that the "weights" are not just a file, but a verifiably correct output of a secure build process.
+
+\section{Conclusion}
+\label{sec:conclusion_supply_chain}
+
+Securing the AI supply chain ensures that our trust is anchored in the entire lifecycle, not just the final output. With these security measures in place, we can confidently move toward the operational challenges of maintaining this trust in production. In the next chapter, we explore \textbf{Trustworthy MLOps} and continuous monitoring.
+
+
