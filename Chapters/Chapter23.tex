@@ -6,14 +6,14 @@
 \chapter{Agentic AI Governance: Privacy for Autonomous Systems}
 \label{chap:agentic_governance}
 
-\abstract{The evolution of AI from passive predictors to autonomous agents introduces a new dimension of risk. Agentic AI systems can plan multi-step tasks, interact with external APIs, and maintain long-term memory, creating vulnerabilities in context accumulation and tool authorization. This chapter defines the unique threat landscape of agentic systems and proposes a "Safe Agent Architecture" that orchestrates existing defenses---such as sandboxed execution and ZK-audit logging---into a coherent governance framework. We emphasize the transition Toward systems that are not only intelligent but also strictly constrained by architectural guardrails.}
+\abstract{The evolution of AI from passive predictors to autonomous agents introduces a new dimension of risk. Agentic AI systems can plan multi-step tasks, interact with external APIs, and maintain long-term memory, creating vulnerabilities in context accumulation and tool authorization. This chapter defines the unique threat landscape of agentic systems and proposes a ``Safe Agent Architecture'' that orchestrates existing defenses---such as sandboxed execution and ZK-audit logging---into a coherent governance framework. We emphasize the transition toward systems that are not only intelligent but also strictly constrained by architectural guardrails.}
 
 \section{From Tools to Agents}
 \label{sec:tools_to_agents_ch21}
 
 For most of this book, we have treated AI primarily as a high-dimensional tool: the user provides an input, and the model provides an output. However, the paradigm is shifting toward \textbf{Agentic AI}. These systems do not just predict; they plan, they interact with external tools (browsers, code executors, databases), and they act autonomously toward long-term goals.
 
-As an AI system gains the ability to "act" in the digital world, the consequences of a privacy breach or a security failure become proactive rather than reactive. If an agent is compromised, it can proactively exfiltrate data or perform harmful actions across multiple connected services.
+As an AI system gains the ability to ``act'' in the digital world, the consequences of a privacy breach or a security failure become proactive rather than reactive. If an agent is compromised, it can proactively exfiltrate data or perform harmful actions across multiple connected services.
 
 \section{Unique Risks of Agentic AI}
 \label{sec:agentic_risks_ch21}
@@ -26,7 +26,7 @@ The Trustworthy AI Architect must address three new categories of risk:
   \item[Autonomous Tool Use:]
         Agents can call external APIs. A malicious or misconfigured agent could be manipulated via prompt injection to send proprietary data to an external server under the guise of an authorized tool call.
   \item[Goal Misalignment:]
-        Autonomous agents prioritize goal achievement. If the "constitution" of the agent is not mathematically aligned with the architect's values, the agent might take efficient but harmful shortcuts to reach its objective.
+        Autonomous agents prioritize goal achievement. If the ``constitution'' of the agent is not mathematically aligned with the architect's values, the agent might take efficient but harmful shortcuts to reach its objective.
 \end{description}
 
 \section{The Safe Agent Architecture}
@@ -37,7 +37,7 @@ To govern autonomy, we must orchestrate our existing defensive primitives into a
 \begin{enumerate}
     \item \textbf{Encrypted and Noisy Memory:} Using Differential Privacy to ensure that long-term memory stores abstract patterns rather than specific sensitive records.
     \item \textbf{Sandboxed Tool Registry:} Ensuring that all external actions (API calls, code execution) happen in isolated environments with strictly whitelisted permissions.
-    \item \textbf{ZK-Audit Logging:} Using Zero-Knowledge proofs to log agent actions verifiably, allowing an auditor to check that the agent followed its "constitution" without revealing the sensitive data processed during the actions.
+    \item \textbf{ZK-Audit Logging:} Using Zero-Knowledge proofs to log agent actions verifiably, allowing an auditor to check that the agent followed its ``constitution'' without revealing the sensitive data processed during the actions.
 \end{enumerate}
 
 \section{Constitutional Alignment: Programming the Soul of the Agent}
@@ -56,6 +56,501 @@ The technical implementation of Constitutional AI relies on \textbf{RLAIF}. Unli
 For a Trustworthy AI Architect, the Constitution is not a vague legal document but a \textbf{Policy Asset}. We implement this as a set of \textbf{Datalog-style constraints} or \textbf{Formal Logic Predicates} that are checked before any tool call is authorized. If an agent's plan violates a predicate (e.g., attempting a cross-border \$10K transfer without secondary TEE-verification), the ``Emergency Brake Pattern'' (introduced in Chapter 3) is automatically triggered.
 
 By ``Programming the Soul'' of the agent through RLAIF and formal predicates, we ensure that as the agent gains autonomy, it also gains architectural accountability.
+
+% ==================================================================
+\section{Agentic Identity: Decentralized Identifiers for
+         Autonomous AI}
+\label{sec:agentic-identity}
+% ==================================================================
+
+\begin{quote}
+\textit{``In the McHire breach, the attacker did not need to hack
+the model.
+They only needed to convince the API that the agent making the
+request was authorized.
+The agent had no identity of its own---only the API key of its
+operator.
+When that key was compromised, the entire system was
+body-snatched.''}
+\end{quote}
+
+Chapter~16 established watermarking as a mechanism for attributing
+\emph{outputs} to a specific model.
+The Safe Agent Architecture of Section~\ref{sec:safe_agent_arch_ch21}
+established sandboxed execution and ZK-audit logging for
+constraining agent \emph{actions}.
+Neither mechanism answers the question that becomes existential
+in the agentic paradigm: \emph{who is this agent, and can I
+trust that it has not been hijacked?}
+
+This is the problem of \textbf{Agentic Identity}---the ability
+to cryptographically verify that an autonomous agent is:
+\begin{enumerate}
+  \item \textbf{Authorized:} deployed by a specific human
+    principal who accepts responsibility for its actions;
+  \item \textbf{Authentic:} running the exact model weights,
+    constitution, and tool registry that were certified at
+    deployment; and
+  \item \textbf{Uncompromised:} not operating under the influence
+    of a prompt injection, memory poisoning, or system prompt
+    override that has altered its behavioral policy since
+    deployment.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+\subsection{Why API Keys and OAuth Are Insufficient}
+\label{subsec:api-key-failure}
+% ------------------------------------------------------------------
+
+The standard identity mechanism for API-calling
+software---bearer tokens, API keys, and OAuth2 client
+credentials---fails catastrophically in the agentic context
+for three reasons:
+
+\begin{description}
+  \item[Static Credentials, Dynamic Behaviour.]
+    An API key authenticates the \emph{operator} who registered
+    the key.
+    It does not authenticate the agent's current state: its
+    model weights, system prompt, or accumulated context
+    window.
+    A prompt-injected agent presents the same API key as a
+    healthy one.
+
+  \item[No Behavioural Binding.]
+    OAuth scopes define what an agent is \emph{permitted} to
+    do, not what it \emph{intends} to do.
+    An agent with a valid \texttt{email.send} scope can send a
+    legitimate summary or exfiltrate an entire inbox---the
+    scope cannot distinguish between the two.
+
+  \item[No Delegation Chain.]
+    When Agent~A calls Service~B, which calls Service~C,
+    Service~C sees only the credentials of Service~B.
+    There is no verifiable chain linking the action back to the
+    human principal who authorized Agent~A.
+    This is precisely the gap that enabled the Deepfake CEO
+    Agent Mimicry incident
+    (Appendix~\ref{app:roi-of-trust}).
+\end{description}
+
+% ------------------------------------------------------------------
+\subsection{The W3C Decentralized Identifier (DID) for AI Agents}
+\label{subsec:did-architecture}
+% ------------------------------------------------------------------
+
+We propose that every autonomous AI agent deployed in a
+High-Risk context under Vietnam's AI Law be assigned a
+\textbf{W3C Decentralized Identifier (DID)}---a globally
+unique, self-sovereign identifier that is cryptographically
+bound to the agent's deployment configuration and linked to
+its human principal's identity.
+
+\paragraph{DID Document Structure for AI Agents.}
+A standard W3C DID Document is extended with three
+agent-specific fields:
+
+\begin{description}
+  \item[\texttt{agentModelHash}:]
+    The SHA-256 hash of the deployed model's ONNX computational
+    graph and weight checkpoint, as recorded in the Trust Debt
+    Registry (Section~\ref{sec:trust-tech-debt}).
+    This binds the DID to a specific model version.
+
+  \item[\texttt{constitutionHash}:]
+    The SHA-256 hash of the agent's Constitutional Policy
+    (Section~\ref{sec:constitutional_alignment}), including
+    all Datalog predicates and the system prompt.
+    A change to the system prompt invalidates the DID until the
+    document is updated and re-signed by the human principal.
+
+  \item[\texttt{zkAuditEndpoint}:]
+    The URL of the ZK-Audit Log service where third parties
+    can verify proofs of the agent's past actions without
+    accessing the underlying data.
+    This links the identity layer to the verifiability
+    layer established in the Safe Agent Architecture.
+\end{description}
+
+\paragraph{Example DID Document.}
+The following JSON-LD fragment illustrates the DID Document
+for a Vietnamese fintech credit-scoring agent:
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={W3C DID Document for an autonomous AI agent,
+           extended with model hash, constitution hash, and
+           ZK-audit endpoint.},
+  label={lst:did-document}
+]
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://trustworthy-ai.org/ns/agent/v1"
+  ],
+  "id": "did:tai:vn:fintech:credit-agent-001",
+  "controller": "did:key:z6Mkp2...humanPrincipal",
+  "verificationMethod": [{
+    "id": "did:tai:vn:fintech:credit-agent-001#key-1",
+    "type": "Ed25519VerificationKey2020",
+    "controller": "did:tai:vn:fintech:credit-agent-001",
+    "publicKeyMultibase": "z6Mkp2...agentPublicKey"
+  }],
+  "authentication": [
+    "did:tai:vn:fintech:credit-agent-001#key-1"
+  ],
+  "service": [{
+    "id": "did:tai:vn:fintech:credit-agent-001#zk-audit",
+    "type": "ZKAuditLog",
+    "serviceEndpoint": "https://audit.fintech.vn/agent-001"
+  }],
+  "agentModelHash":
+    "sha256:a3f2c8...model_onnx_graph_hash",
+  "constitutionHash":
+    "sha256:7d1e4b...constitution_policy_hash",
+  "zkAuditEndpoint":
+    "https://audit.fintech.vn/agent-001/verify",
+  "deployedAt": "2026-03-15T08:00:00Z",
+  "expiresAt":  "2026-06-15T08:00:00Z"
+}
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{Binding the DID to the ZK-Audit Log:
+            The Credential Verification Protocol}
+\label{subsec:did-zk-binding}
+% ------------------------------------------------------------------
+
+The DID alone does not prevent body-snatching.
+An attacker who gains access to the agent's runtime could
+inject a new system prompt while the DID Document remains
+unchanged.
+The defence requires \textbf{continuous binding} between the
+DID and the agent's live operational state, achieved through
+the ZK-Audit Log.
+
+\paragraph{The DID-ZK Binding Protocol.}
+At each action step $t$, the agent generates a
+\textbf{DID-Bound Action Proof} $\pi_t$ that proves, in zero
+knowledge, the following three statements simultaneously:
+
+\begin{enumerate}
+  \item \textbf{Model Authenticity:}
+    The inference at step $t$ was computed by a model whose
+    computational graph hash matches the
+    \texttt{agentModelHash} in the DID Document.
+
+  \item \textbf{Constitution Compliance:}
+    The action selected at step $t$ satisfies all predicates
+    in the Constitutional Policy whose hash matches the
+    \texttt{constitutionHash} in the DID Document.
+
+  \item \textbf{Context Integrity:}
+    The context window at step $t$ does not contain any
+    content that was injected after deployment and not
+    traceable to an authorized input source (user query,
+    approved tool response, or approved memory retrieval).
+\end{enumerate}
+
+The verifying service checks $\pi_t$ against the public
+verification key in the DID Document.
+If the proof fails, the service rejects the agent's request
+and notifies the human principal---even if the agent presents
+a valid API key.
+
+\paragraph{Formal Verification Statement.}
+For a third-party service $S$ receiving a request from
+agent $A$ with DID $d_A$:
+
+\begin{equation}
+  \label{eq:did-verification}
+  S \text{ accepts } A \iff
+  \mathrm{Verify}\!\left(
+    \pi_t,\;
+    \mathrm{VK}_{d_A},\;
+    \mathrm{stmt} = \left\{
+      h_{\mathrm{model}},\;
+      h_{\mathrm{const}},\;
+      \mathrm{ctx}_t
+    \right\}
+  \right) = \textsc{True}
+\end{equation}
+
+where $\mathrm{VK}_{d_A}$ is the verification key from the
+DID Document, and $h_{\mathrm{model}}$, $h_{\mathrm{const}}$
+are the hashes recorded in the document.
+
+% ------------------------------------------------------------------
+\subsection{Detecting Body-Snatching: Behavioural Fingerprinting}
+\label{subsec:body-snatching-detection}
+% ------------------------------------------------------------------
+
+The DID-ZK Binding Protocol defends against prompt injection
+that alters the system prompt or constitution.
+A more subtle attack---\textbf{indirect prompt injection via
+tool responses}---can alter the agent's behaviour without
+changing the constitution hash, by manipulating the data
+returned by an external tool to steer the agent toward
+a prohibited action.
+
+To detect this class of attack, we introduce
+\textbf{Behavioural Fingerprinting}: a continuous monitoring
+layer that compares the agent's real-time action distribution
+against a baseline established during certification.
+
+\paragraph{Behavioural Fingerprint Vector.}
+At certification time, the agent is run through a
+standardised test suite of $N_{\mathrm{cal}}$ scenarios.
+The distribution of actions taken across tool categories,
+response latencies, and context window growth rates
+constitutes the agent's \textbf{Behavioural Fingerprint}
+$\mathbf{b}_0 \in \mathbb{R}^d$:
+
+\begin{equation}
+  \label{eq:fingerprint}
+  \mathbf{b}_0
+    = \left[
+        f_{\mathrm{tool}}^{(1)},\; \ldots,\; f_{\mathrm{tool}}^{(T)},\;
+        \bar{\tau}_{\mathrm{latency}},\;
+        \bar{\Delta}_{\mathrm{ctx}}
+      \right]
+\end{equation}
+
+where $f_{\mathrm{tool}}^{(i)}$ is the frequency of tool
+category $i$ across the calibration suite, and
+$\bar{\tau}_{\mathrm{latency}}$,
+$\bar{\Delta}_{\mathrm{ctx}}$ are the mean response latency
+and mean context growth per step.
+
+\paragraph{Runtime Drift Detection.}
+During production, a sliding-window fingerprint
+$\mathbf{b}_t$ is computed over the most recent $W$ actions.
+If the Mahalanobis distance between $\mathbf{b}_t$ and
+$\mathbf{b}_0$ exceeds a threshold $\kappa$, the system
+triggers a \textbf{Body-Snatch Alert}:
+
+\begin{equation}
+  \label{eq:body-snatch-alert}
+  D_M(\mathbf{b}_t, \mathbf{b}_0)
+    = \sqrt{
+        (\mathbf{b}_t - \mathbf{b}_0)^\top
+        \boldsymbol{\Sigma}_0^{-1}
+        (\mathbf{b}_t - \mathbf{b}_0)
+      }
+    > \kappa
+\end{equation}
+
+where $\boldsymbol{\Sigma}_0$ is the covariance matrix of the
+fingerprint computed during calibration.
+The recommended threshold is $\kappa = 3.5$, corresponding to
+a false positive rate of $\leq 0.1\%$ under a multivariate
+normal assumption.
+
+Upon alert, the system:
+\begin{enumerate}
+  \item Suspends the agent's DID (sets the DID Document's
+    \texttt{expiresAt} to the current timestamp).
+  \item Notifies the human principal via a pre-registered
+    out-of-band channel.
+  \item Activates the Emergency Brake Pattern
+    (Section~\ref{sec:agency_spectrum}), reverting to
+    cached responses pending manual review.
+  \item Logs the event in the Trust Debt Registry as a
+    Type~3 (Composition) debt entry, since the agent's
+    behavioural guarantee has been invalidated.
+\end{enumerate}
+
+% ------------------------------------------------------------------
+\subsection{Implementation: The Agent Credential Manager}
+\label{subsec:agent-credential-impl}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:agent-credential-manager} provides a
+reference implementation of the Agent Credential Manager,
+which handles DID Document generation, DID-ZK binding proof
+requests, and behavioural fingerprint monitoring.
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Agent Credential Manager: DID Document lifecycle,
+           ZK-bound action proofs, and behavioural fingerprint
+           monitoring for autonomous AI agents.},
+  label={lst:agent-credential-manager}
+]
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+import hashlib, json, time, numpy as np
+
+@dataclass
+class AgentDID:
+    did:               str
+    controller:        str    # Human principal's DID
+    model_hash:        str    # SHA-256 of ONNX graph + weights
+    constitution_hash: str    # SHA-256 of policy predicates
+    zk_audit_endpoint: str
+    public_key:        str
+    deployed_at:       float = field(default_factory=time.time)
+    expires_at:        Optional[float] = None
+    suspended:         bool = False
+
+class AgentCredentialManager:
+    def __init__(self, zk_prover, audit_logger,
+                 fingerprint_window=100,
+                 body_snatch_threshold=3.5):
+        self.prover    = zk_prover
+        self.auditor   = audit_logger
+        self.window    = fingerprint_window
+        self.threshold = body_snatch_threshold
+        self.agents: Dict[str, AgentDID] = {}
+        self.fingerprints: Dict[str, np.ndarray] = {}
+        self.covariances:  Dict[str, np.ndarray] = {}
+        self.action_history: Dict[str, List] = {}
+
+    # -- DID Lifecycle -----------------------------------------
+    def register_agent(self, agent_id, controller_did,
+                       model_bytes, constitution_text,
+                       zk_endpoint, public_key,
+                       validity_days=90):
+        model_hash = hashlib.sha256(model_bytes).hexdigest()
+        const_hash = hashlib.sha256(
+            constitution_text.encode()).hexdigest()
+
+        did = AgentDID(
+            did=f"did:tai:vn:{agent_id}",
+            controller=controller_did,
+            model_hash=model_hash,
+            constitution_hash=const_hash,
+            zk_audit_endpoint=zk_endpoint,
+            public_key=public_key,
+            expires_at=time.time() + validity_days * 86400,
+        )
+        self.agents[did.did] = did
+        self.action_history[did.did] = []
+        self.auditor.log(event="did_registered",
+                         did=did.did,
+                         controller=controller_did)
+        return did
+
+    def suspend_agent(self, did_id, reason):
+        if did_id in self.agents:
+            self.agents[did_id].suspended = True
+            self.agents[did_id].expires_at = time.time()
+            self.auditor.log(event="did_suspended",
+                             did=did_id, reason=reason)
+
+    # -- DID-ZK Binding (per-action proof) ---------------------
+    def generate_action_proof(self, did_id, action_step,
+                              model_graph, constitution,
+                              context_window):
+        agent = self.agents.get(did_id)
+        if not agent or agent.suspended:
+            raise ValueError(f"Agent {did_id} not active.")
+
+        # Verify hashes match DID Document
+        cur_model_hash = hashlib.sha256(
+            model_graph).hexdigest()
+        cur_const_hash = hashlib.sha256(
+            constitution.encode()).hexdigest()
+
+        if cur_model_hash != agent.model_hash:
+            self.suspend_agent(did_id,
+                "Model hash mismatch: possible tampering")
+            raise SecurityError("Model hash mismatch")
+        if cur_const_hash != agent.constitution_hash:
+            self.suspend_agent(did_id,
+                "Constitution hash mismatch")
+            raise SecurityError("Constitution tampered")
+
+        # Generate ZK proof binding DID to action
+        proof = self.prover.prove(
+            statement={
+                "model_hash":  agent.model_hash,
+                "const_hash":  agent.constitution_hash,
+                "action_step": action_step,
+                "context_hash": hashlib.sha256(
+                    str(context_window).encode()
+                ).hexdigest(),
+            },
+            witness={
+                "model_graph":    model_graph,
+                "constitution":   constitution,
+                "context_window": context_window,
+            }
+        )
+        self.auditor.log(event="action_proof_generated",
+                         did=did_id, step=action_step)
+        return proof
+
+    # -- Behavioural Fingerprinting ----------------------------
+    def set_baseline_fingerprint(self, did_id, fingerprint,
+                                 covariance):
+        self.fingerprints[did_id] = np.array(fingerprint)
+        self.covariances[did_id]  = np.array(covariance)
+
+    def record_action(self, did_id, action_vector):
+        history = self.action_history.get(did_id, [])
+        history.append(action_vector)
+        if len(history) > self.window:
+            history = history[-self.window:]
+        self.action_history[did_id] = history
+
+        # Check for body-snatching
+        if did_id in self.fingerprints \
+                and len(history) >= self.window:
+            b_t   = np.mean(history, axis=0)
+            b_0   = self.fingerprints[did_id]
+            S_inv = np.linalg.inv(self.covariances[did_id])
+            diff  = b_t - b_0
+            d_m   = float(np.sqrt(diff @ S_inv @ diff))
+
+            if d_m > self.threshold:
+                self.suspend_agent(did_id,
+                    f"Body-snatch alert: D_M={d_m:.2f}")
+                return {"alert": "BODY_SNATCH",
+                        "mahalanobis": d_m}
+        return {"alert": None}
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{Deployment Considerations}
+\label{subsec:did-deployment}
+% ------------------------------------------------------------------
+
+\paragraph{DID Rotation and Expiry.}
+Agent DIDs must have finite validity periods (recommended:
+90 days for High-Risk deployments under Vietnam's AI Law).
+Upon expiry, the human principal must re-sign the DID Document
+with updated model and constitution hashes, creating a
+verifiable chain of agent identity versions in the ZK-Audit
+Log.
+
+\paragraph{Delegation Chains.}
+When Agent~A invokes Agent~B, Agent~A includes its own DID
+and action proof $\pi_t^A$ in the request to Agent~B.
+Agent~B's action proof $\pi_t^B$ chains to $\pi_t^A$,
+creating a verifiable delegation chain:
+\begin{equation}
+  \label{eq:delegation-chain}
+  \mathrm{Chain}(A \to B)
+    = \left\langle
+        d_A,\; \pi_t^A,\; d_B,\; \pi_t^B
+      \right\rangle
+\end{equation}
+Service~C receiving a request from Agent~B can verify the
+entire chain back to the human principal who authorized
+Agent~A---resolving the delegation gap that enabled the
+Deepfake CEO fraud
+(Appendix~\ref{app:roi-of-trust}).
+
+\paragraph{Cross-Border Agent Identity.}
+For agents operating across ASEAN jurisdictions, the DID
+method namespace (\texttt{did:tai:vn:}, \texttt{did:tai:sg:},
+\texttt{did:tai:th:}) encodes the regulatory jurisdiction.
+Mutual recognition agreements between national AI registries
+can be implemented as DID resolver federation, enabling
+a Vietnamese agent to present verifiable credentials to a
+Singaporean financial service without exposing its underlying
+model weights or constitution.
 
 \section{Red Teaming for Agentic Loops: Simulating Autonomous Escalation}
 \label{sec:agentic_red_teaming}
