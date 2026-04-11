@@ -41,6 +41,88 @@ Choosing the right tool depends on the required privacy-utility trade-off. For a
     \item \textbf{Export} the final model to \textbf{ONNX} and generate a verification proof using \textbf{ezkl}.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+\section{Cloud-Native Trust-Verified Reference Architectures}
+\label{sec:cloud_architectures}
+% ------------------------------------------------------------------
+
+The libraries of Section~\ref{sec:core_libraries} provide the cryptographic and privacy primitives. Deploying them at production scale, however, requires integrating them with the managed infrastructure of major cloud providers. This section provides two \textbf{Trust-Verified Architecture} blueprints that map the Trustworthy AI Stack to concrete cloud services, moving the practitioner from library-level code to infrastructure-level deployment.
+
+\subsection{Blueprint A: Verifiable Agent on AWS Nitro Enclaves + ezkl}
+\label{sec:aws_blueprint}
+
+\textbf{Use Case:} A financial services firm requires that its credit-scoring LLM agent can be audited by a regulator who verifies the exact model version was executed, without seeing proprietary model weights (Chapter~\ref{chap:zkml}).
+
+\textbf{Stack:}
+\begin{enumerate}
+  \item \textbf{Security Layer --- AWS Nitro Enclave:} Deploy the inference server inside an AWS Nitro Enclave, an isolated VM with no persistent storage and no external network access. The Nitro \textit{attestation document} (a hardware-signed certificate) proves to any verifier that the enclave runs exactly the authorized model binary.
+  \item \textbf{Verifiability Layer --- ezkl ZK-Proof:} Inside the enclave, convert the ONNX-exported model into a zkSNARK circuit using \textbf{ezkl}. At inference time, the enclave generates a ZK-proof that the credit score was produced by the attested model on the encrypted input, without revealing model weights or customer data.
+  \item \textbf{Privacy Layer --- DP Output Noise:} Apply local differential privacy noise to the output confidence distribution before committing the ZK-proof, preventing model inversion from the score alone.
+  \item \textbf{Alignment Layer --- Regulator Audit Interface:} An \textbf{AWS Lambda} endpoint submits the ZK-proof and Nitro attestation document to an on-chain verifier, returning a compliance receipt with no data exposure.
+\end{enumerate}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.3cm,
+    font=\small,
+    cloud_box/.style={draw, rounded corners, inner sep=8pt, text centered, font=\bfseries\small, minimum height=1.1cm},
+    aws_box/.style={cloud_box,   fill=orange!10, draw=orange!80!black},
+    priv_box/.style={cloud_box,  fill=blue!10,   draw=blue!80!black},
+    ver_box/.style={cloud_box,   fill=green!10,  draw=green!80!black},
+    align_box/.style={cloud_box, fill=purple!10, draw=purple!80!black},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+\node (enclave) [aws_box, text width=8cm]
+    {\textbf{AWS Nitro Enclave}\\(Security Layer)\\
+     Isolated VM; signed attestation document\\no persistent storage, no external network};
+
+\node (ezkl) [ver_box, below=of enclave, text width=8cm]
+    {\textbf{ezkl ZK-Proof Engine}\\(Verifiability Layer)\\
+     ONNX model $\to$ zkSNARK circuit\\Proof: score produced by attested model on encrypted input};
+
+\node (dp) [priv_box, below=of ezkl, text width=8cm]
+    {\textbf{Local DP Output Noise}\\(Privacy Layer)\\
+     Noise injected on confidence distribution\\Prevents model inversion from score alone};
+
+\node (audit) [align_box, below=of dp, text width=8cm]
+    {\textbf{Regulator Audit Interface (AWS Lambda)}\\(Alignment Layer)\\
+     ZK-proof + Nitro attestation $\to$ on-chain verifier\\Returns compliance receipt (no raw data exposed)};
+
+\draw [arrow] (enclave.south) -- node[right, font=\scriptsize] {Runs attested inference} (ezkl.north);
+\draw [arrow] (ezkl.south)    -- node[right, font=\scriptsize] {Score + proof} (dp.north);
+\draw [arrow] (dp.south)      -- node[right, font=\scriptsize] {Noisy proof bundle} (audit.north);
+
+\end{tikzpicture}
+\caption{Blueprint A: Verifiable credit-scoring agent on AWS using Nitro Enclaves (Security), ezkl ZK-proofs (Verifiability), DP output noise (Privacy), and a Lambda-based regulator audit interface (Alignment).}
+\label{fig:aws_blueprint}
+\end{figure}
+
+\subsection{Blueprint B: Federated Learning on Azure Confidential Computing + Flower}
+\label{sec:azure_blueprint}
+
+\textbf{Use Case:} A consortium of hospitals across Vietnam and Singapore trains a shared diagnostic model using Federated Learning. The central aggregator runs in a confidential environment so that neither participants nor the cloud provider can observe intermediate aggregated gradients.
+
+\textbf{Stack:}
+\begin{enumerate}
+  \item \textbf{Security Layer --- Azure Confidential VM (AMD SEV-SNP):} Deploy the Flower \texttt{fl.server} inside an Azure Confidential VM, which encrypts the aggregation process's memory at the hardware level. The Azure attestation service issues a signed certificate proving the aggregator runs unmodified Flower code.
+  \item \textbf{Privacy Layer --- Opacus DP-SGD at Each Client:} Each hospital's Flower \texttt{fl.client} wraps its local PyTorch optimizer with \textbf{Opacus} (\texttt{max\_grad\_norm=1.0}, \texttt{noise\_multiplier} calibrated to $\varepsilon = 1.5$ per round), applying per-sample clipping and Gaussian noise before transmitting updates.
+  \item \textbf{Security Layer --- SecAgg via Azure Key Vault:} Gradient updates are encrypted client-side using a shared secret derived via a SecAgg protocol, with keys stored in \textbf{Azure Key Vault}. The aggregation server sees only the masked aggregate.
+  \item \textbf{Alignment Layer --- Azure Monitor Compliance Logging:} Every training round is logged to an \textbf{Azure Monitor} workspace with an immutable audit trail linking round number, participant attestation certificates, and cumulative DP budget consumed, satisfying PDPD Art.~9 and Singapore's PDPA.
+\end{enumerate}
+
+\begin{svgraybox}
+\textbf{Blueprint B Deployment Checklist:}
+\begin{enumerate}
+  \item Provision Azure Confidential VMs in both Vietnam (SEA) and Singapore regions to satisfy Decree 13 data localization.
+  \item Configure Flower server strategy to \texttt{SecureAggregationV1}; link the SKA keystore to Azure Key Vault.
+  \item Wrap each client optimizer: \texttt{opacus.PrivacyEngine(model, optimizer, data\_loader, max\_grad\_norm=1.0, noise\_multiplier=1.1)}.
+  \item Export SEV-SNP attestation reports to Azure Monitor at each round start for the compliance audit trail.
+  \item On training completion, export the final model to ONNX and run \textbf{ezkl} to generate a ZK-proof of fairness on a held-out demographic benchmark before clinical deployment.
+\end{enumerate}
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_toolkit}
 

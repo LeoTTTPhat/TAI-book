@@ -47,6 +47,101 @@ In Federated Learning environments, unlearning becomes even more complex. The se
 
 A simple, albeit potentially unstable, implementation of unlearning involves "undoing" the training step through gradient ascent on the forget set. By maximizing the loss on the data points we wish to forget, we move the model weights away from those specific patterns. However, to prevent the model from collapsing, this must be combined with regularization that keeps the weights close to their original values for the remainder of the dataset.
 
+% ------------------------------------------------------------------
+\section{Decision Tree for Unlearning Requests}
+\label{sec:unlearning_decision_tree}
+% ------------------------------------------------------------------
+
+The choice between Exact and Approximate Unlearning is not merely a technical question---it is a risk-calibrated architectural decision that depends on the sensitivity of the data being forgotten, the current Trust Debt of the model, and whether the system was designed with SISA partitioning. This section provides a structured \textbf{Decision Tree for Unlearning Requests}.
+
+\subsection{The Four Decision Dimensions}
+\label{sec:unlearning_dimensions}
+
+\begin{description}
+  \item[Dimension 1: Data Sensitivity Class.]
+    Classify the data to be forgotten using the sensitivity taxonomy established in Chapter~\ref{chap:privacy_attacks}: \textit{Class A} (biometric, health, political affiliation --- highest), \textit{Class B} (financial records, location history --- high), \textit{Class C} (behavioral preferences, purchase history --- moderate), \textit{Class D} (aggregated public data --- low). Class A or B demands the strongest guarantee.
+
+  \item[Dimension 2: SISA Architecture Availability.]
+    If the model was originally trained with \textbf{SISA (Sharded, Isolated, Sliced, and Aggregated)} decomposition, only the affected shard(s) need retraining---a $1/S$ fraction of the full retraining cost where $S$ is the number of shards. If SISA was not used in training, only Exact or Approximate methods apply.
+
+  \item[Dimension 3: Trust Debt Score.]
+    A model with a high Trust Debt Score (Chapter~\ref{chap:attm})---many ATTM gaps, weak DP guarantees, no formal verification---is one where Approximate Unlearning poses elevated residual risk. The forgotten sample's influence may not be fully neutralized by gradient-based methods if the model was not trained with proper privacy hygiene. High Trust Debt pushes toward Exact Unlearning regardless of sensitivity class.
+
+  \item[Dimension 4: Legal Deadline.]
+    GDPR Article 17 requires erasure ``without undue delay,'' interpreted in practice as 30 days. Full retraining of a large model may require weeks of compute. When deadline pressure and moderate sensitivity collide, Approximate Unlearning with a documented \textbf{Residual Risk Disclosure} to the data subject may be the legally defensible interim measure.
+\end{description}
+
+\subsection{The Decision Tree}
+\label{sec:unlearning_tree_diagram}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    font=\small,
+    decision/.style={draw, diamond, aspect=2.6, inner sep=4pt, text centered,
+                     font=\bfseries\scriptsize, fill=yellow!8, draw=orange!80!black},
+    exact/.style={draw, rounded corners, inner sep=7pt, text centered,
+                  font=\bfseries\scriptsize, fill=red!10, draw=red!80!black, minimum width=4cm},
+    sisa/.style={draw, rounded corners, inner sep=7pt, text centered,
+                 font=\bfseries\scriptsize, fill=green!10, draw=green!60!black, minimum width=4cm},
+    approx/.style={draw, rounded corners, inner sep=7pt, text centered,
+                   font=\bfseries\scriptsize, fill=blue!10, draw=blue!80!black, minimum width=4cm},
+    arrow/.style={->, >=stealth, thick, draw=gray!70}
+]
+
+% Decision nodes (vertical chain)
+\node (d1) [decision, text width=3.8cm]
+    {Sensitivity Class\\A or B?};
+
+\node (d2) [decision, below=1.6cm of d1, text width=3.8cm]
+    {SISA architecture\\available?};
+
+\node (d3) [decision, below=1.6cm of d2, text width=3.8cm]
+    {Trust Debt\\Score HIGH?};
+
+% Action nodes (on the right side of each decision)
+\node (exact1) [exact, right=3.5cm of d1, text width=4.2cm]
+    {\textbf{Exact Unlearning}\\Full retrain on $D \setminus D_f$\\Perfect guarantee; high cost};
+
+\node (sisan) [sisa, right=3.5cm of d2, text width=4.2cm]
+    {\textbf{SISA Shard Retrain}\\Retrain only affected shard\\Strong guarantee; $1/S$ cost};
+
+\node (exact2) [exact, right=3.5cm of d3, text width=4.2cm]
+    {\textbf{Exact Unlearning}\\High debt $\Rightarrow$ residual risk too high\\for approximate methods};
+
+\node (approx) [approx, below=1.6cm of d3, text width=4.2cm]
+    {\textbf{Approximate Unlearning}\\Influence functions / gradient ascent\\Issue Residual Risk Disclosure};
+
+% Arrows
+\draw [arrow] (d1.east)   -- node[above, font=\scriptsize] {Yes} (exact1.west);
+\draw [arrow] (d1.south)  -- node[right, font=\scriptsize] {No} (d2.north);
+\draw [arrow] (d2.east)   -- node[above, font=\scriptsize] {Yes} (sisan.west);
+\draw [arrow] (d2.south)  -- node[right, font=\scriptsize] {No} (d3.north);
+\draw [arrow] (d3.east)   -- node[above, font=\scriptsize] {High} (exact2.west);
+\draw [arrow] (d3.south)  -- node[right, font=\scriptsize] {Low} (approx.north);
+
+\end{tikzpicture}
+\caption{Decision Tree for Unlearning Requests: sensitivity class, SISA availability, and Trust Debt Score determine the appropriate unlearning method. Class A/B data always requires Exact Unlearning; SISA enables shard-local retraining; high Trust Debt disqualifies Approximate methods.}
+\label{fig:unlearning_decision_tree}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption{Unlearning Method Comparison: cost, guarantee strength, and recommended use cases.}
+\label{tab:unlearning_comparison}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{3cm} p{2.3cm} p{2.5cm} p{4.5cm}}
+\toprule
+\textbf{Method} & \textbf{Compute Cost} & \textbf{Guarantee} & \textbf{Recommended For} \\
+\midrule
+Exact Unlearning & $O(N)$ --- very high & Perfect (provable) & Class A/B data; high Trust Debt; LLMs with PII memorization \\
+SISA Shard Retrain & $O(N/S)$ --- moderate & Strong (shard-bounded) & Systems pre-designed with SISA; moderate-sensitivity data \\
+Approximate Unlearning & $O(|D_f|)$ --- low & Probabilistic & Class C/D data; low Trust Debt; tight legal deadline; issue Residual Risk Disclosure \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Conclusion}
 \label{sec:conclusion_unlearning_ch17}
 

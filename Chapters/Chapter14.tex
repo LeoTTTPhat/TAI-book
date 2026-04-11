@@ -37,6 +37,86 @@ Transitioning to a quantum-safe architecture requires two major shifts:
     \item \textbf{Hardware Agility:} TEEs and secure enclaves (as discussed in Chapter 9) must be updated to support PQC primitives at the instruction set level to minimize the performance overhead of lattice-based operations.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+\section{Quantum Readiness Assessment (QRA) Template}
+\label{sec:qra_template}
+% ------------------------------------------------------------------
+
+Because quantum computing is a \emph{future} threat rather than an immediate one, organizations routinely defer post-quantum migration until it is too late. The danger of the \textbf{Harvest Now, Decrypt Later (HNDL)} attack model is that it makes \emph{today's} encrypted traffic vulnerable to \emph{tomorrow's} quantum computers. This section provides a structured QRA template that architects can complete today to inventory their HNDL exposure and establish a prioritized migration roadmap.
+
+\subsection{HNDL Exposure Map for the Trustworthy AI Stack}
+\label{sec:hndl_exposure_map}
+
+AI systems generate a continuous stream of high-value encrypted traffic: federated learning gradient updates, secure aggregation channel keys, model weight transfers, and TEE attestation certificates. An adversary recording these streams today can decrypt them retroactively once a cryptographically-relevant quantum computer (CRQC) becomes available---currently estimated by NIST within the 2030--2035 window. Table~\ref{tab:hndl_exposure} maps each encrypted data flow of the Trustworthy AI Stack to its HNDL exposure class and recommended PQC migration path.
+
+\begin{table}[ht]
+\centering
+\caption{HNDL Exposure Map for the Trustworthy AI Stack: primary encrypted data flows ranked by quantum vulnerability and mapped to NIST-standardized PQC migration paths.}
+\label{tab:hndl_exposure}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{p{3.2cm} p{2.3cm} p{2.0cm} p{4.2cm}}
+\toprule
+\textbf{AI Data Flow} & \textbf{Current Protocol} & \textbf{HNDL Exposure} & \textbf{PQC Migration Path} \\
+\midrule
+FL Gradient Updates (Ch.~8) & TLS 1.3 + ECDHE & \textbf{HIGH} & CRYSTALS-Kyber (ML-KEM, FIPS 203) key exchange \\
+SecAgg Channel Keys (Ch.~8) & Diffie-Hellman & \textbf{HIGH} & ML-KEM + X25519 hybrid (NIST recommended) \\
+TEE Attestation (Ch.~9) & RSA-2048 / ECDSA & \textbf{HIGH} & CRYSTALS-Dilithium (ML-DSA, FIPS 204) signatures \\
+Model Weight Transfer & TLS 1.3 & \textbf{MEDIUM} & ML-KEM; prioritize if weights are IP-sensitive \\
+ZK-Proof Commitments (Ch.~21) & SHA-256 + Pedersen & \textbf{LOW} & SHA-3-512 (Grover: double key length sufficient) \\
+DP Noise Seeds & AES-256-GCM & \textbf{LOW} & Retain AES-256; Grover-safe at 256-bit \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{HNDL Priority Scoring}
+\label{sec:hndl_scoring}
+
+Assign each data flow a numeric \textbf{HNDL Priority Score} using the three-factor formula:
+\begin{equation}
+\text{HNDL Score} = \underbrace{S_{\text{data}}}_{\substack{1 \text{ (low)} \\ \text{to } 4 \text{ (critical)}}}
+\;\times\;
+\underbrace{S_{\text{protocol}}}_{\substack{1 \text{ (symmetric AES)} \\ \text{to } 3 \text{ (asymmetric DH/RSA)}}}
+\;\times\;
+\underbrace{S_{\text{archive}}}_{\substack{1 \text{ (ephemeral)} \\ \text{to } 3 \text{ (retained} > 5\text{ yr)}}}
+\label{eq:hndl_priority}
+\end{equation}
+
+\noindent Interpretation: score $\geq 18$ --- \textbf{Immediate Action} (migrate within next sprint); score $9$--$17$ --- \textbf{Planned Migration} (12--18 months); score $< 9$ --- \textbf{Monitor} (defer until NIST PQC adoption guidelines stabilize for your sector).
+
+\subsection{The QRA Worksheet}
+\label{sec:qra_worksheet}
+
+Complete one row per encrypted AI data flow in your production system. Compute the HNDL Score using Equation~\eqref{eq:hndl_priority} and assign a migration owner and target sprint.
+
+\begin{longtable}{p{2.5cm} p{1.8cm} p{1.5cm} p{1.5cm} p{1.5cm} p{3.5cm}}
+\caption{Quantum Readiness Assessment (QRA) Worksheet --- complete one row per AI data flow per deployed system.}
+\label{tab:qra_worksheet} \\
+\toprule
+\textbf{Data Flow} & \textbf{Current Protocol} & $S_{\text{data}}$ & $S_{\text{protocol}}$ & $S_{\text{archive}}$ & \textbf{Migration Action / Owner / Sprint} \\
+\midrule
+\endfirsthead
+\multicolumn{6}{c}{\textit{(QRA Worksheet continued)}} \\
+\toprule
+\textbf{Data Flow} & \textbf{Current Protocol} & $S_{\text{data}}$ & $S_{\text{protocol}}$ & $S_{\text{archive}}$ & \textbf{Migration Action / Owner / Sprint} \\
+\midrule
+\endhead
+\midrule \multicolumn{6}{r}{\textit{Continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+FL Gradient Updates & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+SecAgg Channel & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+TEE Attestation & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+Model Weight Transfer & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+ZK-Proof System & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+DP Noise Channels & \textit{[fill]} & \textit{[1--4]} & \textit{[1--3]} & \textit{[1--3]} & \textit{[fill]} \\[4pt]
+\textit{[add rows]} & & & & & \\
+\end{longtable}
+
+\begin{svgraybox}
+\textbf{Migration Sequence Recommendation:} Prioritize the FL Gradient Update channel and the TEE Attestation pipeline first---these typically yield the highest HNDL scores and are addressed by dropping in \textbf{CRYSTALS-Kyber (ML-KEM, NIST FIPS 203)} for key exchange and \textbf{CRYSTALS-Dilithium (ML-DSA, NIST FIPS 204)} for attestation signatures. Both are available in the \texttt{liboqs} and \texttt{Open Quantum Safe} libraries with minimal performance overhead at the infrastructure level, and both integrate directly with TLS 1.3 via hybrid key exchange extensions already supported by AWS, Azure, and GCP experimental endpoints.
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_quantum}
 
