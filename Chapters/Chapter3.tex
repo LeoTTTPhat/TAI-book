@@ -32,6 +32,19 @@ The 2026 regulatory environment, specifically Vietnam's AI Law and the updated N
 
 Architecturally, the \textbf{Emergency Brake Pattern} is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
 
+\subsection{The Post-Brake Recovery Protocol}
+\label{subsec:post-brake-recovery}
+
+When the Emergency Brake trips, the agent enters a suspended ``Grey'' state within the Confidence Spectrum. A critical failure in many early autonomous architectures was neglecting the restart mechanism: simply un-pausing the agent often resulted in an immediate re-triggering of the brake, trapping the system in an infinite failure loop.
+
+To resolve this, the Architect must implement a rigorous \textbf{Human-in-Command (HiC) Transition Protocol} consisting of three phases:
+
+\begin{enumerate}
+    \item \textbf{Context Freezing and State Dump:} The precise memory state, active tool-call queue, and the specific sequence of LLM generation steps that triggered the brake are cryptographically signed and frozen in the ZK-Audit Log. The agent is entirely sequestered from new inputs.
+    \item \textbf{Human Deliberation Interface:} The Trust Dashboard filters the ``AI Noise'' and presents the frozen state to a human supervisor. It explicitly highlights the specific Datalog predicate or constitutional boundary that the agent attempted to violate, providing deterministic context for the suspension.
+    \item \textbf{State Mutation and Safe Restart:} Crucially, the human supervisor must not merely click ``Approve'' or ``Deny.'' The recovery protocol requires the operator to mutate the agent's state before re-engaging the run loop. This may involve injecting a corrective system prompt into the context window, forcibly clearing the tool queue, or dynamically revoking access to the offending API. This state mutation ensures the agent resumes with altered parameters, effectively breaking the causal loop that caused the initial suspension.
+\end{enumerate}
+
 \section{Calibrated Confidence \& Conformal Prediction}
 \label{sec:uncertainty_handover}
 
