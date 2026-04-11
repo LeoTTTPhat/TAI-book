@@ -36,14 +36,1061 @@ Concept drift is more insidious; it occurs when the "ground truth" changes. For 
 Beyond accuracy, we must monitor the stability of our trust pillars:
 
 \begin{itemize}
-    \item \textbf{Privacy Budget Monitoring:} For systems that use online learning or interactive queries, the architect must track the cumulative **Privacy Budget ($\epsilon$)** in real-time. If the budget approaches its limit, the system must automatically restrict query access or cease fine-tuning to prevent information leakage.
-    \item \textbf{Robustness Drift:} We monitor for shifts in the success rate of our internal "continuous red teaming" (from Chapter 17). If the model's resilience against known adversarial patterns drops, it indicates that the model's decision boundaries have become brittle due to new data.
+    \item \textbf{Privacy Budget Monitoring:} For systems that use online learning or interactive queries, the architect must track the cumulative \textbf{Privacy Budget ($\epsilon$)} in real-time. If the budget approaches its limit, the system must automatically restrict query access or cease fine-tuning to prevent information leakage.
+    \item \textbf{Robustness Drift:} We monitor for shifts in the success rate of our internal ``continuous red teaming'' (from Chapter 17). If the model's resilience against known adversarial patterns drops, it indicates that the model's decision boundaries have become brittle due to new data.
 \end{itemize}
+
+% ------------------------------------------------------------------
+%  Colour definitions for Trust Debt section
+% ------------------------------------------------------------------
+\definecolor{debtred}   {RGB}{220,  53,  53}
+\definecolor{debtamber} {RGB}{255, 180,   0}
+\definecolor{debtgreen} {RGB}{ 56, 168,  80}
+\definecolor{debtgray}  {RGB}{130, 130, 130}
+\definecolor{scenariobg}{RGB}{245, 247, 250}
+\definecolor{warningbg} {RGB}{255, 243, 220}
+
+% ------------------------------------------------------------------
+%  tcolorbox styles for Trust Debt section
+% ------------------------------------------------------------------
+\tcbset{
+  scenariobox/.style={
+    enhanced, colback=scenariobg,
+    colframe=gray!60, fonttitle=\bfseries\small,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    breakable
+  },
+  warningbox/.style={
+    enhanced, colback=warningbg,
+    colframe=debtamber!80!black, fonttitle=\bfseries\small,
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    breakable
+  },
+  debtpattern/.style={
+    enhanced, colback=blue!4,
+    colframe=blue!55!black, fonttitle=\bfseries\small,
+    title={Debt Management Pattern},
+    left=8pt, right=8pt, top=6pt, bottom=6pt,
+    breakable
+  }
+}
+
+% ==================================================================
+\section{Managing Trustworthy AI Technical Debt}
+\label{sec:trust-tech-debt}
+% ==================================================================
+
+\begin{quote}
+\textit{``Complexity is the enemy of security. Every layer of
+trust you add to a system is also a layer of debt that must be
+serviced, versioned, and eventually repaid. The question is not
+whether your ZK-circuit will need an update---it is whether you
+will be ready when it does.''}
+\end{quote}
+
+Sections~\ref{sec:drift_detection}
+and~\ref{sec:privacy_monitoring} established the
+monitoring infrastructure for detecting drift in model accuracy,
+privacy budgets, and adversarial resilience.
+What those sections did not address is the deeper operational
+question that monitoring eventually surfaces: when the
+monitoring system tells you that a trust mechanism is failing,
+degraded, or exhausted, \emph{how do you fix it without breaking
+everything else?}
+
+This is the problem of \textbf{Trustworthy AI Technical Debt}:
+the accumulated cost of maintaining, updating, and replacing
+interconnected trust mechanisms in a live production system,
+where each mechanism was designed with specific assumptions
+about the others, and where a change to any single component
+propagates consequences through the entire stack.
+
+Standard software technical debt is well-understood.
+Trustworthy AI technical debt has three properties that make it
+substantially more dangerous:
+
+\begin{description}
+  \item[Cryptographic Coupling.]
+    Trust mechanisms are not loosely coupled services.
+    A ZK-circuit compiled from a specific model checkpoint,
+    a TEE enclave signed against a specific firmware version,
+    and a DP privacy budget calibrated to a specific dataset
+    size are all \emph{mathematically bound} to each other.
+    Updating one without updating the others invalidates
+    the system's formal guarantees---silently, with no
+    runtime error.
+
+  \item[Invisible Degradation.]
+    Unlike a crashed microservice, a degraded trust mechanism
+    continues to function.
+    A ZK-circuit running against a model that has been
+    fine-tuned since the circuit was compiled still produces
+    proofs---but those proofs are now proofs of the
+    \emph{wrong computation}.
+    The system appears healthy while its trustworthiness
+    guarantee has been severed.
+
+  \item[Regulatory Irreversibility.]
+    Under Vietnam's AI Law and the EU AI Act, a High-Risk
+    system that has been operating with an invalidated trust
+    guarantee may be required to suspend operations, notify
+    regulators, and resubmit for Conformity Assessment---even
+    if the invalidity was unintentional and caused no
+    measurable harm.
+    Technical debt in a Trustworthy AI system is therefore
+    not just an engineering liability; it is a regulatory
+    exposure.
+\end{description}
+
+This section provides a formal taxonomy of Trustworthy AI
+technical debt, four management patterns for the most critical
+debt scenarios, and a Debt Registry implementation that gives
+the architect continuous visibility into the health of every
+trust mechanism in the stack.
+
+% ------------------------------------------------------------------
+\subsection{The Trustworthy AI Debt Taxonomy}
+\label{subsec:debt-taxonomy}
+% ------------------------------------------------------------------
+
+We define \textbf{Trustworthy AI Technical Debt} as any
+condition in which the deployed trust mechanism stack no longer
+provides the formal guarantees that were certified at the time
+of the last Conformity Assessment.
+Debt arises from four distinct sources, each with a distinct
+accumulation profile, detection method, and repayment strategy.
+
+\begin{description}
+  \item[Type~1: Budget Debt.]
+    A consumable resource---most commonly the Differential
+    Privacy budget $\varepsilon$---has been partially or fully
+    exhausted through normal operation.
+    Budget debt accumulates continuously and predictably.
+    It is the only debt type that can be precisely tracked in
+    real time without additional tooling.
+
+  \item[Type~2: Staleness Debt.]
+    A trust mechanism has been compiled, trained, or certified
+    against an artifact that has since changed.
+    The most common instances are a ZK-circuit compiled against
+    a model checkpoint that has been fine-tuned, and a Formal
+    Verification proof computed against a model architecture
+    that has since been pruned or quantised.
+    Staleness debt is discrete: the mechanism is either current
+    or stale; there is no intermediate state.
+
+  \item[Type~3: Composition Debt.]
+    The formal guarantees of a multi-mechanism stack depend
+    on specific assumptions about the interaction between
+    mechanisms.
+    Composition debt arises when one mechanism in the stack
+    is updated in a way that invalidates the composition
+    proof of the overall stack, even though each individual
+    mechanism remains internally valid.
+    This is the most dangerous debt type because it is
+    invisible to mechanism-level monitoring.
+
+  \item[Type~4: Entropy Debt.]
+    Cryptographic mechanisms have finite operational lifetimes
+    determined by advances in computational power and
+    cryptanalysis.
+    A TEE enclave signed with a firmware key that has since
+    been disclosed, or a ZK-proof system whose underlying
+    elliptic curve has been weakened by a new attack, carries
+    entropy debt.
+    Entropy debt accumulates slowly but arrives catastrophically:
+    the mechanism is secure until the day it is not.
+\end{description}
+
+Table~\ref{tab:debt-taxonomy} summarises the four debt types
+with their accumulation profiles, primary detection methods,
+and time-to-criticality estimates for a typical Vietnamese
+enterprise AI deployment.
+
+\begin{table}[ht]
+\centering
+\caption{Trustworthy AI Technical Debt Taxonomy.
+  Time-to-criticality is the estimated elapsed time from
+  debt inception to regulatory or security failure in the
+  absence of active management, based on observed production
+  patterns and the Vietnamese AI Law Conformity Assessment
+  cycle.}
+\label{tab:debt-taxonomy}
+\small
+\begin{tabular}{p{1.8cm}p{2.2cm}p{2.0cm}p{2.8cm}p{2.2cm}}
+\hline\noalign{\smallskip}
+\textbf{Debt Type}
+  & \textbf{Accumulation Profile}
+  & \textbf{Visibility}
+  & \textbf{Primary Detection Method}
+  & \textbf{Time-to-Criticality} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+
+Type~1 Budget
+  & Continuous, predictable
+  & \cellcolor{debtgreen!30} High
+  & Real-time $\varepsilon$ tracking (Section~\ref{sec:privacy_monitoring})
+  & Weeks to months \\[6pt]
+
+Type~2 Staleness
+  & Discrete, event-triggered
+  & \cellcolor{debtamber!40} Medium
+  & Artifact hash comparison in Debt Registry
+  & Hours to days after trigger \\[6pt]
+
+Type~3 Composition
+  & Discrete, hidden
+  & \cellcolor{debtred!30} Low
+  & Stack-level composition audit (quarterly)
+  & Days to weeks after trigger \\[6pt]
+
+Type~4 Entropy
+  & Slow, then sudden
+  & \cellcolor{debtred!30} Low
+  & CVE monitoring + hardware vendor advisories
+  & Months to years \\
+
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{The Trust Debt Accumulation Model}
+\label{subsec:debt-accumulation}
+% ------------------------------------------------------------------
+
+We model the aggregate \textbf{Trust Debt Score} $\mathcal{D}(t)$
+of a deployed system at time $t$ as a weighted sum of
+active debt indicators across all four debt types and all
+mechanisms in the stack $M = \{m_1, \ldots, m_k\}$:
+
+\begin{equation}
+  \label{eq:debt-score}
+  \mathcal{D}(t)
+    = \sum_{j=1}^{4} w_j
+      \sum_{i=1}^{k}
+        \mathbf{1}\!\left[
+          \delta_{j}(m_i, t) > \theta_j
+        \right]
+      \cdot s_{j}(m_i, t)
+\end{equation}
+
+where:
+\begin{itemize}
+  \item $w_j \in [0,1]$ is the regulatory weight of debt
+    type $j$, with $\sum_j w_j = 1$.
+    Recommended weights for a Vietnamese High-Risk deployment:
+    $w_1 = 0.30$ (Budget),
+    $w_2 = 0.25$ (Staleness),
+    $w_3 = 0.35$ (Composition),
+    $w_4 = 0.10$ (Entropy).
+
+  \item $\delta_{j}(m_i, t)$ is the debt indicator for
+    mechanism $m_i$ of type $j$ at time $t$
+    (defined per-type in the scenarios below).
+
+  \item $\theta_j$ is the alert threshold for debt type $j$
+    above which the indicator contributes to the score.
+
+  \item $s_{j}(m_i, t) \in [0, 1]$ is the severity of the
+    debt instance, normalised to $[0,1]$.
+\end{itemize}
+
+A Debt Score $\mathcal{D}(t) = 0$ indicates a fully current
+stack with no active debt.
+$\mathcal{D}(t) \geq 1.0$ indicates a stack-level failure
+requiring immediate operational suspension under the Emergency
+Brake Pattern of Section~\ref{sec:agency_spectrum}.
+
+Figure~\ref{fig:debt-accumulation} illustrates a representative
+annual debt accumulation profile showing all four debt types
+and the system's response events.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+    width=12cm, height=6.5cm,
+    xlabel={Month of deployment year},
+    ylabel={Trust Debt Score $\mathcal{D}(t)$},
+    xmin=0, xmax=12,
+    ymin=0, ymax=1.35,
+    xtick={0,1,2,3,4,5,6,7,8,9,10,11,12},
+    xticklabels={Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,},
+    ytick={0, 0.25, 0.50, 0.75, 1.00, 1.25},
+    grid=major, grid style={dashed, gray!35},
+    tick label style={font=\footnotesize},
+    label style={font=\small},
+    legend style={
+      at={(0.02,0.98)}, anchor=north west,
+      font=\footnotesize, fill=white, draw=gray!50
+    },
+  ]
+
+  %% Emergency suspension threshold
+  \addplot[debtred, dashed, thick, domain=0:12] {1.0}
+      node[right, font=\footnotesize, debtred] {Emergency Brake};
+
+  %% Alert threshold
+  \addplot[debtamber, dashed, domain=0:12] {0.60}
+      node[right, font=\footnotesize, debtamber] {Alert threshold};
+
+  %% Composite debt score
+  \addplot[blue!70!black, thick, mark=none] coordinates {
+    (0,  0.00)
+    (1,  0.08)
+    (2,  0.17)
+    (3,  0.30)
+    (3,  0.55)
+    (4,  0.62)
+    (4.5,0.35)
+    (5,  0.28)
+    (6,  0.38)
+    (7,  0.60)
+    (7,  0.85)
+    (7.5,0.45)
+    (8,  0.38)
+    (9,  0.48)
+    (10, 0.55)
+    (10.5,0.15)
+    (11, 0.20)
+    (12, 0.28)
+  };
+  \addlegendentry{Composite $\mathcal{D}(t)$}
+
+  %% Remediation event markers
+  \addplot[mark=triangle*, mark size=3pt, only marks,
+           debtgreen, mark options={fill=debtgreen}] coordinates {
+    (4.5, 0.35)
+    (7.5, 0.45)
+    (10.5,0.15)
+  };
+  \addlegendentry{Remediation event}
+
+  %% Debt spike markers
+  \addplot[mark=*, mark size=2.5pt, only marks,
+           debtred, mark options={fill=debtred}] coordinates {
+    (3,  0.55)
+    (7,  0.85)
+  };
+  \addlegendentry{Debt spike (trigger event)}
+
+  %% Annotation: staleness event
+  \node[font=\scriptsize, align=center, debtred]
+      at (axis cs: 3.2, 0.65)
+      {Model\\fine-tuned};
+
+  %% Annotation: composition debt
+  \node[font=\scriptsize, align=center, debtred]
+      at (axis cs: 7.5, 0.96)
+      {Composition\\debt detected};
+
+  %% Annotation: budget reset
+  \node[font=\scriptsize, align=center, debtgreen]
+      at (axis cs: 10.8, 0.28)
+      {Budget\\reset};
+
+\end{axis}
+\end{tikzpicture}
+\caption{Representative annual Trust Debt Score accumulation
+  profile for a Vietnamese High-Risk AI deployment.
+  Budget debt (Type~1) accumulates continuously between
+  remediation events.
+  The model fine-tuning event at Month~3 triggers a sudden
+  staleness debt (Type~2) spike.
+  The composition debt event at Month~7 (Type~3) pushes the
+  system into the alert zone, requiring an emergency stack
+  revalidation.
+  A quarterly DP budget reset at Month~10 returns the score
+  to its lowest point of the year.}
+\label{fig:debt-accumulation}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsection{Four Critical Debt Scenarios and Their Management
+            Patterns}
+\label{subsec:debt-scenarios}
+% ------------------------------------------------------------------
+
+\subsubsection{Scenario 1: The Exhausted DP Budget}
+\label{subsubsec:scenario-dp-budget}
+
+\begin{tcolorbox}[scenariobox,
+  title={Scenario 1 --- The Exhausted DP Budget (Type~1 Debt)}]
+
+\textbf{Trigger:}
+The cumulative privacy loss tracker
+(Section~\ref{sec:privacy_monitoring})
+reports that the quarterly DP budget $\varepsilon_{\mathrm{consumed}}$
+has reached or exceeded the certified budget
+$\varepsilon_{\mathrm{budget}}$:
+\begin{equation}
+  \label{eq:budget-exhaustion}
+  \varepsilon_{\mathrm{consumed}}(t)
+    = \sum_{\tau=0}^{t} \varepsilon_{\tau}
+    \geq \varepsilon_{\mathrm{budget}}
+\end{equation}
+
+\textbf{Consequence if unmanaged:}
+Any further queries or fine-tuning steps consume privacy budget
+beyond the certified level.
+The system continues to operate but its $(\varepsilon,
+\delta)$-DP guarantee is now invalid.
+Under Decree~13, this constitutes a privacy control failure
+that must be reported within 72 hours of detection.
+
+\textbf{Why this happens faster than expected:}
+Three operational patterns accelerate budget consumption beyond
+design estimates: (1)~unplanned A/B testing against live data;
+(2)~emergency fine-tuning triggered by accuracy drift alerts
+(Section~\ref{sec:drift_detection}); (3)~interactive query
+APIs that were not included in the original budget allocation.
+Each of these is a legitimate operational action that, in
+aggregate, exhausts the budget ahead of the quarterly reset.
+\end{tcolorbox}
+
+\begin{tcolorbox}[debtpattern,
+  title={Debt Management Pattern 1 --- Budget Triage Protocol}]
+
+The Budget Triage Protocol defines a three-stage response to
+approaching budget exhaustion, triggered at three threshold
+levels:
+
+\medskip
+\begin{tabular}{@{}p{1.6cm} p{2.0cm} p{7.2cm}@{}}
+\hline\noalign{\smallskip}
+\textbf{Stage} & \textbf{Threshold} & \textbf{Actions} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\textsc{Yellow}
+  & $\varepsilon_{\mathrm{consumed}} \geq 0.70\,
+    \varepsilon_{\mathrm{budget}}$
+  & Disable all non-essential interactive queries.
+    Freeze scheduled fine-tuning.
+    Notify Data Protection Officer.
+    Project exhaustion date at current burn rate. \\[4pt]
+\textsc{Orange}
+  & $\varepsilon_{\mathrm{consumed}} \geq 0.90\,
+    \varepsilon_{\mathrm{budget}}$
+  & Switch all inference to read-only mode
+    (no gradient computation).
+    Activate cached response serving for common queries.
+    DPO escalation: request emergency budget reallocation
+    or regulatory guidance. \\[4pt]
+\textsc{Red}
+  & $\varepsilon_{\mathrm{consumed}} \geq
+    \varepsilon_{\mathrm{budget}}$
+  & Suspend all model interactions that consume budget.
+    Serve only cached, pre-certified responses.
+    File regulatory notification within 72 hours.
+    Initiate emergency budget reset procedure. \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+
+\medskip
+\textbf{Budget Reset Procedure:}
+A DP budget reset is not simply incrementing a counter.
+It requires: (1)~generating a new Privacy Accountant checkpoint
+with a fresh composition baseline; (2)~revalidating the
+Gaussian noise scale $\sigma$ against the new
+$(\varepsilon_{\mathrm{new}}, \delta)$ target, accounting for
+any model or dataset changes since the last calibration;
+(3)~updating the Conformity Assessment documentation to record
+the reset event, its trigger, and the actions taken during
+each triage stage.
+\end{tcolorbox}
+
+\subsubsection{Scenario 2: The Stale ZK-Circuit}
+\label{subsubsec:scenario-zk-circuit}
+
+\begin{tcolorbox}[scenariobox,
+  title={Scenario 2 --- The Stale ZK-Circuit (Type~2 Debt)}]
+
+\textbf{Trigger:}
+The production model has been updated---through fine-tuning,
+quantisation, or weight pruning---since the ZK-circuit was
+compiled.
+The ZK-proof system continues to generate valid proofs, but
+those proofs now verify execution of the \emph{old} model
+computation, not the current one.
+
+\textbf{Formal statement of the failure:}
+Let $\mathcal{C}_{\mathrm{circuit}}$ be the arithmetic circuit
+compiled from model checkpoint $\theta_0$, and let
+$\theta_1 \neq \theta_0$ be the current production weights.
+The ZK-proof $\pi$ generated for a query $(x, y)$ satisfies:
+\begin{equation}
+  \label{eq:stale-circuit}
+  \mathrm{Verify}(\pi, \mathcal{C}_{\mathrm{circuit}}, x, y)
+    = \textsc{True}
+  \quad \text{but} \quad
+  y \neq f_{\theta_1}(x)
+\end{equation}
+The verifier accepts the proof, but the proof is a proof of
+the wrong function.
+The system has \emph{verifiable incorrectness}.
+
+\textbf{Why this is common:}
+Model updates in production are frequent (accuracy drift
+remediation, fairness corrections, security patches) and are
+typically handled by the MLOps pipeline with no awareness of
+the ZK-circuit compilation dependency.
+The circuit compilation step is expensive (hours of GPU time
+for a 7B-parameter model) and is therefore omitted from
+the fast-path update workflow.
+This is the canonical form of Trustworthy AI technical debt:
+the expensive trust component is the first to be skipped
+under time pressure.
+\end{tcolorbox}
+
+\begin{tcolorbox}[debtpattern,
+  title={Debt Management Pattern 2 --- Circuit Versioning Gate}]
+
+The Circuit Versioning Gate is a mandatory CI/CD pipeline
+check that blocks any model weight update from reaching
+production unless one of two conditions is satisfied:
+(1)~the update is certified as \emph{circuit-preserving} by
+a structural equivalence check; or (2)~a new ZK-circuit has
+been compiled and validated against the updated weights.
+
+\textbf{Circuit-Preserving Update Definition:}
+An update $\theta_0 \to \theta_1$ is circuit-preserving if
+and only if the model's architectural graph---the sequence
+of operations, their dimensions, and their activation
+functions---is unchanged.
+Weight-only updates (e.g., gradient descent steps, LoRA
+adapter updates where the base architecture is frozen)
+are circuit-preserving.
+Structural changes (quantisation bit-width changes, layer
+pruning, architectural modifications) are circuit-breaking
+and require circuit recompilation.
+
+\textbf{Implementation:}
+The gate is implemented as a Git pre-merge hook that computes
+the SHA-256 hash of the model's ONNX computational graph
+(structure only, not weights) and compares it to the hash
+recorded in the Debt Registry at the time of the last
+circuit compilation.
+A hash mismatch blocks the merge and opens a Debt Registry
+ticket of Type~2 with estimated recompilation cost.
+\end{tcolorbox}
+
+\subsubsection{Scenario 3: The Broken Composition Guarantee}
+\label{subsubsec:scenario-composition}
+
+\begin{tcolorbox}[scenariobox,
+  title={Scenario 3 --- The Broken Composition Guarantee
+         (Type~3 Debt)}]
+
+\textbf{Trigger:}
+A component of the trust stack has been independently updated
+in a way that violates the assumptions of the composition
+proof.
+The canonical example: the Secure Aggregation protocol is
+upgraded to a new batched variant, changing the masking
+granularity.
+The existing DP noise calibration was computed under the
+assumption of the old SecAgg's aggregation properties.
+The new SecAgg has different sensitivity bounds.
+The DP guarantee $(\varepsilon, \delta)$ that the stack
+certified is no longer achievable at the configured noise
+level $\sigma$.
+
+\textbf{The composition theorem dependency graph:}
+The formal guarantee of the full stack
+(TEE + DP + SecAgg) is not the conjunction
+of three independent guarantees.
+It is a \emph{proof over their interaction}, which makes
+specific assumptions about each component's operational
+parameters.
+Updating any component breaks the proof until it is
+re-derived for the new configuration.
+
+\textbf{Why this is the most dangerous debt type:}
+Unlike Scenario~1 (budget exhaustion is visible) and
+Scenario~2 (circuit hash mismatch is detectable),
+composition debt produces no observable signal in
+mechanism-level monitoring.
+Every individual component passes its own health checks.
+The stack as a whole is broken.
+\end{tcolorbox}
+
+\begin{tcolorbox}[debtpattern,
+  title={Debt Management Pattern 3 --- Composition Audit Cycle}]
+
+The Composition Audit Cycle is a mandatory quarterly review
+process that re-derives the stack-level composition guarantee
+from the current operational parameters of each mechanism.
+
+\textbf{Audit Inputs:}
+\begin{itemize}
+  \item Current DP noise scale $\sigma$ and clipping norm $C$
+    for each DP-protected component.
+  \item Current SecAgg aggregation group size $n$ and
+    masking scheme version.
+  \item Current TEE firmware version and attestation
+    certificate expiry.
+  \item Current ZK-circuit version and proof system
+    parameters (elliptic curve, field size).
+\end{itemize}
+
+\textbf{Audit Procedure:}
+The audit re-derives the effective privacy guarantee
+$\varepsilon_{\mathrm{eff}}$ of the composed stack using
+the Privacy Loss Random Variable (PRV) accountant or
+R\'{e}nyi DP composition, and
+compares it to the certified value $\varepsilon_{\mathrm{cert}}$.
+If $\varepsilon_{\mathrm{eff}} > \varepsilon_{\mathrm{cert}}$,
+the stack carries active Type~3 debt that must be remediated
+before the next production traffic window.
+
+\textbf{Audit Trigger Events:}
+In addition to the quarterly cycle, a Composition Audit is
+triggered immediately by any of the following events:
+(1)~SecAgg protocol version change;
+(2)~TEE firmware update;
+(3)~DP accountant library version update;
+(4)~addition or removal of any mechanism from the stack;
+(5)~any change to the production dataset size $N$ that
+affects the $\delta = 1/N$ calibration.
+
+\textbf{Composition Debt Resolution:}
+Resolution requires recalibrating $\sigma$ to restore
+$\varepsilon_{\mathrm{eff}} \leq \varepsilon_{\mathrm{cert}}$
+under the new composition, or obtaining a new Conformity
+Assessment certification for the updated $\varepsilon_{\mathrm{cert}}$.
+The recalibrated stack must pass the full acceptance
+protocol before returning to production.
+\end{tcolorbox}
+
+\subsubsection{Scenario 4: The Decaying TEE Enclave}
+\label{subsubsec:scenario-tee-entropy}
+
+\begin{tcolorbox}[scenariobox,
+  title={Scenario 4 --- The Decaying TEE Enclave (Type~4 Debt)}]
+
+\textbf{Trigger:}
+One of three entropy events: (1)~Intel or AMD publishes a
+microcode security advisory (SGX~AEPIC leak class,
+Spectre/Meltdown variants) requiring enclave firmware
+patching; (2)~the attestation certificate's root of trust
+key approaches expiry; (3)~a side-channel attack technique
+is published that targets the specific memory access pattern
+of the deployed model workload (as occurred in the LedgerNet
+incident, Appendix~\ref{app:roi-of-trust}).
+
+\textbf{The operational complexity of TEE patching:}
+A TEE firmware patch is not a software update.
+It requires: (1)~draining all live inference requests from
+the enclave; (2)~re-measuring the enclave image against
+the new firmware; (3)~re-generating and distributing the
+remote attestation certificate to all clients that hold
+the previous certificate; (4)~re-establishing all encrypted
+channels that were bound to the old attestation.
+For a system serving thousands of concurrent sessions,
+this is a multi-hour operation with complete service
+interruption.
+
+\textbf{The compounding risk:}
+Entropy debt does not announce itself with a monitoring
+alert.
+It arrives via an external CVE or vendor advisory and
+requires an immediate response to a complex, high-stakes
+operation on a live production system---precisely the
+conditions under which human error rates are highest and
+the consequences of error are most severe.
+\end{tcolorbox}
+
+\begin{tcolorbox}[debtpattern,
+  title={Debt Management Pattern 4 --- Enclave Lifecycle
+         Management Protocol}]
+
+The Enclave Lifecycle Management Protocol (ELMP) pre-plans
+the full TEE update workflow so that it can be executed
+under time pressure without improvisation.
+
+\textbf{Standing Maintenance Window:}
+Every deployment that uses TEEs must have a monthly
+maintenance window of at least 4 hours during which the
+enclave can be patched without violating SLA commitments.
+The window schedule and the fallback serving strategy (cached
+responses, graceful degradation to non-enclave inference
+with appropriate user notification) must be documented in
+the system's operational runbook.
+
+\textbf{CVE Response Ladder:}
+\begin{enumerate}
+  \item \textbf{CVE Published (Day~0):}
+    Security team assesses applicability to deployed
+    enclave configuration within 4 hours.
+    If applicable, the maintenance window is activated
+    immediately regardless of schedule.
+
+  \item \textbf{Patch Staging (Day~0--1):}
+    New enclave image built and measured in staging
+    environment.
+    New attestation certificate generated and verified
+    against staging clients.
+    Composition Audit triggered (Pattern~3) to confirm
+    that the patched enclave does not invalidate stack
+    composition guarantees.
+
+  \item \textbf{Canary Deployment (Day~1--2):}
+    Patched enclave deployed to 5\% of production traffic.
+    Attestation success rate, inference latency, and
+    ZK-proof validity monitored for 24 hours.
+
+  \item \textbf{Full Rollout (Day~2--3):}
+    Patched enclave promoted to 100\% of production traffic.
+    Old enclave drained and decommissioned.
+    Debt Registry updated: Type~4 debt entry closed.
+    Conformity Assessment documentation updated with
+    patch event record.
+\end{enumerate}
+
+\textbf{Certificate Rotation:}
+Remote attestation certificates must be rotated before
+expiry on a schedule maintained in the Debt Registry.
+The recommended rotation trigger is 30 days before
+certificate expiry, providing a buffer for the rotation
+workflow to complete within the standing maintenance window.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsection{The Trust Debt Registry}
+\label{subsec:debt-registry}
+% ------------------------------------------------------------------
+
+The four debt management patterns of
+Section~\ref{subsec:debt-scenarios} share a common
+operational requirement: a single authoritative record of
+every active and resolved debt item across the full trust
+stack.
+We call this the \textbf{Trust Debt Registry}: a versioned,
+auditable data structure maintained as a first-class
+infrastructure artifact alongside the model weights, the
+ZK-circuit, and the DP accountant state.
+
+The Trust Debt Registry serves three functions:
+
+\begin{enumerate}
+  \item \textbf{Continuous Debt Scoring.}
+    Provides the input data for the Trust Debt Score
+    $\mathcal{D}(t)$ of
+    Equation~\eqref{eq:debt-score}, enabling real-time
+    dashboard display.
+
+  \item \textbf{Regulatory Evidence.}
+    Provides a tamper-evident record of every debt event,
+    its detection time, the actions taken, and the
+    resolution timestamp---the primary evidence artifact
+    for Conformity Assessment re-submissions and regulatory
+    audits under Vietnam's AI Law.
+
+  \item \textbf{Remediation Scheduling.}
+    Drives the operational calendar: circuit recompilation
+    windows, composition audit dates, enclave maintenance
+    windows, and budget reset checkpoints are all derived
+    from open Debt Registry entries.
+\end{enumerate}
+
+Listing~\ref{lst:debt-registry} provides a complete
+implementation of the Trust Debt Registry, including the
+Debt Score calculator, the four debt detectors, and the
+registry persistence layer.
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Trust Debt Registry: unified tracking and scoring
+           for all four Trustworthy AI debt types across the
+           full mechanism stack.},
+  label={lst:debt-registry}
+]
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Optional
+import hashlib, time, json
+
+# -- Debt taxonomy ------------------------------------------------
+class DebtType(Enum):
+    BUDGET      = 1   # Consumable resource exhaustion
+    STALENESS   = 2   # Artifact hash mismatch
+    COMPOSITION = 3   # Stack-level guarantee invalidation
+    ENTROPY     = 4   # Cryptographic / hardware decay
+
+class DebtStatus(Enum):
+    OPEN     = "open"
+    TRIAGED  = "triaged"
+    RESOLVED = "resolved"
+
+@dataclass
+class DebtEntry:
+    debt_id:      str
+    debt_type:    DebtType
+    mechanism:    str            # e.g., "DP-SGD", "ZK-circuit-v3"
+    description:  str
+    severity:     float          # normalised [0, 1]
+    detected_at:  float = field(default_factory=time.time)
+    resolved_at:  Optional[float] = None
+    status:       DebtStatus = DebtStatus.OPEN
+    audit_hash:   Optional[str] = None   # ZK-verified audit ref
+
+# -- Registry weights for High-Risk Vietnamese deployment ---------
+DEBT_WEIGHTS = {
+    DebtType.BUDGET:      0.30,
+    DebtType.STALENESS:   0.25,
+    DebtType.COMPOSITION: 0.35,
+    DebtType.ENTROPY:     0.10,
+}
+
+class TrustDebtRegistry:
+    def __init__(self, audit_logger, alert_threshold=0.60,
+                 emergency_threshold=1.00):
+        self.entries   = []
+        self.auditor   = audit_logger
+        self.alert_thr = alert_threshold
+        self.emerg_thr = emergency_threshold
+
+    # -- Core CRUD ------------------------------------------------
+    def open_debt(self, debt_type, mechanism,
+                  description, severity):
+        entry = DebtEntry(
+            debt_id     = self._generate_id(mechanism, debt_type),
+            debt_type   = debt_type,
+            mechanism   = mechanism,
+            description = description,
+            severity    = min(max(severity, 0.0), 1.0),
+        )
+        entry.audit_hash = self.auditor.log(
+            event="debt_opened", entry=entry.__dict__)
+        self.entries.append(entry)
+        return entry
+
+    def resolve_debt(self, debt_id, resolution_note):
+        for entry in self.entries:
+            if entry.debt_id == debt_id \
+                    and entry.status != DebtStatus.RESOLVED:
+                entry.status      = DebtStatus.RESOLVED
+                entry.resolved_at = time.time()
+                self.auditor.log(
+                    event="debt_resolved",
+                    debt_id=debt_id,
+                    note=resolution_note)
+                return
+        raise ValueError(f"Debt {debt_id} not found/resolved.")
+
+    # -- Debt Score (Equation 25.1) --------------------------------
+    def compute_score(self):
+        open_entries = [e for e in self.entries
+                        if e.status != DebtStatus.RESOLVED]
+        score = sum(
+            DEBT_WEIGHTS[e.debt_type] * e.severity
+            for e in open_entries
+        )
+        return round(score, 4)
+
+    # -- Automated Debt Detectors ---------------------------------
+    def check_budget_debt(self, eps_consumed, eps_budget,
+                          mechanism="DP-SGD"):
+        """Type 1: Open debt if budget >= 70%."""
+        ratio = eps_consumed / eps_budget
+        if ratio >= 0.70:
+            severity = min((ratio - 0.70) / 0.30, 1.0)
+            self.open_debt(
+                DebtType.BUDGET, mechanism,
+                f"Budget at {ratio:.0%}: "
+                f"eps={eps_consumed:.3f}/{eps_budget:.3f}",
+                severity=severity)
+
+    def check_staleness_debt(self, current_onnx_graph,
+                             certified_hash,
+                             mechanism="ZK-circuit"):
+        """Type 2: Open debt if model graph hash changed."""
+        current_hash = hashlib.sha256(
+            current_onnx_graph).hexdigest()
+        if current_hash != certified_hash:
+            self.open_debt(
+                DebtType.STALENESS, mechanism,
+                f"ONNX hash mismatch: cert={certified_hash[:12]}"
+                f"... cur={current_hash[:12]}...",
+                severity=0.85)
+
+    def check_composition_debt(self, eps_effective,
+                               eps_certified,
+                               mechanism="DP+SecAgg"):
+        """Type 3: Open debt if eps_eff > eps_cert."""
+        if eps_effective > eps_certified:
+            severity = min(
+                (eps_effective - eps_certified) / eps_certified,
+                1.0)
+            self.open_debt(
+                DebtType.COMPOSITION, mechanism,
+                f"Composition violated: "
+                f"eps_eff={eps_effective:.3f} > "
+                f"eps_cert={eps_certified:.3f}",
+                severity=severity)
+
+    def check_entropy_debt(self, cert_expiry_days,
+                           rotation_buffer_days=30,
+                           mechanism="TEE-attestation"):
+        """Type 4: Open debt if certificate nears expiry."""
+        if cert_expiry_days <= rotation_buffer_days:
+            severity = 1.0 - (cert_expiry_days /
+                               rotation_buffer_days)
+            self.open_debt(
+                DebtType.ENTROPY, mechanism,
+                f"Cert expires in {cert_expiry_days} days",
+                severity=severity)
+
+    # -- Operational Interface ------------------------------------
+    def operational_status(self):
+        score  = self.compute_score()
+        status = ("NOMINAL"   if score < self.alert_thr  else
+                  "ALERT"     if score < self.emerg_thr  else
+                  "EMERGENCY")
+        return {
+            "debt_score":   score,
+            "status":       status,
+            "open_entries": sum(1 for e in self.entries
+                                if e.status != DebtStatus.RESOLVED),
+            "by_type": {
+                dt.name: sum(1 for e in self.entries
+                             if e.debt_type == dt
+                             and e.status != DebtStatus.RESOLVED)
+                for dt in DebtType
+            }
+        }
+
+    @staticmethod
+    def _generate_id(mechanism, debt_type):
+        raw = f"{mechanism}-{debt_type.name}-{time.time()}"
+        return "DEBT-" + hashlib.sha256(
+            raw.encode()).hexdigest()[:8].upper()
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{The Debt-Aware Deployment Checklist}
+\label{subsec:deployment-checklist}
+% ------------------------------------------------------------------
+
+The four debt management patterns and the Debt Registry
+implementation converge in a single operational artifact:
+the \textbf{Debt-Aware Deployment Checklist}, which must
+be completed and signed off by both the Technical Lead and
+the Data Protection Officer before any model or mechanism
+update is promoted to production.
+
+\begin{table}[ht]
+\centering
+\caption{Debt-Aware Deployment Checklist.
+  All items must be \textbf{PASS} before the deployment
+  proceeds.
+  Any \textbf{FAIL} or \textbf{BLOCK} opens a mandatory
+  Debt Registry entry and suspends the deployment until
+  the entry is resolved.}
+\label{tab:deployment-checklist}
+\small
+\begin{tabular}{p{0.4cm}p{4.4cm}p{2.0cm}p{4.0cm}}
+\hline\noalign{\smallskip}
+\textbf{\#}
+  & \textbf{Check}
+  & \textbf{Debt Type}
+  & \textbf{Pass Condition} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+
+1 & DP budget remaining $\geq 30\%$ of quarterly allocation
+  & Type~1
+  & $\varepsilon_{\mathrm{remaining}} \geq 0.30\,
+    \varepsilon_{\mathrm{budget}}$ \\[3pt]
+
+2 & ONNX graph hash matches certified circuit hash
+  & Type~2
+  & SHA-256 match confirmed \\[3pt]
+
+3 & LoRA / fine-tune delta is circuit-preserving
+  & Type~2
+  & Architectural graph unchanged \\[3pt]
+
+4 & Composition audit current ($\leq 90$ days old)
+  & Type~3
+  & Audit timestamp in Registry \\[3pt]
+
+5 & $\varepsilon_{\mathrm{eff}} \leq \varepsilon_{\mathrm{cert}}$
+    under new configuration
+  & Type~3
+  & PRV accountant output verified \\[3pt]
+
+6 & No open CVEs affecting TEE firmware version
+  & Type~4
+  & CVE scan result: clean \\[3pt]
+
+7 & Attestation certificate valid $> 30$ days
+  & Type~4
+  & Expiry date confirmed in Registry \\[3pt]
+
+8 & Debt Score $\mathcal{D}(t) < 0.60$
+  & All types
+  & Registry operational status: NOMINAL \\[3pt]
+
+9 & ZK-circuit recompiled if architectural change detected
+  & Type~2
+  & New circuit hash recorded in Registry \\[3pt]
+
+10 & DPO sign-off recorded in Registry
+   & Regulatory
+   & DPO signature timestamp present \\
+
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{Conclusion: Debt as a First-Class Architectural
+            Concern}
+\label{subsec:debt-conclusion}
+% ------------------------------------------------------------------
+
+The four debt types of Section~\ref{subsec:debt-taxonomy}
+represent a fundamental property of the Trustworthy AI Stack:
+it is not a static certificate but a dynamic commitment that
+must be continuously earned.
+Every mechanism in the stack---every DP noise calibration,
+every ZK-circuit, every TEE attestation, every composition
+proof---carries an implicit expiry condition.
+The architect who does not track these conditions is not
+building a Trustworthy AI system.
+They are building a system that was trustworthy on the day
+of its Conformity Assessment and has been accruing hidden
+debt ever since.
+
+The Trust Debt Registry, the four management patterns, and
+the Deployment Checklist of this section are not
+bureaucratic additions to the engineering workflow.
+They are the operational expression of the most important
+insight of this book: \textbf{trust is a performance, not a
+property.}
+It must be demonstrated, measured, and maintained with every
+deployment, every update, and every operational decision.
+
+The Self-Healing Lifecycle of Section~\ref{sec:self_healing}
+provides the automated remediation responses for the subset
+of debt conditions that can be resolved through rollback
+and retraining.
+The four patterns of this section handle the conditions that
+the Self-Healing Lifecycle cannot: the exhausted budget that
+requires a regulatory decision, the stale circuit that
+requires a GPU-day of recompilation, the broken composition
+that requires a re-derivation of the stack guarantee, and
+the decaying enclave that requires a coordinated
+infrastructure operation.
+
+Together, they form the complete operational framework for
+a Trustworthy AI system that earns its trust not once,
+at deployment, but continuously, in production.
 
 \section{The Self-Healing Lifecycle}
 \label{sec:self_healing}
 
-A Trustworthy MLOps pipeline is not just a dashboard; it is an active control loop. We implement **Automated Fallbacks**:
+A Trustworthy MLOps pipeline is not just a dashboard; it is an active control loop. We implement \textbf{Automated Fallbacks}:
 \begin{enumerate}
     \item \textbf{Silent Monitoring:} The new model runs in parallel with a known-safe baseline.
     \item \textbf{Threshold Breach:} If drift or privacy risks exceed limits, the system diverts traffic back to the baseline model.
@@ -53,6 +1100,4 @@ A Trustworthy MLOps pipeline is not just a dashboard; it is an active control lo
 \section{Conclusion}
 \label{sec:conclusion_mlops}
 
-Trustworthy MLOps ensures that our systems are resilient to the passage of time. By closing the loop between deployment and monitoring, we move from "One-Time Trust" to "Continuous Accountability." With these operational safeguards in place, we can now navigate the global regulatory environment with the confidence that our systems remain compliant in practice, not just in theory. In the next chapter, we provide a comparative guide to \textbf{Global Compliance}.
-
-
+Trustworthy MLOps ensures that our systems are resilient to the passage of time. By closing the loop between deployment and monitoring, we move from ``One-Time Trust'' to ``Continuous Accountability.'' With these operational safeguards in place, we can now navigate the global regulatory environment with the confidence that our systems remain compliant in practice, not just in theory. In the next chapter, we provide a comparative guide to \textbf{Global Compliance}.
