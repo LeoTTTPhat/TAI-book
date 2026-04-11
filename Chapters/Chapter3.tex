@@ -11,12 +11,12 @@
 \section{The Interdependency of Trust}
 \label{sec:interdependency_trust}
 
-In 2026, the "Trust Gap" has become the primary bottleneck for AI adoption. This gap is the distance between what an autonomous agent \textit{can} do and what a human operator \textit{understands} it is doing. We have moved beyond the "Black Box" era into one where **Social Legibility** is a technical requirement.
+In 2026, the ``Trust Gap'' has become the primary bottleneck for AI adoption. This gap is the distance between what an autonomous agent \textit{can} do and what a human operator \textit{understands} it is doing. We have moved beyond the ``Black Box'' era into one where \textbf{Social Legibility} is a technical requirement.
 
 Trust is highest when two layers are harmonized:
 \begin{description}
   \item[Technical Trust:] The model's inherent stability, resilience, and mathematical privacy guarantees (e.g., $\epsilon$-DP, robust recovery).
-  \item[Social Trust:] The presence of "Institutional Backstops"---regulations, audit trails, and the assurance that a human or organization remains responsible for the agent's actions.
+  \item[Social Trust:] The presence of ``Institutional Backstops''---regulations, audit trails, and the assurance that a human or organization remains responsible for the agent's actions.
 \end{description}
 
 \section{HITL, HOTL, and Human-in-Command (HiC)}
@@ -27,26 +27,829 @@ The 2026 regulatory environment, specifically Vietnam's AI Law and the updated N
 \begin{description}
   \item[Human-in-the-Loop (HITL):] Active human participation in every decision (e.g., a doctor approving every individual prescription from an AI).
   \item[Human-on-the-Loop (HOTL):] The agent acts autonomously, but a human monitors the stream and can intervene or override in real-time.
-  \item[Human-in-Command (HiC):] A high-level governing requirement where humans set the boundaries, constitutional constraints, and "Emergency Brakes" within which the agent operates.
+  \item[Human-in-Command (HiC):] A high-level governing requirement where humans set the boundaries, constitutional constraints, and ``Emergency Brakes'' within which the agent operates.
 \end{description}
 
-Architecturally, the **Emergency Brake Pattern** is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
+Architecturally, the \textbf{Emergency Brake Pattern} is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
 
 \section{Calibrated Confidence \& Conformal Prediction}
 \label{sec:uncertainty_handover}
 
-A trustworthy agent must not only be accurate but also "self-aware." We have moved past simple softmax probabilities, which were prone to "Confident Hallucinations," toward \textbf{Conformal Prediction} \cite{ouyang2022}. By integrating human feedback directly into the model"s behavioral policy through techniques like **Reinforcement Learning from Human Feedback (RLHF)** \cite{ouyang2022}, we create a system that is fundamentally aligned with human agency.
+A trustworthy agent must not only be accurate but also ``self-aware.'' We have moved past simple softmax probabilities, which were prone to ``Confident Hallucinations,'' toward \textbf{Conformal Prediction} \cite{ouyang2022}. By integrating human feedback directly into the model's behavioral policy through techniques like \textbf{Reinforcement Learning from Human Feedback (RLHF)} \cite{ouyang2022}, we create a system that is fundamentally aligned with human agency.
 
-Conformal Prediction provides a mathematical framework for generating prediction sets that are guaranteed to contain the true value with a pre-specified probability (e.g., $95 percent$). When the prediction set grows too large (indicating high ambiguity), the agent initiates an **Uncertainty Handover**, passing the decision to a human expert.
+Conformal Prediction provides a mathematical framework for generating prediction sets that are guaranteed to contain the true value with a pre-specified probability (e.g., $95\%$). When the prediction set grows too large (indicating high ambiguity), the agent initiates an \textbf{Uncertainty Handover}, passing the decision to a human expert.
 
 \section{Socio-Technical Oversight Architecture}
 \label{sec:oversight_arch}
 
-Designing for oversight requires addressing the "Multi-Stakes Pattern," where the interests of the Subject, the Architect, and the Auditor must be balanced. Key components include:
+Designing for oversight requires addressing the ``Multi-Stakes Pattern,'' where the interests of the Subject, the Architect, and the Auditor must be balanced. Key components include:
 \begin{itemize}
     \item \textbf{Verifiable Audit Trails:} Using immutable ledgers or Zero-Knowledge logs to record agent actions without exposing raw sensitive training data.
-    \item \textbf{Cognitive Ergonomics:} Reducing "AI Noise" by filtering agent logs into a human-readable **Trust Dashboard** that highlights only the most critical decision-branches for review.
+    \item \textbf{Cognitive Ergonomics:} Reducing ``AI Noise'' by filtering agent logs into a human-readable \textbf{Trust Dashboard} that highlights only the most critical decision-branches for review.
 \end{itemize}
+
+% ------------------------------------------------------------------
+%  Colour palette for UI state indicators
+% ------------------------------------------------------------------
+\definecolor{stategreen}{RGB}{  56, 168,  80}
+\definecolor{stateamber}{RGB}{ 255, 180,   0}
+\definecolor{statered}{RGB}{   220,  53,  53}
+\definecolor{stategray}{RGB}{  130, 130, 130}
+\definecolor{uibg}{RGB}{       245, 247, 250}
+\definecolor{patternbg}{RGB}{  235, 243, 255}
+
+% ------------------------------------------------------------------
+%  tcolorbox style for design-pattern callouts
+% ------------------------------------------------------------------
+\tcbset{
+  patternbox/.style={
+    enhanced,
+    colback=patternbg,
+    colframe=blue!55!black,
+    fonttitle=\bfseries\small,
+    title={Design Pattern},
+    left=6pt, right=6pt, top=4pt, bottom=4pt,
+    breakable
+  }
+}
+
+% ==================================================================
+\subsection{Trust Dashboards: Design Patterns for Uncertainty
+            Handover Interfaces}
+\label{subsec:trust-dashboards}
+% ==================================================================
+
+\begin{quote}
+\textit{``A model that knows it is uncertain but cannot communicate
+that uncertainty to a human operator has not solved the trust
+problem---it has hidden it behind a screen.''}
+\end{quote}
+
+The calibrated confidence framework of
+Section~\ref{sec:uncertainty_handover} established the
+mathematical trigger for an Uncertainty Handover: when the
+Conformal Prediction set $\mathcal{C}(x)$ grows beyond a
+pre-specified cardinality threshold $\kappa$, the agent must
+escalate to a human expert.
+What the mathematical framework does not specify is the equally
+critical question of \emph{how} that escalation is communicated.
+
+This is not a peripheral UX concern.
+The empirical literature on clinical decision support consistently
+demonstrates two failure modes that destroy the value of any
+technically correct handover signal:
+
+\begin{description}
+  \item[Automation Bias.]
+    Human operators who interact with AI systems over extended
+    periods systematically over-trust the system's outputs,
+    accepting recommendations without critical evaluation even
+    when the system explicitly flags uncertainty.
+    The Trust Dashboard must be designed to \emph{interrupt}
+    this bias, not accommodate it.
+
+  \item[Alarm Fatigue.]
+    When uncertainty alerts are frequent, visually undifferentiated,
+    or cognitively demanding to interpret, operators habituate to
+    them and begin ignoring them.
+    In the healthcare context, alarm fatigue is directly linked
+    to adverse patient outcomes.
+    The Trust Dashboard must be designed to be \emph{rare,
+    salient, and immediately actionable}.
+\end{description}
+
+This subsection provides five evidence-based design patterns for
+Uncertainty Handover interfaces, grounded in the Human Factors
+and Human-Computer Interaction literature and operationalised for
+the specific constraints of the Vietnamese rural clinician
+population introduced in
+Section~\ref{sec:healthcare_triage}.
+Each pattern is accompanied by a formal specification, a
+rationale, and an implementation sketch.
+
+% ------------------------------------------------------------------
+\subsubsection{The Confidence Spectrum: A Unified Visual Language}
+\label{subsubsec:confidence-spectrum}
+% ------------------------------------------------------------------
+
+Before individual design patterns can be applied, the Trust
+Dashboard must establish a \textbf{Confidence Spectrum}---a
+unified visual and semantic language that maps the model's
+internal Conformal Prediction set size to a discrete set of
+operator-facing \textbf{Operational States}.
+
+\paragraph{Formal State Definition.}
+Let $|\mathcal{C}(x)|$ denote the cardinality of the Conformal
+Prediction set for query $x$, and let $n_{\mathrm{class}}$ be
+the total number of output classes.
+We define four Operational States:
+
+\begin{equation}
+  \label{eq:operational-states}
+  \mathrm{State}(x) =
+  \begin{cases}
+    \textsc{Autonomous}  & \text{if } |\mathcal{C}(x)| = 1 \\
+    \textsc{Advisory}    & \text{if } 2 \leq |\mathcal{C}(x)|
+                              \leq \kappa_{\mathrm{lo}} \\
+    \textsc{Handover}    & \text{if } \kappa_{\mathrm{lo}} <
+                              |\mathcal{C}(x)| \leq \kappa_{\mathrm{hi}} \\
+    \textsc{Suspended}   & \text{if } |\mathcal{C}(x)| >
+                              \kappa_{\mathrm{hi}} \text{ or }
+                              |\mathcal{C}(x)| = n_{\mathrm{class}}
+  \end{cases}
+\end{equation}
+
+where $\kappa_{\mathrm{lo}}$ and $\kappa_{\mathrm{hi}}$ are
+deployment-specific thresholds set by the architect in
+consultation with clinical domain experts.
+For the Vietnamese rural triage system, we recommend
+$\kappa_{\mathrm{lo}} = 2$ and $\kappa_{\mathrm{hi}} = 4$
+for a 7-class triage severity taxonomy.
+
+Table~\ref{tab:operational-states} maps each state to its
+visual encoding, operator expectation, and required UI response.
+
+\begin{table}[ht]
+\centering
+\caption{Confidence Spectrum: Operational States, their visual
+  encodings, and required Trust Dashboard responses.
+  Colour coding mirrors internationally standardised traffic-light
+  semantics to minimise cross-cultural training burden.}
+\label{tab:operational-states}
+\small
+\begin{tabular}{p{2.1cm}p{1.2cm}p{1.6cm}p{2.4cm}p{4.0cm}}
+\hline\noalign{\smallskip}
+\textbf{State}
+  & \textbf{Colour}
+  & \textbf{$|\mathcal{C}(x)|$}
+  & \textbf{Operator Role}
+  & \textbf{Required UI Response} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+
+\textsc{Autonomous}
+  & \cellcolor{stategreen}\textcolor{white}{Green}
+  & $= 1$
+  & Monitor
+  & Display single recommendation with confidence score.
+    No action required. Audit log entry created silently. \\[4pt]
+
+\textsc{Advisory}
+  & \cellcolor{stateamber}{Amber}
+  & $2$--$\kappa_{\mathrm{lo}}$
+  & Review
+  & Display ranked candidate set with SHAP attribution.
+    Soft prompt: ``Please confirm before proceeding.''
+    One-click confirm or override. \\[4pt]
+
+\textsc{Handover}
+  & \cellcolor{statered}\textcolor{white}{Red}
+  & $\kappa_{\mathrm{lo}}$--$\kappa_{\mathrm{hi}}$
+  & Decide
+  & Full Uncertainty Handover Panel (Pattern~3).
+    Hard interrupt: model output suppressed until operator
+    acts. Timer visible. ZK-audit log entry mandatory. \\[4pt]
+
+\textsc{Suspended}
+  & \cellcolor{stategray}\textcolor{white}{Grey}
+  & $> \kappa_{\mathrm{hi}}$
+  & Escalate
+  & Model output fully suppressed. Emergency escalation
+    protocol activated. Senior clinician paged.
+    Case flagged for retrospective review. \\
+
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:confidence-spectrum-bar} visualises the
+Confidence Spectrum as it would appear in a clinical Trust
+Dashboard header.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    bar/.style={minimum height=0.65cm, minimum width=3.0cm,
+                draw=white, line width=1.5pt},
+    label/.style={font=\footnotesize\bfseries, align=center},
+    sublabel/.style={font=\scriptsize\itshape, align=center}
+  ]
+  %% Four state bars
+  \node[bar, fill=stategreen] (auto) at (0,0)     {};
+  \node[bar, fill=stateamber] (adv)  at (3.1,0)   {};
+  \node[bar, fill=statered]   (hand) at (6.2,0)   {};
+  \node[bar, fill=stategray]  (susp) at (9.3,0)   {};
+
+  %% State labels inside bars
+  \node[label, text=white]  at (auto.center)
+      {\textsc{Autonomous}};
+  \node[label]              at (adv.center)
+      {\textsc{Advisory}};
+  \node[label, text=white]  at (hand.center)
+      {\textsc{Handover}};
+  \node[label, text=white]  at (susp.center)
+      {\textsc{Suspended}};
+
+  %% Cardinality labels below
+  \node[sublabel] at (auto.south) [yshift=-8pt]
+      {$|\mathcal{C}|=1$};
+  \node[sublabel] at (adv.south)  [yshift=-8pt]
+      {$|\mathcal{C}|=2$--$\kappa_{\mathrm{lo}}$};
+  \node[sublabel] at (hand.south) [yshift=-8pt]
+      {$|\mathcal{C}|=\kappa_{\mathrm{lo}}$--$\kappa_{\mathrm{hi}}$};
+  \node[sublabel] at (susp.south) [yshift=-8pt]
+      {$|\mathcal{C}|>\kappa_{\mathrm{hi}}$};
+
+  %% Arrow indicating increasing uncertainty
+  \draw[->, >=Stealth, thick, gray!70]
+      ([xshift=-10pt]auto.west) -- ([xshift=10pt]susp.east)
+      node[right, font=\scriptsize\itshape, gray]
+          {increasing uncertainty $\longrightarrow$};
+
+\end{tikzpicture}
+\caption{The Confidence Spectrum as displayed in the Trust
+  Dashboard header.
+  The currently active state is highlighted; the others are shown
+  at reduced opacity.
+  Colour coding follows traffic-light semantics to leverage
+  pre-existing operator intuition across cultural contexts.}
+\label{fig:confidence-spectrum-bar}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsubsection{Design Pattern 1: Progressive Disclosure}
+\label{subsubsec:pattern-progressive-disclosure}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[patternbox,
+  title={Design Pattern 1 --- Progressive Disclosure}]
+\textbf{Problem:} Displaying full model uncertainty at all times
+overwhelms operators in \textsc{Autonomous} state and masks
+critical signals when the state escalates to
+\textsc{Handover}.
+
+\textbf{Solution:} Reveal information in layers keyed to the
+Operational State.
+In \textsc{Autonomous} state, show only the top recommendation
+and a single confidence percentage.
+In \textsc{Advisory} state, expand to show the full candidate
+set ranked by Conformal set probability.
+In \textsc{Handover} state, unlock the full Uncertainty Handover
+Panel (Pattern~3), SHAP attributions (Pattern~4), and the
+escalation control (Pattern~5).
+In \textsc{Suspended} state, suppress all model output and show
+only the escalation pathway.
+
+\textbf{Rationale:} Progressive disclosure is the primary
+Human Factors countermeasure against automation bias.
+By making the operator's cognitive load proportional to the
+model's uncertainty, the interface trains operators to associate
+increased information density with increased urgency, counteracting
+the habituation that produces alarm fatigue.
+
+\textbf{Anti-pattern:} A constant full-detail display that shows
+SHAP values and prediction sets for every query, regardless of
+confidence.
+This is the most common implementation error in clinical AI
+dashboards and is the primary driver of automation bias in
+deployed systems.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsubsection{Design Pattern 2: The Uncertainty Thermometer}
+\label{subsubsec:pattern-thermometer}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[patternbox,
+  title={Design Pattern 2 --- The Uncertainty Thermometer}]
+\textbf{Problem:} Raw Conformal Prediction set cardinality
+($|\mathcal{C}(x)| = 3$) is not intuitively interpretable by a
+rural clinician with limited AI literacy.
+Presenting probability scores directly (e.g., ``68\% confident'')
+has been shown to be misinterpreted under time pressure, with
+operators systematically treating any probability above 50\% as
+certain.
+
+\textbf{Solution:} Replace numerical probability displays with a
+\textbf{Uncertainty Thermometer}: a vertical bar whose fill level
+maps the normalised prediction set size to a visceral visual
+metaphor.
+The thermometer fills from green (empty, $|\mathcal{C}|=1$) to
+red (full, $|\mathcal{C}|=n_{\mathrm{class}}$).
+A threshold marker at $\kappa_{\mathrm{lo}}$ provides a
+pre-attentive visual cue for the \textsc{Handover} boundary.
+
+\textbf{Formal mapping:}
+\begin{equation}
+  \label{eq:thermometer-fill}
+  \mathrm{Fill}(x)
+    = \frac{|\mathcal{C}(x)| - 1}{n_{\mathrm{class}} - 1}
+    \in [0, 1]
+\end{equation}
+
+\textbf{Rationale:} Thermometer metaphors leverage pre-existing
+cognitive schemas for ``more is worse'' that are culturally
+robust across the Vietnamese rural population.
+Unlike percentage displays, they do not require numeracy to
+interpret correctly under time pressure.
+The threshold marker exploits pre-attentive processing: the
+operator perceives a boundary crossing without conscious
+deliberation.
+
+\textbf{Placement:} The Uncertainty Thermometer should occupy a
+fixed, peripheral position in the dashboard---visible in the
+operator's parafoveal field at all times---rather than appearing
+only when uncertainty is high.
+Constant visibility trains the operator's peripheral attention
+system to register state changes automatically.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsubsection{Design Pattern 3: The Uncertainty Handover Panel}
+\label{subsubsec:pattern-handover-panel}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[patternbox,
+  title={Design Pattern 3 --- The Uncertainty Handover Panel}]
+\textbf{Problem:} When \textsc{Handover} state is triggered, the
+operator must make a consequential decision quickly and correctly.
+The interface must simultaneously communicate: what the model
+considered, why it is uncertain, what the stakes are, and what
+the operator's options are---without inducing cognitive overload.
+
+\textbf{Solution:} The \textbf{Uncertainty Handover Panel} is a
+modal overlay that activates exclusively on transition to
+\textsc{Handover} state and blocks all other interface interaction
+until the operator acts.
+It contains exactly four zones, each with a strict information
+budget:
+
+\begin{enumerate}
+  \item \textbf{Alert Zone} (top, full width, red background):
+    A single sentence in plain Vietnamese stating the
+    uncertainty trigger.
+    \emph{No numerical probabilities in this zone.}
+
+  \item \textbf{Candidate Zone} (left 60\%):
+    The full Conformal Prediction set $\mathcal{C}(x)$,
+    displayed as a ranked list of at most five items.
+    Each candidate shows its plain-language label and a
+    visual confidence bar (not a number).
+    The top candidate is pre-selected but not pre-confirmed.
+
+  \item \textbf{Evidence Zone} (right 40\%):
+    Three to five key clinical features that most influenced
+    the model's uncertainty, rendered as a horizontal bar
+    chart using SHAP values.
+    Labels must use clinical terminology consistent with
+    the operator's training, not feature engineering names.
+
+  \item \textbf{Action Zone} (bottom, full width):
+    Three and only three buttons:
+    \textbf{[Confirm Top Recommendation]},
+    \textbf{[Select Alternative]}, and
+    \textbf{[Escalate to Senior Clinician]}.
+    A visible countdown timer ($T_{\mathrm{respond}} = 120$\,s
+    for triage contexts) applies light time pressure without
+    inducing panic.
+    After timeout, the system automatically activates
+    \textsc{Suspended} state and pages the senior clinician.
+\end{enumerate}
+
+\textbf{Rationale:} The modal overlay enforces the
+Human-in-the-Loop (HITL) requirement of
+Section~\ref{sec:agency_spectrum} by making it architecturally
+impossible for the operator to ignore the handover.
+The information budget (one sentence, five candidates, five
+features, three buttons) is derived from Miller's Law---the
+cognitive limit of $7 \pm 2$ items in working
+memory---adapted conservatively for
+high-stress clinical environments where working memory capacity
+is reduced.
+\end{tcolorbox}
+
+Figure~\ref{fig:handover-panel-layout} illustrates the spatial
+layout of the Uncertainty Handover Panel.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    zone/.style={draw, rounded corners=3pt, minimum width=11.2cm,
+                 font=\small, align=left, inner sep=8pt},
+    every node/.append style={anchor=north west}
+  ]
+
+  %% Panel background
+  \fill[uibg, rounded corners=6pt]
+      (-0.2, 0.4) rectangle (11.4, -11.6);
+  \draw[statered, line width=2pt, rounded corners=6pt]
+      (-0.2, 0.4) rectangle (11.4, -11.6);
+
+  %% Zone 1: Alert
+  \fill[statered, rounded corners=3pt]
+      (0, 0) rectangle (11.2, -1.4);
+  \node[text=white, font=\small\bfseries, align=center,
+        anchor=center] at (5.6, -0.7)
+      {UNCERTAINTY ALERT --- PLEASE REVIEW AND DECIDE};
+
+  %% Zone 2: Candidate (left 60%)
+  \fill[white, rounded corners=3pt]
+      (0, -1.6) rectangle (6.6, -8.8);
+  \node[font=\footnotesize\bfseries, xshift=6pt] at (0,-1.6)
+      [yshift=-12pt]{CANDIDATE DIAGNOSES};
+  \foreach \y/\label/\w in {
+      -2.4/{1. Acute Appendicitis}/5.2,
+      -3.4/{2. Mesenteric Adenitis}/3.8,
+      -4.4/{3. Ovarian Cyst (if applicable)}/3.1,
+      -5.4/{4. Gastroenteritis}/2.4,
+      -6.4/{5. Irritable Bowel Syndrome}/1.6
+  }{
+    \node[font=\footnotesize, xshift=8pt] at (0,\y) {\label};
+    \fill[stateamber, rounded corners=2pt, opacity=0.7]
+        (3.6, \y+0.3) rectangle (3.6+\w*0.18, \y-0.05);
+  }
+  \draw[stategreen, dashed, line width=1pt]
+      (0.1,-2.15) rectangle (6.5,-2.85);
+  \node[font=\scriptsize\itshape, stategreen, xshift=8pt]
+      at (0,-2.9) {Pre-selected (not confirmed)};
+
+  %% Zone 3: Evidence (right 40%)
+  \fill[white, rounded corners=3pt]
+      (6.8, -1.6) rectangle (11.2, -8.8);
+  \node[font=\footnotesize\bfseries, xshift=6pt] at (6.8,-1.6)
+      [yshift=-12pt]{KEY EVIDENCE (SHAP)};
+  \foreach \y/\feat/\val in {
+      -2.5/{Rebound tenderness}/0.82,
+      -3.4/{WBC count $>$12k}/0.71,
+      -4.3/{Pain migration}/0.58,
+      -5.2/{Fever $>$38.5C}/0.44,
+      -6.1/{Nausea duration}/0.29
+  }{
+    \node[font=\scriptsize, xshift=6pt] at (6.8,\y) {\feat};
+    \fill[blue!55, rounded corners=1pt]
+        (6.9, \y-0.28) rectangle (6.9+\val*3.8, \y-0.58);
+    \node[font=\scriptsize, xshift=3pt]
+        at (6.9+\val*3.8, \y-0.43) {\val};
+  }
+
+  %% Uncertainty Thermometer (far right)
+  \fill[gray!15, rounded corners=2pt]
+      (10.7, -1.6) rectangle (11.15, -8.8);
+  \fill[stateamber, rounded corners=2pt]
+      (10.7, -5.6) rectangle (11.15, -8.8);
+  \draw[statered, dashed, line width=0.8pt]
+      (10.65,-5.6) -- (11.2,-5.6)
+      node[right, font=\tiny, statered] {$\kappa$};
+  \node[font=\tiny, rotate=90, anchor=center]
+      at (10.925,-5.2) {UNCERTAINTY};
+
+  %% Zone 4: Action
+  \fill[white, rounded corners=3pt]
+      (0, -9.0) rectangle (11.2, -11.4);
+  \fill[stategreen, rounded corners=3pt]
+      (0.2, -9.2) rectangle (3.5, -10.4);
+  \node[text=white, font=\footnotesize\bfseries, align=center]
+      at (1.85,-9.8) {CONFIRM TOP\\RECOMMENDATION};
+  \fill[stateamber, rounded corners=3pt]
+      (3.7, -9.2) rectangle (7.5, -10.4);
+  \node[font=\footnotesize\bfseries, align=center]
+      at (5.6,-9.8) {SELECT\\ALTERNATIVE};
+  \fill[statered, rounded corners=3pt]
+      (7.7, -9.2) rectangle (11.0, -10.4);
+  \node[text=white, font=\footnotesize\bfseries, align=center]
+      at (9.35,-9.8) {ESCALATE TO\\SENIOR CLINICIAN};
+
+  %% Countdown timer
+  \node[font=\footnotesize, align=center, statered]
+      at (5.6,-10.9)
+      {Response required within: \textbf{1:47} \quad
+       \textit{(auto-escalates at 0:00)}};
+
+\end{tikzpicture}
+\caption{Spatial layout of the Uncertainty Handover Panel
+  (Design Pattern~3).
+  The panel activates as a modal overlay on transition to
+  \textsc{Handover} state.
+  Ranked candidate set, SHAP evidence bars,
+  Uncertainty Thermometer, and three-action control
+  are the only elements present.
+  All other dashboard content is blurred behind the overlay.}
+\label{fig:handover-panel-layout}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsubsection{Design Pattern 4: Contextual SHAP Narration}
+\label{subsubsec:pattern-shap-narration}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[patternbox,
+  title={Design Pattern 4 --- Contextual SHAP Narration}]
+\textbf{Problem:} Raw SHAP value bar charts, while
+mathematically correct, are not
+interpretable by clinicians without data-science training.
+Presenting them without translation into clinical language
+creates a display that satisfies the explainability requirement
+technically while failing it practically.
+
+\textbf{Solution:} Wrap the SHAP computation in a
+\textbf{Narration Layer} that translates feature importances into
+one or two sentences of plain clinical language, generated by a
+locally-deployed Small Language Model (SLM) that has been fine-tuned
+on the institution's clinical terminology.
+The narration is displayed above the SHAP bar chart as the
+primary explanation, with the chart as a secondary verification
+resource for trained users.
+
+\textbf{Example narration} (generated from SHAP values in
+Figure~\ref{fig:handover-panel-layout}):
+\begin{quote}
+\small\itshape
+``The system is most uncertain because the patient's rebound
+tenderness and elevated white cell count both suggest acute
+appendicitis, but the absence of fever migration makes
+alternative diagnoses plausible.
+Please assess the right iliac fossa manually.''
+\end{quote}
+
+\textbf{Formal narration constraint:}
+The narration must satisfy three constraints verified
+programmatically before display:
+(1)~maximum 40 words;
+(2)~Flesch-Kincaid reading grade level $\leq 8$
+(appropriate for a secondary-educated Vietnamese reader);
+(3)~no numerical probabilities or SHAP scores in the text.
+
+\textbf{Anti-pattern:} Narrations that begin with
+``The model predicts\ldots'' or ``With X\% confidence\ldots''
+These phrasings have been shown to significantly increase
+automation bias by priming the operator to defer to the
+model rather than exercise independent judgement.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsubsection{Design Pattern 5: The Graceful Degradation
+               Ladder}
+\label{subsubsec:pattern-degradation-ladder}
+% ------------------------------------------------------------------
+
+\begin{tcolorbox}[patternbox,
+  title={Design Pattern 5 --- The Graceful Degradation Ladder}]
+\textbf{Problem:} The Uncertainty Handover is not a binary
+event---it is a continuous process that may require multiple
+escalation steps before a final decision is reached.
+Without a defined escalation protocol, operators in rural
+settings with limited specialist access may be left holding an
+unresolved case with no clear next action.
+
+\textbf{Solution:} Implement a \textbf{Graceful Degradation
+Ladder}: a pre-defined, role-aware escalation sequence that the
+Trust Dashboard follows automatically when operator response
+does not resolve the uncertainty within defined time limits.
+
+\begin{equation}
+  \label{eq:degradation-ladder}
+  \mathrm{Ladder} =
+  \bigl[
+    \underbrace{\text{Model}}_{\text{step 0}}
+    \to
+    \underbrace{\text{Nurse}}_{\text{step 1}}
+    \to
+    \underbrace{\text{GP}}_{\text{step 2}}
+    \to
+    \underbrace{\text{Specialist (remote)}}_{\text{step 3}}
+    \to
+    \underbrace{\text{Transfer protocol}}_{\text{step 4}}
+  \bigr]
+\end{equation}
+
+At each step, the Trust Dashboard:
+(1)~displays the current escalation step prominently;
+(2)~surfaces the contact mechanism for the next-step
+responder (pager ID, Zalo contact, telemedicine link);
+(3)~maintains a live timer showing elapsed time since
+initial handover;
+(4)~writes a timestamped, ZK-verified audit log entry.
+
+\textbf{Architectural requirement:} The Degradation Ladder must
+be configured per deployment by clinical governance staff,
+not by the AI architect.
+The architect's role is to implement the ladder mechanism and
+the audit infrastructure; the clinical team defines the roles,
+time limits, and escalation contacts.
+This separation of concerns is the technical expression of
+the Human-in-Command (HiC) principle of
+Section~\ref{sec:agency_spectrum}.
+
+\textbf{Suspension guarantee:} If the ladder reaches step 4
+without resolution, the AI system enters
+\textsc{Suspended} state (Equation~\eqref{eq:operational-states})
+and cannot be reactivated for this case without a senior
+clinician's authenticated override.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsubsection{Implementation: The Trust Dashboard Controller}
+\label{subsubsec:dashboard-implementation}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:dashboard-controller} provides a minimal
+implementation of the Trust Dashboard state machine, connecting
+the Conformal Prediction output of
+Section~\ref{sec:uncertainty_handover} to the five design
+patterns above.
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Trust Dashboard Controller: maps Conformal Prediction
+           set cardinality to Operational States and triggers the
+           appropriate design pattern.},
+  label={lst:dashboard-controller}
+]
+from enum import Enum
+from dataclasses import dataclass, field
+from typing import Optional
+import time
+
+class OperationalState(Enum):
+    AUTONOMOUS = "autonomous"   # |C(x)| = 1
+    ADVISORY   = "advisory"     # 2 <= |C(x)| <= kappa_lo
+    HANDOVER   = "handover"     # kappa_lo < |C(x)| <= kappa_hi
+    SUSPENDED  = "suspended"    # |C(x)| > kappa_hi
+
+@dataclass
+class DashboardConfig:
+    n_classes:      int   = 7     # triage severity classes
+    kappa_lo:       int   = 2     # advisory->handover boundary
+    kappa_hi:       int   = 4     # handover->suspended boundary
+    respond_secs:   int   = 120   # handover response time limit
+    max_narration_words: int = 40 # Pattern 4 constraint
+    max_fk_grade:   float = 8.0   # Pattern 4 reading level
+
+@dataclass
+class HandoverPacket:
+    """Data required to render the Uncertainty Handover Panel."""
+    state:          OperationalState
+    candidates:     list       # (label, score) tuples
+    top_features:   list       # (feature, shap_val) tuples
+    narration:      str
+    thermometer_fill: float    # Eq. (3.2)
+    timestamp:      float = field(default_factory=time.time)
+    audit_token:    Optional[str] = None
+
+class TrustDashboardController:
+    def __init__(self, config, audit_logger,
+                 slm_narrator, escalation_ladder):
+        self.cfg      = config
+        self.auditor  = audit_logger
+        self.narrator = slm_narrator
+        self.ladder   = escalation_ladder
+
+    def classify_state(self, prediction_set):
+        """Map |C(x)| to Operational State (Eq. 3.1)."""
+        size = len(prediction_set)
+        if   size == 1:                  return OperationalState.AUTONOMOUS
+        elif size <= self.cfg.kappa_lo:  return OperationalState.ADVISORY
+        elif size <= self.cfg.kappa_hi:  return OperationalState.HANDOVER
+        else:                            return OperationalState.SUSPENDED
+
+    def thermometer_fill(self, prediction_set):
+        """Normalised fill level (Eq. 3.2)."""
+        return (len(prediction_set) - 1) / (self.cfg.n_classes - 1)
+
+    def build_handover_packet(self, prediction_set, shap_values):
+        """Construct the full HandoverPacket for UI rendering."""
+        state = self.classify_state(prediction_set)
+
+        # Generate SLM narration (Pattern 4)
+        narration = self.narrator.generate(
+            candidates   = prediction_set,
+            top_features = shap_values[:5],
+            max_words    = self.cfg.max_narration_words,
+            max_fk_grade = self.cfg.max_fk_grade,
+            forbidden_patterns = [r'\d+%', r'probability'],
+        )
+
+        # Write ZK-verified audit log entry
+        audit_token = self.auditor.log(
+            state      = state.value,
+            candidates = prediction_set,
+            features   = shap_values[:5],
+            narration  = narration,
+        )
+
+        return HandoverPacket(
+            state            = state,
+            candidates       = prediction_set[:5],
+            top_features     = shap_values[:5],
+            narration        = narration,
+            thermometer_fill = self.thermometer_fill(prediction_set),
+            audit_token      = audit_token,
+        )
+
+    def handle(self, prediction_set, shap_values):
+        """Main entry point: build packet, activate ladder if needed."""
+        packet = self.build_handover_packet(prediction_set, shap_values)
+
+        if packet.state == OperationalState.SUSPENDED:
+            self.ladder.escalate(
+                step    = 1,
+                packet  = packet,
+                timeout = self.cfg.respond_secs,
+            )
+        return packet
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsubsection{Evaluation: The Trust Dashboard Acceptance Protocol}
+\label{subsubsec:dashboard-evaluation}
+% ------------------------------------------------------------------
+
+Before production deployment, a Trust Dashboard implementation
+must pass a structured \textbf{Acceptance Protocol} conducted
+with representative end-users---in the rural clinic context, a
+stratified sample of nurses and general practitioners from the
+target communes.
+
+The protocol evaluates five outcomes, each with a defined
+minimum threshold:
+
+\begin{table}[ht]
+\centering
+\caption{Trust Dashboard Acceptance Protocol: evaluation outcomes,
+  measurement instruments, and minimum acceptable thresholds.
+  All thresholds are conservative estimates appropriate for a
+  patient-safety-critical clinical AI deployment.}
+\label{tab:dashboard-acceptance}
+\begin{tabular}{p{3.4cm}p{3.8cm}p{2.0cm}p{2.4cm}}
+\hline\noalign{\smallskip}
+\textbf{Outcome}
+  & \textbf{Measurement Instrument}
+  & \textbf{Sample Size}
+  & \textbf{Min.\ Threshold} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+State Recognition Accuracy
+  & 10-scenario quiz: operator identifies
+    correct Operational State from screenshot
+  & $n \geq 20$
+  & $\geq 90\%$ \\[4pt]
+Handover Response Time
+  & Median time from panel activation to
+    operator action, measured in simulation
+  & $n \geq 20$
+  & $\leq 45$\,s \\[4pt]
+Automation Bias Rate
+  & \% of trials where operator confirms
+    a deliberately incorrect top candidate
+    in \textsc{Handover} state
+  & $n \geq 20$
+  & $\leq 10\%$ \\[4pt]
+Alarm Fatigue Index
+  & Self-reported desensitisation score
+    (Likert 1--5) after 2-hour simulation
+  & $n \geq 20$
+  & $\leq 2.0$ \\[4pt]
+Narration Comprehension
+  & Cloze test: operator identifies correct
+    clinical action from narration alone
+  & $n \geq 20$
+  & $\geq 85\%$ \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+The Automation Bias Rate threshold of $\leq 10\%$ deserves
+particular emphasis.
+A system where one in ten handovers results in uncritical
+acceptance of an uncertain AI recommendation is not a
+trustworthy system---it is a system that has successfully
+\emph{disguised} its uncertainty from its operators.
+This threshold must be re-evaluated quarterly in production
+through randomised ``trust probes'': deliberate injection of
+synthetic high-uncertainty cases into the live query stream to
+verify that operators continue to engage critically with
+\textsc{Handover} panel activations.
+
+% ------------------------------------------------------------------
+\subsubsection{Conclusion: The Interface Is the Architecture}
+\label{subsubsec:dashboard-conclusion}
+% ------------------------------------------------------------------
+
+The five design patterns of this section---Progressive Disclosure,
+the Uncertainty Thermometer, the Handover Panel, Contextual SHAP
+Narration, and the Graceful Degradation Ladder---are not cosmetic
+additions to the Trustworthy AI Stack.
+They are the human-facing implementation of the socio-technical
+contract established in Section~\ref{sec:agency_spectrum}.
+
+A system that produces mathematically correct Conformal Prediction
+sets, writes cryptographically verified audit logs, and satisfies
+$(\varepsilon, \delta)$-DP guarantees, but presents its uncertainty
+to a rural clinician through a text field labelled
+``Confidence: 0.43''---has failed the most important
+architectural test of all: the test of human comprehension under
+pressure.
+
+The Trust Dashboard is not where the architecture ends.
+It is where the architecture proves whether it was worth building.
 
 \section{Case Study: Agentic Healthcare Triage}
 \label{sec:healthcare_triage}
@@ -54,13 +857,13 @@ Designing for oversight requires addressing the "Multi-Stakes Pattern," where th
 Consider a 2026 autonomous triage system deployed in a Vietnamese rural clinic. The system handles initial patient intake:
 \begin{itemize}
     \item \textbf{Autonomy:} It processes vitals and medical history using a localized SLM.
-    \item \textbf{The Handover:} Using conformal prediction, if a patient's symptoms are outside its high-confidence training distribution, it flags the file for an "Urgent Human Review."
+    \item \textbf{The Handover:} Using conformal prediction, if a patient's symptoms are outside its high-confidence training distribution, it flags the file for an ``Urgent Human Review.''
     \item \textbf{Verification:} Every triage decision is recorded with a ZK-proof that verifies the model was executed correctly against the clinic's authorized safety weights from the Ministry of Health.
 \end{itemize}
 
 \section{Conclusion of Part I}
 \label{sec:conclusion_part1}
 
-The Strategic Vision \& Foundations of Trustworthy AI are now complete. We have the **2026 Vision** (Chapter 1), the **Sociotechnical Norms** (Chapter 2), and the **Human Agency Framework** (Chapter 3). 
+The Strategic Vision \& Foundations of Trustworthy AI are now complete. We have the \textbf{2026 Vision} (Chapter 1), the \textbf{Sociotechnical Norms} (Chapter 2), and the \textbf{Human Agency Framework} (Chapter 3). 
 
 We have established that trust is built on four action-oriented pillars: Security, Privacy, Verifiability, and Alignment. In Part II, we descend from these high-level philosophies into the rigorous technical landscape of \textbf{Privacy Engineering \& Data Defense}, beginning with the classical methods that formed the bedrock of early privacy technology.

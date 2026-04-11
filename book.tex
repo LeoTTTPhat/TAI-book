@@ -29,13 +29,15 @@
 \usepackage{mdframed}
 \usepackage{listings}          % code listings (Ch.4 Synthetic Data)
 \usepackage{tikz}              % diagrams (PUF Trilemma, CA-RLHF)
-\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc,matrix}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc,matrix,shadows.blur}
 \usepackage{caption}           % \captionof for algorithm figures
 \usepackage{colortbl}          % \cellcolor, \rowcolor (Ch.15 trade-off matrix)
 \usepackage{multirow}          % multi-row table cells
 \usepackage{array}             % extended column definitions
 \usepackage{pgfplots}          % bar charts (Ch.15)
 \pgfplotsset{compat=1.18}
+\usepackage{tcolorbox}         % design-pattern boxes (Ch.3 Trust Dashboards)
+\tcbuselibrary{skins,breakable}
 
 % --- Listings style for Python code blocks ---
 \lstdefinestyle{pythonstyle}{
