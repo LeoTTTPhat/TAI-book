@@ -469,3 +469,412 @@ Ultimately, the architect must navigate the \textbf{Pareto Frontier of Utility}:
 Effective March 2026, \textbf{Decree 356} (replacing Decree 13) defines ``Sensitive Personal Data'' to include transaction history and real-time behavioral tracking. To comply with ``Advanced Safeguards,'' architects must map their $k$-anonymity levels to specific sensitivity tiers before data can be transferred to third parties or across borders.
 
 Practitioners should view $k$-anonymity and $\ell$-diversity not as competing but as complementary layers: choose $k$ to limit re-identification risk, $\ell$ to prevent attribute inference, and consider $t$-closeness or differential privacy when adversaries may have rich auxiliary information or when data will be released repeatedly.
+
+% ==================================================================
+\section{Synthetic Data: Promise, Peril, and the
+         Privacy-Utility-Fidelity Trilemma}
+\label{sec:synthetic-data}
+% ==================================================================
+
+\begin{quote}
+\textit{``Synthetic data is not anonymized data. It is a statistical
+shadow of the original---and shadows can still reveal the shape of
+what cast them.''}
+\end{quote}
+
+% ------------------------------------------------------------------
+\subsection{The Rise of Synthetic Data as a Privacy Primitive}
+\label{subsec:synth-rise}
+% ------------------------------------------------------------------
+
+The limitations of classical anonymization---the curse of
+dimensionality, the Mosaic Effect, and the brittleness of
+$k$-anonymity under auxiliary information (Section~\ref{sec:attack_vectors_classic})---have
+driven practitioners toward a fundamentally different paradigm:
+\textbf{synthetic data generation}.
+Rather than transforming or suppressing real records, this approach
+uses a generative model to produce an entirely new dataset whose
+statistical properties approximate those of the original, without
+containing any real individual's record.
+
+The appeal is immediate.
+A hospital system can share a synthetic patient dataset with external
+researchers without ever exposing a single real patient's history.
+A bank can train a fraud-detection model on synthetic transactions
+that mirror real fraud patterns without violating data-localization
+laws.
+As noted in Section~\ref{sec:practical_considerations}, synthetic
+data also directly addresses the curse of dimensionality that plagues
+classical methods.
+
+The primary generative architectures used in practice are:
+
+\begin{description}
+  \item[Generative Adversarial Networks (GANs).]
+    A \emph{Generator} network produces synthetic records; a
+    \emph{Discriminator} network attempts to distinguish them from real
+    ones.
+    The adversarial dynamic drives the Generator toward high statistical
+    fidelity.
+    Variants such as CTGAN and TableGAN are specialized for tabular
+    data.
+
+  \item[Variational Autoencoders (VAEs).]
+    A probabilistic encoder maps real records into a latent
+    distribution; the decoder samples from this distribution to produce
+    synthetic records, providing a smoother and more controlled
+    generative process.
+
+  \item[Diffusion Models.]
+    Increasingly applied to structured data, these models learn to
+    denoise records from pure noise back to realistic samples, offering
+    strong fidelity for complex distributions.
+\end{description}
+
+For structured tabular data---the dominant format in healthcare,
+finance, and government---libraries such as \texttt{SDV} (Synthetic
+Data Vault) and Gretel.ai provide production-ready pipelines for
+fitting and sampling from these generative models.
+
+% ------------------------------------------------------------------
+\subsection{The Privacy-Utility-Fidelity Trilemma}
+\label{subsec:puf-trilemma}
+% ------------------------------------------------------------------
+
+A fundamental architectural tension governs every synthetic data
+pipeline.
+The \textbf{Privacy-Utility-Fidelity (PUF) Trilemma} states that
+these three properties are in perpetual tension: improving any one of
+them typically degrades at least one of the others.
+
+\begin{description}
+  \item[Fidelity] measures how closely the synthetic data's statistical
+    distribution matches the original.
+    High fidelity means the generative model has learned the real
+    data's correlations, marginals, and joint distributions accurately.
+
+  \item[Utility] measures how well models trained on synthetic data
+    perform when deployed on real data.
+    A high-fidelity dataset is often---but not always---a high-utility
+    dataset, as downstream model performance depends on which specific
+    features and correlations were preserved.
+
+  \item[Privacy] measures the degree to which synthetic records resist
+    re-identification and attribute-inference attacks against the
+    original training population.
+\end{description}
+
+The trilemma manifests as follows.
+A generative model trained to maximize fidelity will tend to memorize
+rare or outlier records, since these are hardest to model
+statistically and the model is penalized most for missing them.
+This memorization is the primary source of privacy failure.
+Conversely, aggressively regularizing the generative model to prevent
+memorization (e.g., through Differential Privacy, discussed in
+Chapter~\ref{chap:differential_privacy}) introduces noise that degrades both fidelity
+and utility.
+The architect must navigate this frontier deliberately, rather than
+assuming that generating synthetic data is inherently private.
+
+% --- TikZ diagram -----------------------------------------------
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    vertex/.style={circle, draw, minimum size=2.2cm,
+                   font=\small\bfseries, align=center},
+    edge/.style={thick, <->, >=Stealth}
+  ]
+  % Three vertices of the trilemma triangle
+  \node[vertex] (P) at (90:3.2cm)  {Privacy};
+  \node[vertex] (F) at (210:3.2cm) {Fidelity};
+  \node[vertex] (U) at (330:3.2cm) {Utility};
+
+  % Edges with tension labels
+  \draw[edge] (P) -- (F)
+    node[midway, left,  font=\footnotesize\itshape, xshift=-4pt]
+         {DP noise reduces\ fidelity};
+  \draw[edge] (F) -- (U)
+    node[midway, below, font=\footnotesize\itshape, yshift=-6pt]
+         {high fidelity\ aids utility};
+  \draw[edge] (U) -- (P)
+    node[midway, right, font=\footnotesize\itshape, xshift=4pt]
+         {memorization\ leaks privacy};
+
+  % Optimal design point in the centre
+  \node[draw, dashed, rounded corners, font=\footnotesize,
+        fill=white, align=center] at (0,0)
+       {Optimal\\Design\\Point};
+\end{tikzpicture}
+\caption{The Privacy-Utility-Fidelity (PUF) Trilemma.
+  No synthetic data system can simultaneously maximize all three
+  properties.
+  The architect's task is to identify the optimal operating point for
+  the specific threat model and downstream use case.}
+\label{fig:puf-trilemma}
+\end{figure}
+% ----------------------------------------------------------------
+
+% ------------------------------------------------------------------
+\subsection{The Core Threat: Membership Inference on Synthetic
+            Datasets}
+\label{subsec:mia-synthetic}
+% ------------------------------------------------------------------
+
+The most dangerous misconception in synthetic data deployment is the
+belief that, because no real record appears verbatim in the synthetic
+dataset, the privacy of the original training population is
+guaranteed.
+This is false.
+
+A \textbf{Membership Inference Attack against synthetic data}
+(MIA-S) asks a different question from the classical MIA described in
+Chapter~\ref{chap:classic_anonymization}.
+Rather than querying the generative model directly, the adversary is
+given access only to the published synthetic dataset~$\tilde{T}$ and
+attempts to determine whether a specific real record~$r$ was part of
+the original training data~$T$ used to fit the generative model.
+
+The attack proceeds in three steps:
+
+\begin{enumerate}
+  \item \textbf{Shadow Generative Models.}
+    The adversary trains multiple ``shadow'' generative models on
+    datasets that either include or exclude a known target record~$r$.
+
+  \item \textbf{Statistical Fingerprinting.}
+    The adversary computes statistical proximity metrics
+    (e.g., nearest-neighbour distances, density estimates) between~$r$
+    and the published synthetic dataset~$\tilde{T}$.
+
+  \item \textbf{Threshold Classification.}
+    Records from the original training set tend to have synthetic
+    ``neighbours'' that are statistically closer than records that
+    were never in~$T$.
+    An attack classifier learns this threshold.
+\end{enumerate}
+
+Formally, let
+\begin{equation}
+  d\!\left(r,\tilde{T}\right)
+    = \min_{\tilde{r}\,\in\,\tilde{T}} \|r - \tilde{r}\|
+\end{equation}
+be the distance from real record~$r$ to its nearest synthetic
+neighbour.
+Empirical research demonstrates that this distance is systematically
+smaller for records $r \in T$ than for $r \notin T$, revealing
+membership with attack AUCs exceeding $0.80$ on medical datasets
+trained without privacy constraints---far above the random baseline
+of $0.50$.
+
+\paragraph{The Mechanism: Why Generative Models Leak.}
+Generative models leak membership information for the same reason all
+machine-learning models do: they \emph{overfit}.
+A GAN that achieves near-perfect fidelity has, in effect, memorized
+the statistical structure of every record in the training set,
+including rare individuals who occupy sparse regions of the feature
+space.
+When the synthetic data is released, these memorized patterns remain
+embedded in the distribution of~$\tilde{T}$.
+
+Outlier records---patients with rare disease combinations, customers
+with unusual transaction patterns---are the most vulnerable.
+The generative model disproportionately ``remembers'' them, because
+they represent the hardest part of the distribution to model
+correctly, and the synthetic dataset consequently produces near-copies
+of these individuals.
+
+% ------------------------------------------------------------------
+\subsection{Evaluation Metrics: Measuring the Trilemma}
+\label{subsec:synth-metrics}
+% ------------------------------------------------------------------
+
+The architect requires quantitative tools to navigate the trilemma.
+The following metrics form a standard evaluation suite.
+
+\paragraph{Fidelity Metrics.}
+\begin{itemize}
+  \item \textbf{Marginal Distribution Distance.}
+    Column-wise comparison of real vs.\ synthetic distributions using
+    Jensen--Shannon Divergence or Wasserstein distance.
+  \item \textbf{Correlation Matrix Difference.}
+    The Frobenius norm of the difference between real and synthetic
+    pairwise correlation matrices, capturing whether inter-feature
+    relationships are preserved.
+\end{itemize}
+
+\paragraph{Utility Metrics.}
+\begin{itemize}
+  \item \textbf{Train on Synthetic, Test on Real (TSTR).}
+    Train a downstream classifier on~$\tilde{T}$ and evaluate its
+    accuracy on a held-out real test set.
+    The gap between TSTR accuracy and Train on Real, Test on Real
+    (TRTR) accuracy quantifies the utility loss.
+\end{itemize}
+
+\paragraph{Privacy Metrics.}
+\begin{itemize}
+  \item \textbf{Nearest-Neighbour Distance Ratio (NNDR).}
+    For each real record $r \in T$, compute
+    \begin{equation}
+      \mathrm{NNDR}(r)
+        = \frac{d(r,\,\tilde{T})}{d(r,\;T \setminus \{r\})}.
+    \end{equation}
+    A low NNDR indicates the synthetic data contains near-copies of
+    real records---a privacy failure.
+
+  \item \textbf{Membership Inference Attack AUC (MIA-S AUC).}
+    Empirically evaluate a shadow-model MIA against the published
+    synthetic dataset.
+    An AUC significantly above $0.5$ indicates measurable privacy
+    leakage.
+\end{itemize}
+
+Table~\ref{tab:synth-thresholds} summarizes recommended thresholds
+for production deployment.
+
+\begin{table}[ht]
+\centering
+\caption{Recommended evaluation thresholds for synthetic data
+         release decisions.}
+\label{tab:synth-thresholds}
+\begin{tabular}{p{4cm}p{3.5cm}p{4.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Metric} &
+\textbf{Acceptable Threshold} &
+\textbf{Action if Violated} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Marginal JS Divergence
+  & $<\!0.15$ per column
+  & Increase model capacity or training epochs \\[4pt]
+TSTR\,/\,TRTR Accuracy Ratio
+  & $>\!0.90$
+  & Retune generative model \\[4pt]
+NNDR (5th percentile)
+  & $>\!0.50$
+  & Apply DP-SGD to generative model training \\[4pt]
+MIA-S AUC
+  & $<\!0.60$
+  & Apply DP or increase regularization \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{Architectural Defences: Bridging to Differential
+            Privacy}
+\label{subsec:synth-dp-bridge}
+% ------------------------------------------------------------------
+
+The principled solution to membership inference leakage in synthetic
+data is to apply \textbf{Differentially Private training to the
+generative model itself}.
+Rather than post-hoc filtering of the synthetic output, DP is applied
+during the training of the GAN or VAE using the DP-SGD algorithm
+(formalized in Chapter~\ref{chap:differential_privacy}).
+
+A DP-trained generative model provides a formal guarantee: the
+distribution of the synthetic dataset~$\tilde{T}$ is
+$(\varepsilon, \delta)$-indistinguishable regardless of whether any
+single record~$r$ was present in~$T$ or not.
+This is precisely the Differential Privacy guarantee of
+Section~\ref{sec:dp_formal_definition}, now applied to the generative
+process rather than to a query function.
+
+The practical workflow for a privacy-preserving synthetic data
+pipeline is shown in Listing~\ref{lst:dp-synthetic}.
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Conceptual DP-Synthetic Data Pipeline using CTGAN and
+           Opacus-style DP-SGD.},
+  label={lst:dp-synthetic}
+]
+# Step 1: Load and preprocess real sensitive data
+real_data = load_sensitive_dataset()
+
+# Step 2: Initialise generative model with DP-SGD optimizer.
+# The epsilon budget must be pre-agreed with the
+# Data Protection Officer.
+generator = CTGAN(epochs=300)
+privacy_engine = DPSGDEngine(
+    epsilon=1.0,
+    delta=1e-5,
+    max_grad_norm=1.0
+)
+privacy_engine.attach(generator.discriminator_optimizer)
+
+# Step 3: Train under DP constraints.
+# DP-SGD clips and noises gradients internally.
+generator.fit(real_data)
+
+# Step 4: Evaluate the PUF trilemma before release.
+synthetic_data = generator.sample(n=len(real_data))
+evaluate_fidelity(real_data, synthetic_data)
+evaluate_utility(real_data, synthetic_data)
+run_mia_audit(real_data, synthetic_data)  # Must pass before publication
+\end{lstlisting}
+
+The critical caveat is that DP training of generative models incurs a
+significant fidelity cost, particularly for high-dimensional tabular
+data with many sensitive columns.
+The architect must treat the privacy budget~$\varepsilon$ as a
+first-class design parameter, negotiating its value against the
+downstream utility requirements \emph{before} training begins.
+
+% ------------------------------------------------------------------
+\subsection{Synthetic Data and Vietnam's Decree 356 (2026)}
+\label{subsec:synth-decree356}
+% ------------------------------------------------------------------
+
+Under Decree 356 (Section~\ref{sec:vietnam_decree_356}), synthetic
+data occupies an ambiguous legal position.
+The Decree does not explicitly exempt synthetic datasets from its
+data-transfer restrictions, and the Vietnamese Data Protection
+Authority has taken the position that synthetic data \emph{derived
+from Sensitive Personal Data} retains its sensitive classification
+unless the data controller can demonstrate---through a formal Privacy
+Impact Assessment---that the re-identification risk falls below the
+prescribed threshold.
+
+In practice, a DP-trained generative model with a formally audited
+$\varepsilon \leq 1.0$ and a documented NNDR audit report provides
+the strongest basis for demonstrating compliance when sharing
+synthetic health or financial data across organizational boundaries.
+Data controllers should maintain the generative model's training
+provenance and the full evaluation
+suite results as part of their compliance documentation.
+
+% ------------------------------------------------------------------
+\subsection{Conclusion: Synthetic Data as a Complement, Not a
+            Substitute}
+\label{subsec:synth-conclusion}
+% ------------------------------------------------------------------
+
+Synthetic data is a powerful addition to the privacy-preserving
+architect's toolkit, but it is not a replacement for the mathematical
+guarantees of Differential Privacy.
+It is best understood as a \textbf{complementary layer}: one that
+trades the structural rigidity of $k$-anonymity for statistical
+realism, at the cost of introducing new leakage vectors that require
+active mitigation.
+
+The key architectural principles are:
+
+\begin{itemize}
+  \item Always evaluate synthetic datasets against a formal MIA audit
+    before publication---never assume that generation implies privacy.
+  \item Apply DP-SGD to the generative model when the underlying data
+    is sensitive, accepting the fidelity cost as the price of a formal
+    guarantee.
+  \item Report the full Privacy-Utility-Fidelity trilemma metrics
+    alongside the synthetic dataset as part of the data release
+    documentation.
+\end{itemize}
+
+With these principles in place, synthetic data can responsibly serve
+as the training substrate for models that must never touch real PII.
+In the next chapter, we formalize the mathematical framework that
+underpins both DP-trained generative models and the broader class of
+privacy-preserving mechanisms: \textbf{Differential Privacy}, the
+gold standard that transforms these empirical defences into provable
+guarantees.
