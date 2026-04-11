@@ -24,18 +24,6 @@ To build a secure anonymization pipeline, the architect must first classify ever
 
 To solve the \textbf{Homogeneity Attack} (where all $k$-anonymous subjects share the same diagnosis), we implement $l$-diversity. This requires that each $k$-anonymous group has at least $l$ ``well-represented'' values for the Sensitive Attribute.
 
-\subsection{t-Closeness (Distribution Protection)}
-$l$-diversity can still leak information through \textbf{Skewness Attacks} if a group's distribution differs wildly from the global population. $t$-closeness requires that the distribution of a sensitive attribute in any group is close to the global distribution.
-
-\begin{svgraybox}
-\textbf{Technical Sidebar: Earth Mover's Distance in t-Closeness}\\
-To quantify the ``closeness'' of distributions $P$ (global) and $Q$ (group), we use the \textbf{Earth Mover's Distance (EMD)}. For a numerical sensitive attribute, the distance $D[P, Q]$ is defined as:
-\begin{equation}
-D[P, Q] = \frac{1}{m-1} \sum_{i=1}^{m-1} \left| \sum_{j=1}^{i} p_j - \sum_{j=1}^{i} q_j \right|
-\end{equation}
-where $p_j$ and $q_j$ are the probability masses. An architect sets a threshold $t$ (e.g., 0.2) to limit the amount of statistical information a single group can leak.
-\end{svgraybox}
-
 % ======================================================================
 \subsection{Formal Foundations: $k$-Anonymity and $\ell$-Diversity}
 \label{sec:formal_foundations}
@@ -441,6 +429,18 @@ As $|QI|$ grows, equivalence classes become smaller and harder to fill, forcing 
 
 \paragraph{Sequential Releases and Composition.}
 $k$-Anonymity and $\ell$-diversity do not compose well: releasing multiple $k$-anonymous tables derived from the same dataset can enable an adversary to intersect equivalence classes and re-identify individuals. Differential privacy provides tight composition bounds, making it preferable for sequential releases.
+
+\subsection{t-Closeness (Distribution Protection)}
+$l$-diversity can still leak information through \textbf{Skewness Attacks} if a group's distribution differs wildly from the global population. $t$-closeness requires that the distribution of a sensitive attribute in any group is close to the global distribution.
+
+\begin{svgraybox}
+\textbf{Technical Sidebar: Earth Mover's Distance in t-Closeness}\\
+To quantify the ``closeness'' of distributions $P$ (global) and $Q$ (group), we use the \textbf{Earth Mover's Distance (EMD)}. For a numerical sensitive attribute, the distance $D[P, Q]$ is defined as:
+\begin{equation}
+D[P, Q] = \frac{1}{m-1} \sum_{i=1}^{m-1} \left| \sum_{j=1}^{i} p_j - \sum_{j=1}^{i} q_j \right|
+\end{equation}
+where $p_j$ and $q_j$ are the probability masses. An architect sets a threshold $t$ (e.g., 0.2) to limit the amount of statistical information a single group can leak.
+\end{svgraybox}
 
 \section{Attack Vectors on Classic Models}
 \label{sec:attack_vectors_classic}
