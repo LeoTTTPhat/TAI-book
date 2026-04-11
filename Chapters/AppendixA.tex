@@ -725,12 +725,12 @@ present to the CFO.
     width=10cm, height=7cm,
     xlabel={RAV Ratio $\rho_m$ (return per \$1 invested)},
     symbolic y coords={
-      {Conformal Prediction},
-      {TEE (SGX)},
-      {ZK-Proof},
-      {Formal Verification},
-      {I/O Guardrails},
-      {DP-FL}
+      CP,
+      TEE,
+      ZK-Proof,
+      Formal Ver.,
+      I/O Guards,
+      DP-FL
     },
     ytick=data,
     xmin=0, xmax=100,
@@ -744,12 +744,12 @@ present to the CFO.
     label style={font=\small},
   ]
   \addplot[fill=gaincol!80, draw=gaincol!60!black] coordinates {
-    (76.7,  {Conformal Prediction})
-    (16.6,  {TEE (SGX)})
-    (21.8,  {ZK-Proof})
-    (35.6,  {Formal Verification})
-    (84.1,  {I/O Guardrails})
-    (36.9,  {DP-FL})
+    (76.7,  CP)
+    (16.6,  TEE)
+    (21.8,  ZK-Proof)
+    (35.6,  Formal Ver.)
+    (84.1,  I/O Guards)
+    (36.9,  DP-FL)
   };
 \end{axis}
 \end{tikzpicture}
