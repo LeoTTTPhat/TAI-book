@@ -37,7 +37,7 @@ where $p_j$ and $q_j$ are the probability masses. An architect sets a threshold 
 \end{svgraybox}
 
 % ======================================================================
-\section{Formal Foundations: $k$-Anonymity and $\ell$-Diversity}
+\subsection{Formal Foundations: $k$-Anonymity and $\ell$-Diversity}
 \label{sec:formal_foundations}
 
 The proliferation of large-scale data collection by governments, healthcare systems, and private organisations has created unprecedented opportunities for statistical analysis and research. At the same time it has raised profound concerns about individual privacy. When a data holder wishes to share a microdata table---one row per person---with an external researcher or the public, sensitive attributes such as medical diagnoses, salary, or criminal record may be inferred by an adversary who already possesses partial background knowledge.
@@ -51,10 +51,10 @@ Two fundamental formal models address this threat:
 
 This section provides formal definitions, illustrative examples, algorithmic treatments, security analyses, and a critical comparison of these two models together with their principal extensions.
 
-\subsection{Preliminaries and Data Model}
+\subsubsection{Preliminaries and Data Model}
 \label{sec:data_model}
 
-\subsubsection{Microdata Tables}
+\paragraph{Microdata Tables.}
 
 A \emph{microdata table} is a relation $T = (A_1, \ldots, A_n)$ where each tuple $t \in T$ represents a single individual. The attribute set is partitioned into three disjoint groups:
 \begin{align*}
@@ -69,7 +69,7 @@ A \emph{microdata table} is a relation $T = (A_1, \ldots, A_n)$ where each tuple
   \item \textbf{Sensitive attributes} (e.g.\ disease, salary) represent the information the data holder wishes to protect.
 \end{itemize}
 
-\subsubsection{Generalisation and Suppression}
+\paragraph{Generalisation and Suppression.}
 
 A \emph{generalisation} of a domain $D$ is a surjective mapping $\phi: D \to D'$ such that $|D'| \leq |D|$. Repeated application yields a \emph{generalisation hierarchy} $\mathcal{H}_A$ for attribute $A$. Replacing every value $v$ of $A$ in $T$ by $\phi(v)$ produces the \emph{generalised table} $T^{*}$.
 
@@ -80,17 +80,17 @@ Common generalisation strategies include:
 \end{itemize}
 
 % ----------------------------------------------------------------------
-\subsection{$k$-Anonymity: Formal Definition and Analysis}
+\subsubsection{$k$-Anonymity: Formal Definition and Analysis}
 \label{sec:kanon_formal}
 
-\subsubsection{Equivalence Classes}
+\paragraph{Equivalence Classes.}
 Given a quasi-identifier $QI$ and a (possibly generalised) table $T^*$, the \emph{equivalence class} of a tuple $t \in T^*$ is
 \[
   EQ(t) = \{t' \in T^* \mid t'[QI] = t[QI]\}.
 \]
 The set $\{EQ(t) \mid t \in T^*\}$ partitions $T^*$ into equivalence classes.
 
-\subsubsection{Definition}
+\paragraph{Definition.}
 A table $T^*$ satisfies \emph{$k$-anonymity} with respect to quasi-identifier $QI$ if and only if
 \[
   \forall\, t \in T^* : |EQ(t)| \geq k.
@@ -98,7 +98,7 @@ A table $T^*$ satisfies \emph{$k$-anonymity} with respect to quasi-identifier $Q
 
 Intuitively, each individual ``hides'' among at least $k-1$ others who share identical quasi-identifier values. The parameter $k$ is a privacy budget: a larger $k$ offers stronger privacy at the cost of greater information loss.
 
-\subsubsection{Illustrative Example ($k=3$)}
+\paragraph{Illustrative Example ($k=3$).}
 
 Consider the original table:
 
@@ -136,7 +136,7 @@ After generalising Age $\to$ [25,35) / [45,50) and ZIP $\to$ 130** / 148**:
 
 Each equivalence class has size 3, so the table is 3-anonymous.
 
-\subsubsection{Attacks Against $k$-Anonymity}
+\paragraph{Attacks Against $k$-Anonymity.}
 
 Despite its appeal, $k$-anonymity is vulnerable to two well-known attacks when the distribution of sensitive values within an equivalence class is skewed.
 
@@ -147,13 +147,13 @@ If all tuples in an equivalence class share the same sensitive value, an adversa
 An adversary may exploit external knowledge about the relative likelihood of sensitive values to dramatically narrow the uncertainty even when values are not homogeneous. For example, suppose a class contains \{Flu, Heart Disease, Cancer\} but the adversary knows the individual is a non-smoker. If background statistics show that non-smokers have $<1\%$ chance of lung cancer, the effective uncertainty collapses to two values.
 
 % ----------------------------------------------------------------------
-\subsection{$\ell$-Diversity: Formal Definition and Analysis}
+\subsubsection{$\ell$-Diversity: Formal Definition and Analysis}
 \label{sec:ldiv_formal}
 
-\subsubsection{Motivation}
+\paragraph{Motivation.}
 $\ell$-Diversity (Machanavajjhala \emph{et al.}, 2006) \cite{machanavajjhala2007} was proposed to address the homogeneity and background-knowledge attacks. The core intuition is that merely ensuring indistinguishability on quasi-identifiers is insufficient; sensitive values within each equivalence class must themselves be sufficiently \emph{diverse}.
 
-\subsubsection{Definition}
+\paragraph{Definition.}
 Let $q^*$ be an equivalence class and let $S(q^*)$ denote the multiset of sensitive attribute values in $q^*$. The class $q^*$ satisfies \emph{$\ell$-diversity} if it contains at least $\ell$ \emph{well-represented} sensitive values. A table $T^*$ satisfies $\ell$-diversity if every equivalence class satisfies $\ell$-diversity.
 
 The notion of ``well-represented'' gives rise to three principal instantiations:
@@ -181,7 +181,7 @@ Let the sensitive values in equivalence class $q^*$ be sorted by frequency: $r_1
 \]
 for constants $c > 0$ and integer $\ell \geq 2$. This prevents the most common value from dominating even when $\ell$ distinct values are present.
 
-\subsubsection{Relationship Between Variants}
+\paragraph{Relationship Between Variants.}
 
 For any equivalence class $q^*$:
 \[
@@ -193,7 +193,7 @@ Moreover, recursive $(c, \ell)$-diversity with $c \leq 1/(|\mathcal{S}|-\ell+1)$
 
 If $H(S(q^*)) \geq \log\ell$ then by the maximum-entropy bound the class must have support on at least $\ell$ distinct values, otherwise the entropy would be at most $\log(\ell - 1) < \log \ell$.
 
-\subsubsection{Illustrative Example: $\ell$-Diversity vs.\ $k$-Anonymity}
+\paragraph{Illustrative Example: $\ell$-Diversity vs.\ $k$-Anonymity.}
 
 Consider two 3-anonymous equivalence classes:
 
@@ -215,10 +215,10 @@ Entropy $H$     & 0 & $\log 3 \approx 1.585$\\
 Class A satisfies 3-anonymity but \emph{fails} distinct 2-diversity (all values identical). Class B satisfies 3-anonymity \emph{and} distinct 3-diversity (and entropy 3-diversity).
 
 % ----------------------------------------------------------------------
-\subsection{Algorithms for Achieving $k$-Anonymity and $\ell$-Diversity}
+\subsubsection{Algorithms for Achieving $k$-Anonymity and $\ell$-Diversity}
 \label{sec:kanon_algorithms}
 
-\subsubsection{The Mondrian Algorithm for $k$-Anonymity}
+\paragraph{The Mondrian Algorithm for $k$-Anonymity.}
 
 Mondrian (LeFevre \emph{et al.}, 2006) is a greedy, multidimensional partitioning algorithm for $k$-anonymity. It operates on the full quasi-identifier space without requiring pre-specified hierarchies. The algorithm proceeds as follows:
 
@@ -233,7 +233,7 @@ Mondrian (LeFevre \emph{et al.}, 2006) is a greedy, multidimensional partitionin
 
 \textbf{Complexity.} Each recursive call partitions the data along the median of the widest attribute. With $n$ tuples and $d = |QI|$ dimensions the depth is $O(\log n)$ and the total cost is $O(nd \log n)$.
 
-\subsubsection{Extended Mondrian for $\ell$-Diversity}
+\paragraph{Extended Mondrian for $\ell$-Diversity.}
 
 To enforce $\ell$-diversity, we augment the split condition: a split is only performed if \emph{both} child partitions satisfy $\ell$-diversity. The diversity check depends on the chosen variant:
 \begin{itemize}
@@ -242,7 +242,7 @@ To enforce $\ell$-diversity, we augment the split condition: a split is only per
   \item \textbf{Recursive $(c)$}: recursive $(c, \ell)$-condition on the frequency vector
 \end{itemize}
 
-\subsubsection{Incognito Algorithm}
+\paragraph{Incognito Algorithm.}
 
 Incognito (LeFevre \emph{et al.}, 2005) performs a bottom-up lattice traversal over all possible generalisation combinations. For each node in the lattice (a specific generalisation of each QI attribute), it checks whether the resulting table satisfies $k$-anonymity. The algorithm exploits the \emph{monotone property}: if a generalisation fails $k$-anonymity, any less-generalised descendant also fails.
 \[
@@ -251,12 +251,12 @@ Incognito (LeFevre \emph{et al.}, 2005) performs a bottom-up lattice traversal o
 This allows large portions of the lattice to be pruned, reducing the search space from $O(\prod_i |H_{A_i}|)$ to a manageable size in practice.
 
 % ----------------------------------------------------------------------
-\subsection{Information Loss Metrics}
+\subsubsection{Information Loss Metrics}
 \label{sec:info_loss_metrics}
 
 Anonymisation necessarily degrades data utility. The following metrics quantify information loss (IL).
 
-\subsubsection{Normalised Certainty Penalty (NCP)}
+\paragraph{Normalised Certainty Penalty (NCP).}
 For a numerical attribute $A$ with domain $[A_{\min}, A_{\max}]$ and an equivalence class $q^*$ that generalises $A$ to the interval $[q^*_{\min}, q^*_{\max}]$:
 \[
   \mathrm{NCP}_A(q^*) = \frac{q^*_{\max} - q^*_{\min}}{A_{\max} - A_{\min}}.
@@ -267,38 +267,38 @@ The overall NCP is averaged over all attributes and all tuples:
 \]
 $\mathrm{NCP} = 0$ means no loss; $\mathrm{NCP} = 1$ means complete suppression.
 
-\subsubsection{Discernibility Metric (DM)}
+\paragraph{Discernibility Metric (DM).}
 \[
   \mathrm{DM}(T^*) = \sum_{q^* \in \Pi} |q^*|^2.
 \]
 Larger equivalence classes incur higher penalty, incentivising algorithms to create balanced partitions.
 
-\subsubsection{Average Equivalence Class Size (AECS)}
+\paragraph{Average Equivalence Class Size (AECS).}
 \[
   \mathrm{AECS}(T^*) = \frac{n}{|\Pi|}.
 \]
 A low AECS (close to $k$) indicates minimal over-generalisation.
 
 % ----------------------------------------------------------------------
-\subsection{Security Analysis}
+\subsubsection{Security Analysis}
 \label{sec:security_analysis}
 
-\subsubsection{Privacy Guarantees of $k$-Anonymity}
+\paragraph{Privacy Guarantees of $k$-Anonymity.}
 Under $k$-anonymity, assuming an adversary with perfect knowledge of the quasi-identifier values of a target individual but no other information, the probability of correctly identifying the target's record is at most $1/k$.
 
 The adversary's target falls into some equivalence class $EQ(t)$ with $|EQ(t)| \geq k$. Each member of the class is indistinguishable on $QI$, so under a uniform prior the probability of selecting the correct record is $1/|EQ(t)| \leq 1/k$.
 
-\subsubsection{Limitations of $k$-Anonymity}
+\paragraph{Limitations of $k$-Anonymity.}
 $k$-Anonymity provides \emph{no} guarantee on the posterior probability of a specific sensitive value given the quasi-identifier. In the worst case (all records in a class share the same sensitive value), the posterior equals the prior of 1---i.e.\ the adversary gains full information about the sensitive attribute.
 
-\subsubsection{Privacy Guarantees of $\ell$-Diversity}
+\paragraph{Privacy Guarantees of $\ell$-Diversity.}
 Under entropy $\ell$-diversity, for any equivalence class $q^*$ and any sensitive value $s$:
 \[
   p(q^*, s) \leq \frac{1}{\ell}.
 \]
 Consequently, the \emph{positive disclosure probability}---the probability that an adversary correctly infers $s$ as the target's sensitive value---is at most $1/\ell$.
 
-\subsubsection{Remaining Vulnerabilities of $\ell$-Diversity}
+\paragraph{Remaining Vulnerabilities of $\ell$-Diversity.}
 
 \begin{itemize}
   \item \textbf{Skewness attack}: If the overall distribution of a sensitive value is very low (e.g.\ only 1\% of people have HIV), an equivalence class with 1-in-3 HIV records still leaks significantly compared to the population prior.
@@ -308,7 +308,7 @@ Consequently, the \emph{positive disclosure probability}---the probability that 
 These vulnerabilities motivated $t$-closeness \cite{li2007}, which requires the distribution of sensitive values in each class to be close (in Earth Mover's Distance) to the overall distribution in $T$.
 
 % ----------------------------------------------------------------------
-\subsection{Summary Comparison of Privacy Models}
+\subsubsection{Summary Comparison of Privacy Models}
 \label{sec:comparison_privacy_models}
 
 \begin{table}
@@ -331,12 +331,12 @@ Exact data output             & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\t
 \end{table}
 
 % ----------------------------------------------------------------------
-\subsection{Worked End-to-End Example}
+\subsubsection{Worked End-to-End Example}
 \label{sec:worked_example}
 
 We illustrate the full anonymisation pipeline on a small medical dataset.
 
-\subsubsection{Original Data}
+\paragraph{Original Data.}
 
 \begin{center}
 \begin{tabular}{clccp{3cm}}
@@ -356,10 +356,10 @@ We illustrate the full anonymisation pipeline on a small medical dataset.
 \end{tabular}
 \end{center}
 
-\subsubsection{Step 1: Remove Explicit Identifiers}
+\paragraph{Step 1: Remove Explicit Identifiers.}
 The \textbf{ID} column is suppressed entirely.
 
-\subsubsection{Step 2: Apply 3-Anonymity}
+\paragraph{Step 2: Apply 3-Anonymity.}
 We generalise Age and ZIP to obtain equivalence classes of size $\geq 3$:
 
 \begin{center}
@@ -380,7 +380,7 @@ We generalise Age and ZIP to obtain equivalence classes of size $\geq 3$:
 \end{tabular}
 \end{center}
 
-\subsubsection{Step 3: Check $\ell$-Diversity}
+\paragraph{Step 3: Check $\ell$-Diversity.}
 Partition into equivalence classes based on identical QI values:
 
 \begin{center}
@@ -408,7 +408,7 @@ $q_3$ & 7,8,9 & \{Flu, Flu, Heart Disease\}\\
 \end{align*}
 $q_1$ \emph{fails} entropy 2-diversity. We must re-partition or apply additional generalisation (e.g.\ merge Gender into $*$ or merge $q_1$ and $q_2$) until all classes pass.
 
-\subsubsection{Step 4: Remediation}
+\paragraph{Step 4: Remediation.}
 Merge $q_1$ (size 3) with $q_2$ (size 3) into a single class of size 6:
 \[
   q_{12}: \{\text{Ovarian Cancer, Ovarian Cancer, Prostate Cancer, Flu, Prostate Cancer, Flu}\}
@@ -420,10 +420,10 @@ Merge $q_1$ (size 3) with $q_2$ (size 3) into a single class of size 6:
 The final published table is thus (2, entropy-2)-diverse.
 
 % ----------------------------------------------------------------------
-\subsection{Practical Considerations}
+\subsubsection{Practical Considerations}
 \label{sec:practical_considerations}
 
-\subsubsection{Choosing $k$ and $\ell$}
+\paragraph{Choosing $k$ and $\ell$.}
 The choice of $k$ and $\ell$ depends on:
 \begin{enumerate}
   \item \textbf{Sensitivity of data}: Medical records warrant $k \geq 10$ and entropy $\ell \geq 5$; less sensitive data may tolerate $k = 3$.
@@ -431,7 +431,7 @@ The choice of $k$ and $\ell$ depends on:
   \item \textbf{Regulatory requirements}: HIPAA's Safe Harbour rule implicitly targets $k = 20000$ by requiring ZIP codes to be reduced to 3 digits for small populations.
 \end{enumerate}
 
-\subsubsection{Curse of Dimensionality}
+\paragraph{Curse of Dimensionality.}
 As $|QI|$ grows, equivalence classes become smaller and harder to fill, forcing larger generalisations or heavier suppression. This is the \emph{curse of dimensionality} in anonymisation. Practical mitigations include:
 \begin{itemize}
   \item \textbf{Attribute selection}: Release only a subset of quasi-identifiers.
@@ -439,7 +439,7 @@ As $|QI|$ grows, equivalence classes become smaller and harder to fill, forcing 
   \item \textbf{Synthetic data}: Generate statistically representative synthetic records via generative models.
 \end{itemize}
 
-\subsubsection{Sequential Releases and Composition}
+\paragraph{Sequential Releases and Composition.}
 $k$-Anonymity and $\ell$-diversity do not compose well: releasing multiple $k$-anonymous tables derived from the same dataset can enable an adversary to intersect equivalence classes and re-identify individuals. Differential privacy provides tight composition bounds, making it preferable for sequential releases.
 
 \section{Attack Vectors on Classic Models}
