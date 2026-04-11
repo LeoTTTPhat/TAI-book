@@ -57,6 +57,464 @@ For a Trustworthy AI Architect, the Constitution is not a vague legal document b
 
 By ``Programming the Soul'' of the agent through RLAIF and formal predicates, we ensure that as the agent gains autonomy, it also gains architectural accountability.
 
+% ------------------------------------------------------------------
+\subsection{The Constitution Design Pattern: From Vietnamese Law
+            to Machine-Readable Constraints}
+\label{subsec:constitution-design-pattern}
+% ------------------------------------------------------------------
+
+The preceding subsections described \emph{what} Constitutional
+AI achieves.
+This subsection provides the \emph{how}: a systematic design
+pattern for translating a specific regulatory framework---in
+this case, Vietnam's Decree~13/2023/ND-CP on Personal Data
+Protection and Decree~356/2024/QH15 on Cybersecurity for AI
+Systems---into a set of formally verifiable, machine-readable
+constraints that can be compiled into an RLAIF critic and
+enforced at runtime by the Safe Agent Architecture.
+
+\paragraph{The Translation Problem.}
+A regulation like Decree~13 is written in natural language for
+human legal interpretation.
+An AI agent operates in a space of tool calls, API parameters,
+and data flows.
+The architect's task is to bridge these two languages without
+losing the legal intent of the regulation or introducing
+ambiguities that the agent can exploit.
+
+We formalise this as a three-layer translation:
+
+\begin{description}
+  \item[Layer 1: Regulatory Article $\to$ Natural Language
+    Principle.]
+    Extract the operational intent of each relevant article
+    into a clear, unambiguous statement that a non-lawyer
+    engineer can implement.
+
+  \item[Layer 2: Natural Language Principle $\to$ Datalog
+    Predicate.]
+    Translate each principle into a formal logic predicate that
+    can be evaluated against the agent's proposed action, its
+    context, and its tool parameters.
+
+  \item[Layer 3: Datalog Predicate $\to$ RLAIF Critique Signal.]
+    Encode each predicate into the scoring function of the
+    RLAIF Critic Model, so that the agent learns to avoid
+    violation patterns during training, and the predicate is
+    re-checked at runtime as a hard constraint.
+\end{description}
+
+Table~\ref{tab:regulatory-translation} demonstrates this
+three-layer translation for six key articles of Decree~13
+and Decree~356.
+
+\begin{table}[ht]
+\centering
+\caption{Regulatory-to-Constraint Translation: mapping Vietnamese
+  data protection articles to machine-readable Datalog predicates.
+  Each predicate is enforced both as an RLAIF training signal
+  and as a runtime gate in the Safe Agent Architecture.}
+\label{tab:regulatory-translation}
+\small
+\begin{tabular}{p{2.2cm}p{3.5cm}p{5.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Regulatory Source}
+  & \textbf{Natural Language Principle}
+  & \textbf{Datalog Predicate} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+
+Decree~13, Art.~11 (Consent)
+  & Agent must not process personal data without verified
+    consent from the data subject.
+  & \texttt{block(action) :- accesses\_pii(action),}
+    \texttt{not has\_consent(data\_subject,}
+    \texttt{purpose(action)).} \\[6pt]
+
+Decree~13, Art.~26 (Cross-Border Transfer)
+  & Agent must not transfer personal data outside Vietnam
+    without explicit DPO authorisation and regulatory filing.
+  & \texttt{block(action) :-}
+    \texttt{transfers\_data(action, dest),}
+    \texttt{foreign(dest),}
+    \texttt{not dpo\_authorised(action).} \\[6pt]
+
+Decree~13, Art.~17 (Data Minimisation)
+  & Agent must not request or store more personal data fields
+    than strictly necessary for the declared purpose.
+  & \texttt{block(action) :-}
+    \texttt{requests\_fields(action, F),}
+    \texttt{required\_fields(purpose(action), R),}
+    \texttt{$|$F$|$ > $|$R$|$.} \\[6pt]
+
+Decree~356, Art.~8 (Audit Trail)
+  & Every agent action that modifies state must produce a
+    verifiable audit log entry.
+  & \texttt{block(action) :-}
+    \texttt{modifies\_state(action),}
+    \texttt{not has\_zk\_audit\_entry(action).} \\[6pt]
+
+Decree~356, Art.~12 (Incident Response)
+  & Agent must halt and notify the DPO within 72 hours of
+    detecting a potential data breach.
+  & \texttt{emergency\_brake(action) :-}
+    \texttt{detects\_breach(action),}
+    \texttt{not notified\_dpo(72h).} \\[6pt]
+
+Decree~13, Art.~9 (Purpose Limitation)
+  & Agent must not use personal data for any purpose beyond
+    the one for which consent was obtained.
+  & \texttt{block(action) :-}
+    \texttt{uses\_pii(action, data),}
+    \texttt{consent\_purpose(data, P1),}
+    \texttt{action\_purpose(action, P2),}
+    \texttt{P1 $\neq$ P2.} \\
+
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{Implementing the Constitutional Policy Engine}
+\label{subsec:policy-engine}
+% ------------------------------------------------------------------
+
+The Datalog predicates of Table~\ref{tab:regulatory-translation}
+must be enforced at two points in the agent lifecycle:
+
+\begin{enumerate}
+  \item \textbf{Training Time (RLAIF):}
+    The predicates are compiled into a scoring function for the
+    Critic Model.
+    During the Supervised Stage, the Critic evaluates each
+    candidate plan against all predicates and assigns a
+    \textbf{Constitutional Compliance Score}
+    $\mathcal{S}_{\mathrm{const}} \in [0, 1]$:
+    \begin{equation}
+      \label{eq:compliance-score}
+      \mathcal{S}_{\mathrm{const}}(\mathrm{plan})
+        = 1 - \frac{
+            \sum_{p \in \mathcal{P}}
+              w_p \cdot \mathbf{1}[\mathrm{violates}(
+                \mathrm{plan}, p)]
+          }{
+            \sum_{p \in \mathcal{P}} w_p
+          }
+    \end{equation}
+    where $\mathcal{P}$ is the set of all constitutional
+    predicates and $w_p$ is the regulatory weight of
+    predicate $p$ (set to $1.0$ for all mandatory Decree~13
+    articles and $0.8$ for advisory best-practice predicates).
+
+    Plans with $\mathcal{S}_{\mathrm{const}} < 1.0$ are ranked
+    below fully compliant plans in the preference model,
+    causing the PPO stage to optimise the agent away from
+    violation patterns.
+
+  \item \textbf{Runtime (Hard Gate):}
+    At inference time, every proposed tool call passes through
+    the \textbf{Constitutional Policy Engine} before execution.
+    If any predicate evaluates to \texttt{block(action)}, the
+    action is rejected and the Emergency Brake Pattern is
+    activated.
+    This is the last line of defence: even if the RLAIF training
+    was imperfect, the runtime gate ensures that no violating
+    action reaches the external world.
+\end{enumerate}
+
+Listing~\ref{lst:policy-engine} provides a reference
+implementation of the Constitutional Policy Engine with the
+six Decree~13/356 predicates of
+Table~\ref{tab:regulatory-translation}.
+
+\begin{lstlisting}[
+  style=pythonstyle,
+  caption={Constitutional Policy Engine: translates Vietnamese
+           regulatory articles into enforceable runtime constraints
+           for autonomous AI agents.
+           Each predicate returns a violation record or None.},
+  label={lst:policy-engine}
+]
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set
+from enum import Enum
+import time
+
+class Verdict(Enum):
+    ALLOW           = "allow"
+    BLOCK           = "block"
+    EMERGENCY_BRAKE = "emergency_brake"
+
+@dataclass
+class Violation:
+    predicate_id:   str
+    regulation:     str      # e.g., "Decree13-Art26"
+    description:    str
+    verdict:        Verdict
+    action_hash:    str
+
+@dataclass
+class AgentAction:
+    action_type:    str      # e.g., "api_call", "db_query"
+    tool_name:      str
+    parameters:     Dict
+    data_fields:    Set[str] = field(default_factory=set)
+    destination:    Optional[str] = None
+    purpose:        Optional[str] = None
+    modifies_state: bool = False
+
+class ConstitutionalPolicyEngine:
+    """
+    Runtime enforcement of Vietnamese regulatory predicates.
+    Each predicate maps to a specific Decree 13 or 356 article.
+    """
+    def __init__(self, consent_registry, dpo_registry,
+                 purpose_registry, audit_logger,
+                 foreign_jurisdictions=None):
+        self.consent_reg  = consent_registry
+        self.dpo_reg      = dpo_registry
+        self.purpose_reg  = purpose_registry
+        self.auditor      = audit_logger
+        self.foreign      = foreign_jurisdictions or {
+            "US", "EU", "CN", "SG", "JP", "KR", "TH"
+        }
+        self.predicates = [
+            self._check_consent,          # Art.11
+            self._check_cross_border,     # Art.26
+            self._check_data_minimisation,# Art.17
+            self._check_audit_trail,      # D356 Art.8
+            self._check_incident_response,# D356 Art.12
+            self._check_purpose_limit,    # Art.9
+        ]
+
+    def evaluate(self, action: AgentAction) -> \
+            tuple[Verdict, List[Violation]]:
+        """
+        Evaluate an action against all constitutional
+        predicates.  Returns the most restrictive verdict
+        and the list of violations found.
+        """
+        violations = []
+        for predicate in self.predicates:
+            v = predicate(action)
+            if v is not None:
+                violations.append(v)
+
+        if not violations:
+            return Verdict.ALLOW, []
+
+        # Emergency brake takes priority over block
+        if any(v.verdict == Verdict.EMERGENCY_BRAKE
+               for v in violations):
+            self.auditor.log(
+                event="emergency_brake_triggered",
+                violations=[v.__dict__ for v in violations])
+            return Verdict.EMERGENCY_BRAKE, violations
+
+        self.auditor.log(
+            event="action_blocked",
+            violations=[v.__dict__ for v in violations])
+        return Verdict.BLOCK, violations
+
+    # -- Decree 13, Article 11: Consent -----------------------
+    def _check_consent(self, action):
+        if not action.data_fields:
+            return None
+        for f in action.data_fields:
+            if not self.consent_reg.has_consent(
+                    f, action.purpose):
+                return Violation(
+                    predicate_id="D13-ART11",
+                    regulation="Decree 13, Article 11",
+                    description=(
+                        f"No consent for field '{f}' "
+                        f"under purpose '{action.purpose}'"),
+                    verdict=Verdict.BLOCK,
+                    action_hash=str(hash(str(action))))
+        return None
+
+    # -- Decree 13, Article 26: Cross-Border Transfer ---------
+    def _check_cross_border(self, action):
+        if action.destination and \
+                action.destination in self.foreign:
+            if not self.dpo_reg.is_authorised(action):
+                return Violation(
+                    predicate_id="D13-ART26",
+                    regulation="Decree 13, Article 26",
+                    description=(
+                        f"Cross-border transfer to "
+                        f"'{action.destination}' without "
+                        f"DPO authorisation"),
+                    verdict=Verdict.BLOCK,
+                    action_hash=str(hash(str(action))))
+        return None
+
+    # -- Decree 13, Article 17: Data Minimisation -------------
+    def _check_data_minimisation(self, action):
+        if not action.purpose or not action.data_fields:
+            return None
+        required = self.purpose_reg.required_fields(
+            action.purpose)
+        excess = action.data_fields - required
+        if excess:
+            return Violation(
+                predicate_id="D13-ART17",
+                regulation="Decree 13, Article 17",
+                description=(
+                    f"Excess fields requested: "
+                    f"{excess}; only {required} needed"),
+                verdict=Verdict.BLOCK,
+                action_hash=str(hash(str(action))))
+        return None
+
+    # -- Decree 356, Article 8: Audit Trail -------------------
+    def _check_audit_trail(self, action):
+        if action.modifies_state:
+            if not self.auditor.has_zk_entry(action):
+                return Violation(
+                    predicate_id="D356-ART8",
+                    regulation="Decree 356, Article 8",
+                    description=(
+                        "State-modifying action without "
+                        "ZK-audit log entry"),
+                    verdict=Verdict.BLOCK,
+                    action_hash=str(hash(str(action))))
+        return None
+
+    # -- Decree 356, Article 12: Incident Response ------------
+    def _check_incident_response(self, action):
+        if hasattr(action, "breach_detected") \
+                and action.breach_detected:
+            if not self.dpo_reg.notified_within(
+                    hours=72):
+                return Violation(
+                    predicate_id="D356-ART12",
+                    regulation="Decree 356, Article 12",
+                    description=(
+                        "Breach detected but DPO not "
+                        "notified within 72h"),
+                    verdict=Verdict.EMERGENCY_BRAKE,
+                    action_hash=str(hash(str(action))))
+        return None
+
+    # -- Decree 13, Article 9: Purpose Limitation -------------
+    def _check_purpose_limit(self, action):
+        if not action.data_fields or not action.purpose:
+            return None
+        for f in action.data_fields:
+            consented_purpose = \
+                self.consent_reg.consented_purpose(f)
+            if consented_purpose and \
+                    action.purpose != consented_purpose:
+                return Violation(
+                    predicate_id="D13-ART9",
+                    regulation="Decree 13, Article 9",
+                    description=(
+                        f"Field '{f}' consented for "
+                        f"'{consented_purpose}', used for "
+                        f"'{action.purpose}'"),
+                    verdict=Verdict.BLOCK,
+                    action_hash=str(hash(str(action))))
+        return None
+
+    # -- RLAIF Scoring Interface ------------------------------
+    def compliance_score(self, plan_actions):
+        """
+        Compute S_const for a candidate plan (Eq. 23.X).
+        Used by the RLAIF Critic during training.
+        """
+        total_weight = len(self.predicates)
+        violations = 0
+        for action in plan_actions:
+            _, viol_list = self.evaluate(action)
+            violations += len(viol_list)
+        return max(0.0,
+            1.0 - violations / max(total_weight *
+                                   len(plan_actions), 1))
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{Worked Example: Credit-Scoring Agent Rejects a
+            Cross-Border Transfer}
+\label{subsec:constitution-worked-example}
+% ------------------------------------------------------------------
+
+We illustrate the Constitutional Policy Engine with a concrete
+scenario from the Vietnamese fintech deployment introduced in
+Appendix~\ref{app:roi-of-trust}.
+
+\paragraph{Scenario.}
+A credit-scoring agent receives a request to evaluate a loan
+applicant.
+The applicant's employment history is stored on a Singapore-based
+HR platform.
+The agent plans the following tool call:
+
+\begin{lstlisting}[style=pythonstyle]
+action = AgentAction(
+    action_type="api_call",
+    tool_name="hr_platform_sg",
+    parameters={"applicant_id": "VN-2026-00412",
+                "fields": ["salary", "tenure",
+                           "disciplinary_record"]},
+    data_fields={"salary", "tenure",
+                 "disciplinary_record"},
+    destination="SG",
+    purpose="credit_scoring",
+    modifies_state=False,
+)
+\end{lstlisting}
+
+\paragraph{Policy Engine Evaluation.}
+The engine evaluates the action against all six predicates:
+
+\begin{enumerate}
+  \item \textbf{D13-ART11 (Consent):} Consent registry confirms
+    consent for \texttt{salary} and \texttt{tenure} under
+    \texttt{credit\_scoring}, but \textbf{no consent} for
+    \texttt{disciplinary\_record}.
+    $\Rightarrow$ \textsc{Block}.
+
+  \item \textbf{D13-ART26 (Cross-Border):} Destination is
+    \texttt{SG} (foreign jurisdiction).
+    DPO authorisation registry has no entry for this action.
+    $\Rightarrow$ \textsc{Block}.
+
+  \item \textbf{D13-ART17 (Data Minimisation):} Purpose
+    \texttt{credit\_scoring} requires only
+    $\{\texttt{salary}, \texttt{tenure}\}$.
+    The agent requests an excess field
+    $\{\texttt{disciplinary\_record}\}$.
+    $\Rightarrow$ \textsc{Block}.
+
+  \item \textbf{D356-ART8, D356-ART12, D13-ART9:}
+    Not triggered (no state modification, no breach, purpose
+    matches for consented fields).
+    $\Rightarrow$ \textsc{Allow}.
+\end{enumerate}
+
+\paragraph{Result.}
+The engine returns \textsc{Block} with three violations.
+The agent's request is rejected before any data leaves
+Vietnam.
+The violations are logged in the ZK-Audit Log with the
+action hash, enabling the DPO to review the agent's reasoning
+without accessing the applicant's personal data.
+
+\paragraph{RLAIF Training Signal.}
+During training, this same scenario would produce a
+Constitutional Compliance Score of:
+\begin{equation}
+  \mathcal{S}_{\mathrm{const}}
+    = 1 - \frac{3}{6}
+    = 0.50
+\end{equation}
+A compliant alternative plan---requesting only
+$\{\texttt{salary}, \texttt{tenure}\}$ from the local
+Vietnamese HR mirror after DPO authorisation---would score
+$\mathcal{S}_{\mathrm{const}} = 1.0$ and be ranked higher by
+the preference model, teaching the agent to prefer compliant
+data access patterns.
+
 % ==================================================================
 \section{Agentic Identity: Decentralized Identifiers for
          Autonomous AI}
