@@ -1,1103 +1,1119 @@
-%%%%%%%%%%%%%%%%%%%%% Chapter 26 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Trustworthy MLOps: Continuous Monitoring & Drift Detection
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\motto{Trust is not a static certification; it is a dynamic performance that must be verified with every heartbeat of the system.}
+%%%%%%%%%%%%%%%%%%%%% Chapter 25 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% The AI Trust Threat Matrix
+%
+%%%%%%%%%%%%%%%%%%%%%%%% Springer Nature %%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Trustworthy MLOps: Continuous Monitoring \& Drift Detection}
-\label{chap:mlops_monitoring}
-
-\abstract{A model that is verifiably trustworthy at the moment of deployment is not guaranteed to remain so as the world evolves. In this chapter, we address the operational reality of "Trustworthy MLOps"---the practice of maintaining security, privacy, and robustness in production. We explore technical mechanisms for detecting Data and Concept Drift using statistical distance metrics, analyze the unique challenges of monitoring Differential Privacy budgets in streaming environments, and define the architectural triggers for automated "Self-Healing" via rollback and retraining.}
-
-\section{The Trust Decay Problem}
-\label{sec:trust_decay}
-
-In the "Strategic Vision" of Part I, we established that trust is built on mathematical and architectural foundations. However, even the most rigorously verified model is subject to \textbf{Performance Decay} once it encounters the entropy of the real world. 
-
-For the Trustworthy AI Architect, "Deployment" is not the end of the project, but the beginning of a continuous monitoring cycle. Trust degrades when the statistical properties of the incoming production data shift away from the training distribution, or when the underlying relationship between inputs and outputs changes due to societal or environmental factors.
-
-\section{Continuous Monitoring: Detecting Drift}
-\label{sec:drift_detection}
-
-To maintain trust, we must monitor two primary types of drift:
-
-\subsection{Data Drift: Monitoring the Input}
-Data drift occurs when the feature distribution of production data changes. Architects implement automated statistical tests, such as the \textbf{Population Stability Index (PSI)} or \textbf{Kullback-Leibler (K-L) Divergence}, to measure the distance between the training and production distributions ($P$ and $Q$).
-\begin{equation}
-D_{KL}(P \| Q) = \sum_{x \in X} P(x) \log\left(\frac{P(x)}{Q(x)}\right)
-\end{equation}
-If the divergence exceeds a pre-defined "Trust Threshold," the system triggers a diagnostic alert.
-
-\subsection{Concept Drift: Monitoring the Target}
-Concept drift is more insidious; it occurs when the "ground truth" changes. For example, a fraud detection model may fail as criminal tactics evolve, even if the input distribution remains the same. We use algorithms like \textbf{ADWIN (Adaptive Windowing)} to identify sudden changes in model accuracy or loss, indicating that the model's internal map of the world is no longer accurate.
-
-\section{Privacy and Robustness Monitoring}
-\label{sec:privacy_monitoring}
-
-Beyond accuracy, we must monitor the stability of our trust pillars:
-
-\begin{itemize}
-    \item \textbf{Privacy Budget Monitoring:} For systems that use online learning or interactive queries, the architect must track the cumulative \textbf{Privacy Budget ($\epsilon$)} in real-time. If the budget approaches its limit, the system must automatically restrict query access or cease fine-tuning to prevent information leakage.
-    \item \textbf{Robustness Drift:} We monitor for shifts in the success rate of our internal ``continuous red teaming'' (from Chapter 17). If the model's resilience against known adversarial patterns drops, it indicates that the model's decision boundaries have become brittle due to new data.
-\end{itemize}
-
-% ------------------------------------------------------------------
-%  Colour definitions for Trust Debt section
-% ------------------------------------------------------------------
-\definecolor{debtred}   {RGB}{220,  53,  53}
-\definecolor{debtamber} {RGB}{255, 180,   0}
-\definecolor{debtgreen} {RGB}{ 56, 168,  80}
-\definecolor{debtgray}  {RGB}{130, 130, 130}
-\definecolor{scenariobg}{RGB}{245, 247, 250}
-\definecolor{warningbg} {RGB}{255, 243, 220}
-
-% ------------------------------------------------------------------
-%  tcolorbox styles for Trust Debt section
-% ------------------------------------------------------------------
-\tcbset{
-  scenariobox/.style={
-    enhanced, colback=scenariobg,
-    colframe=gray!60, fonttitle=\bfseries\small,
-    left=8pt, right=8pt, top=6pt, bottom=6pt,
-    breakable
-  },
-  warningbox/.style={
-    enhanced, colback=warningbg,
-    colframe=debtamber!80!black, fonttitle=\bfseries\small,
-    left=8pt, right=8pt, top=6pt, bottom=6pt,
-    breakable
-  },
-  debtpattern/.style={
-    enhanced, colback=blue!4,
-    colframe=blue!55!black, fonttitle=\bfseries\small,
-    title={Debt Management Pattern},
-    left=8pt, right=8pt, top=6pt, bottom=6pt,
-    breakable
-  }
-}
-
-% ==================================================================
-\section{Managing Trustworthy AI Technical Debt}
-\label{sec:trust-tech-debt}
-% ==================================================================
+\chapter{The AI Trust Threat Matrix: A Structured Gap-Analysis
+         Framework}
+\label{ch:threat-matrix}
 
 \begin{quote}
-\textit{``Complexity is the enemy of security. Every layer of
-trust you add to a system is also a layer of debt that must be
-serviced, versioned, and eventually repaid. The question is not
-whether your ZK-circuit will need an update---it is whether you
-will be ready when it does.''}
+\itshape
+A security posture is only as strong as the attack it has never
+considered.  The Trustworthy AI Architect does not wait for an
+adversary to discover a gap; they map the gaps themselves, first.
 \end{quote}
 
-Sections~\ref{sec:drift_detection}
-and~\ref{sec:privacy_monitoring} established the
-monitoring infrastructure for detecting drift in model accuracy,
-privacy budgets, and adversarial resilience.
-What those sections did not address is the deeper operational
-question that monitoring eventually surfaces: when the
-monitoring system tells you that a trust mechanism is failing,
-degraded, or exhausted, \emph{how do you fix it without breaking
-everything else?}
-
-This is the problem of \textbf{Trustworthy AI Technical Debt}:
-the accumulated cost of maintaining, updating, and replacing
-interconnected trust mechanisms in a live production system,
-where each mechanism was designed with specific assumptions
-about the others, and where a change to any single component
-propagates consequences through the entire stack.
-
-Standard software technical debt is well-understood.
-Trustworthy AI technical debt has three properties that make it
-substantially more dangerous:
-
-\begin{description}
-  \item[Cryptographic Coupling.]
-    Trust mechanisms are not loosely coupled services.
-    A ZK-circuit compiled from a specific model checkpoint,
-    a TEE enclave signed against a specific firmware version,
-    and a DP privacy budget calibrated to a specific dataset
-    size are all \emph{mathematically bound} to each other.
-    Updating one without updating the others invalidates
-    the system's formal guarantees---silently, with no
-    runtime error.
-
-  \item[Invisible Degradation.]
-    Unlike a crashed microservice, a degraded trust mechanism
-    continues to function.
-    A ZK-circuit running against a model that has been
-    fine-tuned since the circuit was compiled still produces
-    proofs---but those proofs are now proofs of the
-    \emph{wrong computation}.
-    The system appears healthy while its trustworthiness
-    guarantee has been severed.
-
-  \item[Regulatory Irreversibility.]
-    Under Vietnam's AI Law and the EU AI Act, a High-Risk
-    system that has been operating with an invalidated trust
-    guarantee may be required to suspend operations, notify
-    regulators, and resubmit for Conformity Assessment---even
-    if the invalidity was unintentional and caused no
-    measurable harm.
-    Technical debt in a Trustworthy AI system is therefore
-    not just an engineering liability; it is a regulatory
-    exposure.
-\end{description}
-
-This section provides a formal taxonomy of Trustworthy AI
-technical debt, four management patterns for the most critical
-debt scenarios, and a Debt Registry implementation that gives
-the architect continuous visibility into the health of every
-trust mechanism in the stack.
+\abstract{%
+Chapters~6, 11, 17, and 23 each introduced specific attack
+techniques against AI systems---Membership Inference, adversarial
+evasion, prompt injection, and autonomous escalation respectively.
+What those chapters did not provide is a unified, structured
+framework that an Architect can use to perform a \emph{gap analysis}:
+a systematic comparison of the attack surface of their deployed
+system against the full catalogue of known techniques.  This chapter
+introduces the \textbf{AI Trust Threat Matrix (ATTM)}, modelled on
+the structure of MITRE ATT\&CK~\cite{mitre2023} and the OWASP Top~10
+for LLMs~\cite{owasp-llm-2023}, but extended to cover the complete
+Trustworthy AI Stack defined in Table~1.3.  The ATTM organises 28
+attack techniques into 6 tactical categories, maps each technique to
+its primary architectural defence in this book, and provides a
+machine-readable Gap Analyser that scores a deployment's coverage.%
+}
 
 % ------------------------------------------------------------------
-\subsection{The Trustworthy AI Debt Taxonomy}
-\label{subsec:debt-taxonomy}
+\section{Why a Unified Threat Matrix?}
+\label{sec:attm-rationale}
 % ------------------------------------------------------------------
 
-We define \textbf{Trustworthy AI Technical Debt} as any
-condition in which the deployed trust mechanism stack no longer
-provides the formal guarantees that were certified at the time
-of the last Conformity Assessment.
-Debt arises from four distinct sources, each with a distinct
-accumulation profile, detection method, and repayment strategy.
+MITRE ATT\&CK~\cite{mitre2023} demonstrated that cataloguing adversary
+behaviour in a structured, tactic--technique hierarchy produces three
+concrete benefits that ad-hoc threat modelling does not: it enforces
+completeness (no tactic category is accidentally omitted), it enables
+comparison across organisations (a shared vocabulary for ``what we
+defend against''), and it produces actionable gap scores (a technique
+with no mapped defence is an unambiguous finding, not an opinion).
 
-\begin{description}
-  \item[Type~1: Budget Debt.]
-    A consumable resource---most commonly the Differential
-    Privacy budget $\varepsilon$---has been partially or fully
-    exhausted through normal operation.
-    Budget debt accumulates continuously and predictably.
-    It is the only debt type that can be precisely tracked in
-    real time without additional tooling.
+The AI security landscape has lacked an equivalent.  Existing frameworks
+address subsets of the problem:
 
-  \item[Type~2: Staleness Debt.]
-    A trust mechanism has been compiled, trained, or certified
-    against an artifact that has since changed.
-    The most common instances are a ZK-circuit compiled against
-    a model checkpoint that has been fine-tuned, and a Formal
-    Verification proof computed against a model architecture
-    that has since been pruned or quantised.
-    Staleness debt is discrete: the mechanism is either current
-    or stale; there is no intermediate state.
+\begin{itemize}
+  \item \textbf{MITRE ATLAS}~\cite{mitre-atlas-2023} catalogues
+        adversarial ML techniques but does not map them to the privacy
+        and verifiability pillars of the Trustworthy AI Stack.
+  \item \textbf{OWASP LLM Top~10}~\cite{owasp-llm-2023} covers
+        generative AI application risks but omits distributed-system
+        threats (Byzantine attacks, gradient leakage) and
+        post-quantum concerns.
+  \item \textbf{NIST AI RMF}~\cite{nist-ai-rmf-2026} provides a risk
+        management vocabulary but does not map risks to specific
+        cryptographic or statistical defences.
+\end{itemize}
 
-  \item[Type~3: Composition Debt.]
-    The formal guarantees of a multi-mechanism stack depend
-    on specific assumptions about the interaction between
-    mechanisms.
-    Composition debt arises when one mechanism in the stack
-    is updated in a way that invalidates the composition
-    proof of the overall stack, even though each individual
-    mechanism remains internally valid.
-    This is the most dangerous debt type because it is
-    invisible to mechanism-level monitoring.
+The ATTM synthesises these sources and extends them across all four
+pillars of the 2026 Trustworthy AI Stack
+(Table~\ref{tab:trustworthy-ai-stack}): Security, Privacy,
+Verifiability, and Alignment.  It is the operational complement to
+the economic RAV Framework of Appendix~A: where RAV answers
+``what is it worth to defend?'', the ATTM answers
+``what are we defending against, and are we actually doing it?''
 
-  \item[Type~4: Entropy Debt.]
-    Cryptographic mechanisms have finite operational lifetimes
-    determined by advances in computational power and
-    cryptanalysis.
-    A TEE enclave signed with a firmware key that has since
-    been disclosed, or a ZK-proof system whose underlying
-    elliptic curve has been weakened by a new attack, carries
-    entropy debt.
-    Entropy debt accumulates slowly but arrives catastrophically:
-    the mechanism is secure until the day it is not.
-\end{description}
+% ------------------------------------------------------------------
+\section{Tactic Taxonomy}
+\label{sec:attm-taxonomy}
+% ------------------------------------------------------------------
 
-Table~\ref{tab:debt-taxonomy} summarises the four debt types
-with their accumulation profiles, primary detection methods,
-and time-to-criticality estimates for a typical Vietnamese
-enterprise AI deployment.
+The ATTM organises attack techniques under six \textbf{Tactics}---the
+adversary's high-level goal---following the ATT\&CK convention of
+separating \emph{what the adversary wants} from \emph{how they achieve
+it}.  Each tactic maps to one or more pillars of the Trustworthy AI
+Stack.
 
-\begin{table}[ht]
-\centering
-\caption{Trustworthy AI Technical Debt Taxonomy.
-  Time-to-criticality is the estimated elapsed time from
-  debt inception to regulatory or security failure in the
-  absence of active management, based on observed production
-  patterns and the Vietnamese AI Law Conformity Assessment
-  cycle.}
-\label{tab:debt-taxonomy}
-\small
-\begin{tabular}{p{1.8cm}p{2.2cm}p{2.0cm}p{2.8cm}p{2.2cm}}
-\hline\noalign{\smallskip}
-\textbf{Debt Type}
-  & \textbf{Accumulation Profile}
-  & \textbf{Visibility}
-  & \textbf{Primary Detection Method}
-  & \textbf{Time-to-Criticality} \\
-\noalign{\smallskip}\svhline\noalign{\smallskip}
-
-Type~1 Budget
-  & Continuous, predictable
-  & \cellcolor{debtgreen!30} High
-  & Real-time $\varepsilon$ tracking (Section~\ref{sec:privacy_monitoring})
-  & Weeks to months \\[6pt]
-
-Type~2 Staleness
-  & Discrete, event-triggered
-  & \cellcolor{debtamber!40} Medium
-  & Artifact hash comparison in Debt Registry
-  & Hours to days after trigger \\[6pt]
-
-Type~3 Composition
-  & Discrete, hidden
-  & \cellcolor{debtred!30} Low
-  & Stack-level composition audit (quarterly)
-  & Days to weeks after trigger \\[6pt]
-
-Type~4 Entropy
-  & Slow, then sudden
-  & \cellcolor{debtred!30} Low
-  & CVE monitoring + hardware vendor advisories
-  & Months to years \\
-
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\begin{table}[h]
+\caption{ATTM Tactic Taxonomy: six adversary goals, their primary
+         Trustworthy AI Stack pillar, and the book chapters where
+         defences are developed.}
+\label{tab:attm-tactic-taxonomy}
+\begin{tabular}{p{0.4cm} p{2.6cm} p{2.0cm} p{2.8cm} p{4.0cm}}
+\toprule
+\textbf{ID}
+  & \textbf{Tactic}
+  & \textbf{Stack Pillar}
+  & \textbf{Adversary Goal}
+  & \textbf{Primary Defence Chapters} \\
+\midrule
+T1 & Data Exfiltration
+   & Privacy
+   & Extract training data or user inputs from a trained model or
+     its serving infrastructure.
+   & Ch.~5 (DP), Ch.~6 (MIA), Ch.~17 (LLM guardrails) \\
+\addlinespace
+T2 & Model Corruption
+   & Security
+   & Degrade model accuracy or inject hidden backdoor behaviour
+     by manipulating training data or model weights.
+   & Ch.~6 (poisoning), Ch.~10 (robust aggregation),
+     Ch.~24 (supply chain) \\
+\addlinespace
+T3 & Evasion
+   & Security
+   & Cause a deployed model to misclassify or produce incorrect
+     output on crafted inputs without altering the model itself.
+   & Ch.~11 (adversarial hardening),
+     Ch.~22 (formal verification) \\
+\addlinespace
+T4 & Privacy Inference
+   & Privacy
+   & Infer sensitive attributes or membership from model outputs,
+     gradients, or synthetic data without direct data access.
+   & Ch.~4 (anonymisation), Ch.~5 (DP),
+     Ch.~8 (secure aggregation) \\
+\addlinespace
+T5 & Integrity Subversion
+   & Verifiability
+   & Invalidate or circumvent audit trails, provenance records,
+     or cryptographic proofs of correct execution.
+   & Ch.~21 (ZK-ML), Ch.~22 (formal verification),
+     Ch.~24 (SBOM) \\
+\addlinespace
+T6 & Alignment Manipulation
+   & Alignment
+   & Alter an agent's behavioural policy---through prompt
+     injection, constitutional override, or norm drift---to
+     produce actions inconsistent with the principal's intent.
+   & Ch.~17 (red teaming), Ch.~23 (constitutional AI),
+     §\ref{sec:inter-agent-trust} (MAP) \\
+\bottomrule
 \end{tabular}
 \end{table}
 
 % ------------------------------------------------------------------
-\subsection{The Trust Debt Accumulation Model}
-\label{subsec:debt-accumulation}
+\section{The Full AI Trust Threat Matrix}
+\label{sec:attm-matrix}
 % ------------------------------------------------------------------
 
-We model the aggregate \textbf{Trust Debt Score} $\mathcal{D}(t)$
-of a deployed system at time $t$ as a weighted sum of
-active debt indicators across all four debt types and all
-mechanisms in the stack $M = \{m_1, \ldots, m_k\}$:
+Table~\ref{tab:attm-full-matrix} is the ATTM.  Each row is one
+\textbf{Technique}: a specific, executable attack method.  Columns
+record the technique's tactic, its severity under the RAV Framework
+(Appendix~A), the book section where it is described, and the
+\emph{primary} and \emph{secondary} architectural defences that
+mitigate it.  The \textbf{Gap Flag} column is left blank for the
+Architect to complete during a gap analysis (Section~\ref{sec:attm-gap-analysis}).
+
+Severity is scored on a three-level scale:
+\textbf{Critical} ($\blacksquare\blacksquare\blacksquare$) ---
+techniques with RAV cost ratios exceeding 100$\times$ from
+Table~A.1; \textbf{High}
+($\blacksquare\blacksquare\square$) --- RAV ratio 20--100$\times$;
+\textbf{Medium} ($\blacksquare\square\square$) --- RAV ratio
+$<$20$\times$ or impact bounded by architectural containment.
+
+\newcommand{\critical}{$\blacksquare\blacksquare\blacksquare$}
+\newcommand{\high}{$\blacksquare\blacksquare\square$}
+\newcommand{\medium}{$\blacksquare\square\square$}
+\newcommand{\gapblank}{\underline{\hspace{1.2cm}}}
+
+% Use landscape + longtable for the full matrix
+\begin{landscape}
+\begin{longtable}{p{0.9cm} p{2.5cm} p{0.6cm} p{0.6cm} p{0.7cm}
+                  p{3.4cm} p{3.4cm} p{1.2cm}}
+\caption{AI Trust Threat Matrix (ATTM): 28 techniques across 6
+         tactics, mapped to architectural defences and RAV severity.
+         ``Primary Defence'' is the mechanism that provides the
+         strongest mitigation; ``Secondary Defence'' reduces residual
+         risk.  Gap Flag: \checkmark\ = defence deployed,
+         \ding{55} = gap identified, ? = partial.}
+\label{tab:attm-full-matrix} \\
+\toprule
+\textbf{Tech.}
+  & \textbf{Technique Name}
+  & \textbf{Tac.}
+  & \textbf{Sev.}
+  & \textbf{Book Ref.}
+  & \textbf{Primary Defence}
+  & \textbf{Secondary Defence}
+  & \textbf{Gap Flag} \\
+\midrule
+\endfirsthead
+\multicolumn{8}{c}{\tablename\ \thetable\ (continued)} \\
+\toprule
+\textbf{Tech.}
+  & \textbf{Technique Name}
+  & \textbf{Tac.}
+  & \textbf{Sev.}
+  & \textbf{Book Ref.}
+  & \textbf{Primary Defence}
+  & \textbf{Secondary Defence}
+  & \textbf{Gap Flag} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{8}{r}{\textit{Continued on next page}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+% ---- TACTIC T1: DATA EXFILTRATION ----------------------------
+\multicolumn{8}{l}{\textbf{T1 --- Data Exfiltration}} \\
+\addlinespace
+
+ATT-01
+  & Training Data Extraction
+  & T1 & \critical & \S6.3, \S17.1
+  & Differential Privacy (DP-SGD, §5.4) applied during fine-tuning;
+    limits memorisation of individual records.
+  & Output guardrails with PII detection (§17.4.2); deduplication
+    in dataset hygiene (§16.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-02
+  & Prompt Leakage
+  & T1 & \high & \S17.2
+  & On-device SLM execution eliminating cloud transmission (§17.6);
+    LoRA fine-tuning scoped to local weights.
+  & Input guardrails with system-prompt isolation (§17.4.1);
+    TEE-protected inference (§9.5).
+  & \gapblank \\
+\addlinespace
+
+ATT-03
+  & Fine-Tuning Leakage
+  & T1 & \high & \S17.2
+  & DP-SGD on fine-tuning dataset (§17.5, Eq.~17.1); per-sample
+    gradient clipping bounds individual record influence.
+  & Federated Learning keeping raw data on-device (§7.2);
+    ZK-audit log of training provenance (§24.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-04
+  & Synthetic Data Membership Inference (MIA-S)
+  & T1 & \high & \S4.6.3
+  & DP-trained generative model (DP-SGD on GAN/VAE, §4.6.5);
+    formal $(\epsilon,\delta)$-indistinguishability guarantee.
+  & NNDR audit before publication (Table~4.2);
+    MIA-S AUC threshold $<0.60$ ($\textsection$4.6.4).
+  & \gapblank \\
+\addlinespace
+
+ATT-05
+  & Gradient Inversion Attack
+  & T1 & \critical & \S6.4, \S7.3
+  & Secure Aggregation (pairwise masking, §8.2); server never
+    sees individual client gradients.
+  & DP-FL noise injection before update submission (§7.4);
+    gradient compression reducing information density.
+  & \gapblank \\
+\addlinespace
+
+% ---- TACTIC T2: MODEL CORRUPTION -----------------------------
+\multicolumn{8}{l}{\textbf{T2 --- Model Corruption}} \\
+\addlinespace
+
+ATT-06
+  & Data Poisoning ($<5\%$ rate)
+  & T2 & \critical & \S6.5
+  & Coordinate-Wise Trimmed Mean aggregation (§10.3) filtering
+    outlier gradients; Byzantine-tolerant FedAvg.
+  & SBOM dataset provenance with hash verification (§24.2);
+    synthetic contamination scanner (§24.5.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-07
+  & Backdoor / Trojan Injection
+  & T2 & \critical & \S10.2
+  & Krum distance-based aggregation (§10.3, Eq.~10.1) selecting
+    updates most consistent with peer cluster.
+  & Formal verification of safety properties pre-deployment
+    (§22.1); model provenance lineage graph (§24.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-08
+  & Model Poisoning (gradient magnitude inflation)
+  & T2 & \critical & \S10.2
+  & Coordinate-Wise Trimmed Mean discarding $\beta$ extremes
+    per coordinate (§10.3).
+  & Behavioural fingerprinting detecting distribution shift
+    in update statistics (§23.5.4).
+  & \gapblank \\
+\addlinespace
+
+ATT-09
+  & Supply Chain Weight Tampering
+  & T2 & \critical & \S24.1
+  & SLSA-framework build pipeline with non-falsifiable audit
+    trail of every weight transformation (§24.4).
+  & SHA-256 model hash binding in DID Document
+    ($\textsection$23.5.2); ZK-circuit staleness detection ($\textsection$25.4.3.2).
+  & \gapblank \\
+\addlinespace
+
+ATT-10
+  & Latent Space Poisoning
+  & T2 & \high & \S24.5.1
+  & Synthetic contamination scanner with perplexity profiling
+    and n-gram repetition analysis (§24.5.3).
+  & Contamination ratio cap $\varepsilon_{\max}=0.15$ enforced in
+    SBOM (§24.5.5); verified human reference corpus.
+  & \gapblank \\
+\addlinespace
+
+ATT-11
+  & Model Collapse (recursive synthetic training)
+  & T2 & \high & \S24.5.1
+  & Provenance Score $P(d)$ gating ingestion pipeline
+    ($\textsection$ 24.5.3, Eq.~24.6); quarantine threshold $\vartheta=0.65$.
+  & Annual norm-drift review of Cultural Norm Corpus
+    (§1.4.1.3); Trust Debt Registry staleness entry (§25.4.1).
+  & \gapblank \\
+\addlinespace
+
+% ---- TACTIC T3: EVASION --------------------------------------
+\multicolumn{8}{l}{\textbf{T3 --- Evasion}} \\
+\addlinespace
+
+ATT-12
+  & Fast Gradient Sign Method (FGSM)
+  & T3 & \high & \S11.2
+  & Adversarial training on perturbed inputs (§11.3);
+    model learns robust features by design.
+  & Randomised Smoothing certification within radius $\sigma$
+    (§11.3, §22.3, Eq.~22.2).
+  & \gapblank \\
+\addlinespace
+
+ATT-13
+  & Projected Gradient Descent (PGD) Attack
+  & T3 & \high & \S11.2
+  & Certified robustness via CROWN linear relaxation (§22.2);
+    bounds nonlinear activations with linear inequalities.
+  & Defensive distillation reducing gradient sensitivity
+    (§11.3); Conformal Prediction uncertainty flagging (§3.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-14
+  & Physical-World Adversarial Patch
+  & T3 & \high & \S11.1
+  & Adversarial training with patch-augmented dataset (§11.3);
+    rPPG and spatiotemporal inconsistency detection (§16.4.2).
+  & C2PA provenance chain verification at input gateway
+    (§16.4.1); formal verification of localised input regions
+    (§22.1, Eq.~22.1).
+  & \gapblank \\
+\addlinespace
+
+ATT-15
+  & Side-Channel Timing Attack on TEE
+  & T3 & \critical & \S9.1
+  & Defence-in-depth composition: TEE $+$ DP $+$ SecAgg
+    (§9.4, Eq.~9.1) so enclave leakage does not expose
+    plaintext gradients.
+  & Model pruning to fit within EPC, reducing memory-access
+    surface (Table~15.2); Enclave Lifecycle Management
+    Protocol (§25.4.3.4).
+  & \gapblank \\
+\addlinespace
+
+% ---- TACTIC T4: PRIVACY INFERENCE ----------------------------
+\multicolumn{8}{l}{\textbf{T4 --- Privacy Inference}} \\
+\addlinespace
+
+ATT-16
+  & Membership Inference Attack (MIA)
+  & T4 & \critical & \S6.3
+  & $(\epsilon,\delta)$-Differential Privacy (§5.2, Eq.~5.1); limits
+    confidence gap between member and non-member outputs.
+  & Shadow-model MIA audit before deployment (§4.6.4);
+    MIA-S AUC $<0.60$ gate (Table~4.2).
+  & \gapblank \\
+\addlinespace
+
+ATT-17
+  & Model Inversion Attack
+  & T4 & \high & \S6.4
+  & DP-SGD per-sample gradient clipping (§5.4); individual
+    input cannot dominate the gradient signal.
+  & TEE-protected inference: reconstructed inputs never
+    leave enclave in plaintext (§9.5).
+  & \gapblank \\
+\addlinespace
+
+ATT-18
+  & Attribute Inference via Quasi-Identifier Linkage
+  & T4 & \high & \S4.1, \S4.3
+  & $\ell$-diversity enforcing sensitive-attribute diversity
+    within each equivalence class (§4.2.1.3).
+  & $t$-closeness bounding Earth Mover's Distance between
+    group and global distribution (§4.2.2, Eq.~4.1).
+  & \gapblank \\
+\addlinespace
+
+ATT-19
+  & Cross-Modal Inference Attack
+  & T4 & \high & \S18.2.1
+  & Modality isolation with independent DP noise injection
+    per data stream before fusion (§18.3).
+  & Late fusion architecture limiting shared representation
+    surface (Table~18.1); mutual information minimisation
+    (§18.2.1, Eq.~18.1).
+  & \gapblank \\
+\addlinespace
+
+ATT-20
+  & Gaze / Spatial Reconstruction Attack (Metaverse)
+  & T4 & \medium & \S20.2
+  & Local Differential Privacy on high-frequency eye-tracking
+    data (§20.3); captures intent without biometric signature.
+  & On-device spatial filtering inside ARM TrustZone TEE
+    (§20.3); low-fidelity output to application layer only.
+  & \gapblank \\
+\addlinespace
+
+ATT-21
+  & Background-Knowledge Re-identification
+  & T4 & \high & \S4.3
+  & $k$-Anonymity ($k \geq 10$) combined with $\ell$-diversity
+    (§4.2.1, §4.5); mosaic-effect resistance.
+  & DP-trained synthetic data as release format instead of
+    microdata (§4.6.5); NNDR $>0.50$ gate (Table~4.2).
+  & \gapblank \\
+\addlinespace
+
+% ---- TACTIC T5: INTEGRITY SUBVERSION ------------------------
+\multicolumn{8}{l}{\textbf{T5 --- Integrity Subversion}} \\
+\addlinespace
+
+ATT-22
+  & ZK-Circuit Staleness Exploitation
+  & T5 & \critical & \S25.4.3.2
+  & Circuit Versioning Gate: SHA-256 ONNX graph hash compared
+    to certified hash before every model update (§25.4.3.2).
+  & Trust Debt Registry Type-2 (Staleness) entry blocking
+    deployment until recompilation (§25.4.4).
+  & \gapblank \\
+\addlinespace
+
+ATT-23
+  & Audit Log Tampering
+  & T5 & \critical & \S23.3
+  & ZK-Audit Log: every agent action produces a cryptographic
+    proof verifiable without raw data access (§23.3).
+  & DID-ZK Binding Protocol ensuring proof chain from
+    action back to human principal (§23.5.3, Eq.~23.3).
+  & \gapblank \\
+\addlinespace
+
+ATT-24
+  & SBOM Provenance Falsification
+  & T5 & \high & \S24.2
+  & SLSA Level 3 build pipeline: every artifact transformation
+    recorded in non-falsifiable audit trail ($\textsection$24.4).
+  & SHA-256 dataset checksums in SBOM with scan-date
+    and method fields ($\textsection$24.5.4); synthetic contamination ratio
+    $\gamma$ recorded.
+  & \gapblank \\
+\addlinespace
+
+ATT-25
+  & DP Composition Budget Exhaustion
+  & T5 & \high & \S25.4.3.1
+  & Real-time privacy budget tracker with three-stage Budget
+    Triage Protocol ($\textsection$25.4.3.1, Eq.~25.3).
+  & Rényi DP accounting for accurate composition over
+    thousands of steps ($\textsection$5.5); mandatory 72h regulatory
+    notification on RED-stage breach.
+  & \gapblank \\
+\addlinespace
+
+% ---- TACTIC T6: ALIGNMENT MANIPULATION ----------------------
+\multicolumn{8}{l}{\textbf{T6 --- Alignment Manipulation}} \\
+\addlinespace
+
+ATT-26
+  & Direct Prompt Injection (System-Prompt Override)
+  & T6 & \critical & \S17.3
+  & Input guardrails: semantic pattern detection for
+    instruction-override attempts (§17.4.1).
+  & Constitutional Policy Engine runtime predicate check
+    blocking any action violating Datalog constraints
+    (§23.4.4, Listing~23.1).
+  & \gapblank \\
+\addlinespace
+
+ATT-27
+  & Indirect Prompt Injection (Tool-Response Poisoning)
+  & T6 & \critical & \S17.3, \S23.6.1
+  & Behavioural Fingerprinting: Mahalanobis drift detection
+    triggering Body-Snatch Alert (§23.5.4, Eq.~23.5).
+  & Stateful red teaming with honeypot APIs detecting
+    autonomous escalation trajectories (§23.6.2);
+    MAP Sovereign Compatibility Check for inter-agent
+    vectors (§\ref{sec:map-sovereign-binding}).
+  & \gapblank \\
+\addlinespace
+
+ATT-28
+  & Cultural Norm Violation / WEIRD Alignment Drift
+  & T6 & \medium & \S1.4.1.1
+  & CA-RLHF with Dual Reward Arbiter in Sovereign Operating
+    Band $\lambda \in [0.3, 0.6]$ (§1.4.1.4, Eq.~1.1).
+  & Norm Constraint Boundary preventing cultural overfitting
+    (§1.4.1.5, Algorithm~1); annual CNC norm-drift review
+    with annotator sovereignty requirement.
+  & \gapblank \\
+
+\end{longtable}
+\end{landscape}
+
+% ------------------------------------------------------------------
+\section{Performing a Gap Analysis}
+\label{sec:attm-gap-analysis}
+% ------------------------------------------------------------------
+
+The ATTM is operationalised through a structured Gap Analysis
+workflow.  The workflow produces a \textbf{Coverage Score} and a
+\textbf{Priority Remediation List} that the Architect can present
+alongside the RAV calculations of Appendix~A.
+
+\subsubsection*{Step 1: Scope the Deployment}
+
+Not every technique in the ATTM is applicable to every deployment.
+The Architect first filters the matrix to the \emph{in-scope technique
+set} $\mathcal{T}_{\text{scope}}$ based on two criteria:
+
+\begin{enumerate}
+  \item \textbf{Deployment modality.}  A deployment using only batch
+        inference with no federated components may exclude T2 techniques
+        (ATT-06 through ATT-08) that require a multi-client federated
+        setting.  A non-generative deployment may exclude ATT-01
+        (Training Data Extraction) and ATT-02 (Prompt Leakage).
+
+  \item \textbf{Risk tier.}  For Low-risk deployments under Vietnam's
+        AI Law, techniques rated \medium\ may be deferred to a future
+        review cycle.  For High-risk and Critical deployments, all
+        in-scope techniques regardless of severity must be addressed.
+\end{enumerate}
+
+\subsubsection*{Step 2: Score Each Technique}
+
+For each $t \in \mathcal{T}_{\text{scope}}$, the Architect assigns a
+Gap Flag from three states:
+
+\begin{description}
+  \item[\checkmark\ (Deployed).] The primary defence is implemented,
+        tested against the ATTM acceptance criteria for that technique,
+        and monitored in production via the Trustworthy MLOps pipeline
+        (Chapter~25).
+  \item[? (Partial).] The defence is partially implemented or is
+        present in staging but not production, or has not been tested
+        against the specific technique.
+  \item[\ding{55}\ (Gap).] No defence addresses this technique.
+        Immediate remediation required for Critical and High severity;
+        deferred remediation permitted for Medium severity.
+\end{description}
+
+\subsubsection*{Step 3: Compute the Coverage Score}
 
 \begin{equation}
-  \label{eq:debt-score}
-  \mathcal{D}(t)
-    = \sum_{j=1}^{4} w_j
-      \sum_{i=1}^{k}
-        \mathbf{1}\!\left[
-          \delta_{j}(m_i, t) > \theta_j
-        \right]
-      \cdot s_{j}(m_i, t)
+\label{eq:attm-coverage-score}
+\text{Coverage}(\mathcal{T}_{\text{scope}}) =
+\frac{\sum_{t \in \mathcal{T}_{\text{scope}}}
+      s_t \cdot w_t}
+     {\sum_{t \in \mathcal{T}_{\text{scope}}} w_t}
 \end{equation}
 
-where:
-\begin{itemize}
-  \item $w_j \in [0,1]$ is the regulatory weight of debt
-    type $j$, with $\sum_j w_j = 1$.
-    Recommended weights for a Vietnamese High-Risk deployment:
-    $w_1 = 0.30$ (Budget),
-    $w_2 = 0.25$ (Staleness),
-    $w_3 = 0.35$ (Composition),
-    $w_4 = 0.10$ (Entropy).
+where $s_t \in \{1.0, 0.5, 0.0\}$ for \checkmark, ?, \ding{55}\
+respectively, and $w_t$ is the severity weight:
+$w_t = 3$ (\critical), $w_t = 2$ (\high), $w_t = 1$ (\medium).
 
-  \item $\delta_{j}(m_i, t)$ is the debt indicator for
-    mechanism $m_i$ of type $j$ at time $t$
-    (defined per-type in the scenarios below).
+A Coverage Score below 0.85 for a High-Risk Vietnamese deployment
+should be treated as a Conformity Assessment risk: regulators may
+require evidence of gap remediation before approving production use.
 
-  \item $\theta_j$ is the alert threshold for debt type $j$
-    above which the indicator contributes to the score.
+\subsubsection*{Step 4: Prioritise Remediation}
 
-  \item $s_{j}(m_i, t) \in [0, 1]$ is the severity of the
-    debt instance, normalised to $[0,1]$.
-\end{itemize}
-
-A Debt Score $\mathcal{D}(t) = 0$ indicates a fully current
-stack with no active debt.
-$\mathcal{D}(t) \geq 1.0$ indicates a stack-level failure
-requiring immediate operational suspension under the Emergency
-Brake Pattern of Section~\ref{sec:agency_spectrum}.
-
-Figure~\ref{fig:debt-accumulation} illustrates a representative
-annual debt accumulation profile showing all four debt types
-and the system's response events.
-
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    width=12cm, height=6.5cm,
-    xlabel={Month of deployment year},
-    ylabel={Trust Debt Score $\mathcal{D}(t)$},
-    xmin=0, xmax=12,
-    ymin=0, ymax=1.35,
-    xtick={0,1,2,3,4,5,6,7,8,9,10,11,12},
-    xticklabels={Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec,},
-    ytick={0, 0.25, 0.50, 0.75, 1.00, 1.25},
-    grid=major, grid style={dashed, gray!35},
-    tick label style={font=\footnotesize},
-    label style={font=\small},
-    legend style={
-      at={(0.02,0.98)}, anchor=north west,
-      font=\footnotesize, fill=white, draw=gray!50
-    },
-  ]
-
-  %% Emergency suspension threshold
-  \addplot[debtred, dashed, thick, domain=0:12] {1.0}
-      node[right, font=\footnotesize, debtred] {Emergency Brake};
-
-  %% Alert threshold
-  \addplot[debtamber, dashed, domain=0:12] {0.60}
-      node[right, font=\footnotesize, debtamber] {Alert threshold};
-
-  %% Composite debt score
-  \addplot[blue!70!black, thick, mark=none] coordinates {
-    (0,  0.00)
-    (1,  0.08)
-    (2,  0.17)
-    (3,  0.30)
-    (3,  0.55)
-    (4,  0.62)
-    (4.5,0.35)
-    (5,  0.28)
-    (6,  0.38)
-    (7,  0.60)
-    (7,  0.85)
-    (7.5,0.45)
-    (8,  0.38)
-    (9,  0.48)
-    (10, 0.55)
-    (10.5,0.15)
-    (11, 0.20)
-    (12, 0.28)
-  };
-  \addlegendentry{Composite $\mathcal{D}(t)$}
-
-  %% Remediation event markers
-  \addplot[mark=triangle*, mark size=3pt, only marks,
-           debtgreen, mark options={fill=debtgreen}] coordinates {
-    (4.5, 0.35)
-    (7.5, 0.45)
-    (10.5,0.15)
-  };
-  \addlegendentry{Remediation event}
-
-  %% Debt spike markers
-  \addplot[mark=*, mark size=2.5pt, only marks,
-           debtred, mark options={fill=debtred}] coordinates {
-    (3,  0.55)
-    (7,  0.85)
-  };
-  \addlegendentry{Debt spike (trigger event)}
-
-  %% Annotation: staleness event
-  \node[font=\scriptsize, align=center, debtred]
-      at (axis cs: 3.2, 0.65)
-      {Model\\fine-tuned};
-
-  %% Annotation: composition debt
-  \node[font=\scriptsize, align=center, debtred]
-      at (axis cs: 7.5, 0.96)
-      {Composition\\debt detected};
-
-  %% Annotation: budget reset
-  \node[font=\scriptsize, align=center, debtgreen]
-      at (axis cs: 10.8, 0.28)
-      {Budget\\reset};
-
-\end{axis}
-\end{tikzpicture}
-\caption{Representative annual Trust Debt Score accumulation
-  profile for a Vietnamese High-Risk AI deployment.
-  Budget debt (Type~1) accumulates continuously between
-  remediation events.
-  The model fine-tuning event at Month~3 triggers a sudden
-  staleness debt (Type~2) spike.
-  The composition debt event at Month~7 (Type~3) pushes the
-  system into the alert zone, requiring an emergency stack
-  revalidation.
-  A quarterly DP budget reset at Month~10 returns the score
-  to its lowest point of the year.}
-\label{fig:debt-accumulation}
-\end{figure}
+Gaps are prioritised by the product of severity weight and RAV Ratio
+from Table~A.3.  A \critical\ gap in ATT-01 (Training Data Extraction)
+with a RAV Ratio of 36.9 (Table~A.4) receives priority score
+$3 \times 36.9 = 110.7$; a \medium\ gap in ATT-20 (Gaze Attack) with
+a lower RAV Ratio receives a commensurately lower priority.  The
+Architect addresses gaps in descending priority order subject to the
+carbon budget constraints of Section~\ref{sec:trust-sustainability}.
 
 % ------------------------------------------------------------------
-\subsection{Four Critical Debt Scenarios and Their Management
-            Patterns}
-\label{subsec:debt-scenarios}
+\section{Worked Example: Gap Analysis for the Vietnamese Fintech
+         Credit-Scoring Agent}
+\label{sec:attm-worked-example}
 % ------------------------------------------------------------------
 
-\subsubsection{Scenario 1: The Exhausted DP Budget}
-\label{subsubsec:scenario-dp-budget}
+We apply the ATTM Gap Analysis to the fintech deployment introduced
+in Appendix~A (\$80M revenue; 500,000 financial records; High risk
+tier; Decree~13 jurisdiction).
 
-\begin{tcolorbox}[scenariobox,
-  title={Scenario 1 --- The Exhausted DP Budget (Type~1 Debt)}]
+\paragraph{Step 1: Scoped Technique Set.}
+The deployment uses a centralised credit-scoring LLM agent (no
+federated components), processes structured financial data (no
+multimodal streams), and operates in a single-jurisdiction context
+(no inter-agent cross-border transactions at launch).  Excluded
+techniques: ATT-06 through ATT-08 (federated-specific poisoning);
+ATT-19, ATT-20 (multimodal and metaverse); ATT-28 (cultural norm ---
+deferred to Phase~2 localisation).
 
-\textbf{Trigger:}
-The cumulative privacy loss tracker
-(Section~\ref{sec:privacy_monitoring})
-reports that the quarterly DP budget $\varepsilon_{\mathrm{consumed}}$
-has reached or exceeded the certified budget
-$\varepsilon_{\mathrm{budget}}$:
-\begin{equation}
-  \label{eq:budget-exhaustion}
-  \varepsilon_{\mathrm{consumed}}(t)
-    = \sum_{\tau=0}^{t} \varepsilon_{\tau}
-    \geq \varepsilon_{\mathrm{budget}}
-\end{equation}
+$|\mathcal{T}_{\text{scope}}| = 21$ techniques.
 
-\textbf{Consequence if unmanaged:}
-Any further queries or fine-tuning steps consume privacy budget
-beyond the certified level.
-The system continues to operate but its $(\varepsilon,
-\delta)$-DP guarantee is now invalid.
-Under Decree~13, this constitutes a privacy control failure
-that must be reported within 72 hours of detection.
+\paragraph{Step 2: Gap Flag Assessment.}
+The deployment team completes Table~\ref{tab:attm-gap-template}
+(an extract showing the eight highest-severity in-scope techniques):
 
-\textbf{Why this happens faster than expected:}
-Three operational patterns accelerate budget consumption beyond
-design estimates: (1)~unplanned A/B testing against live data;
-(2)~emergency fine-tuning triggered by accuracy drift alerts
-(Section~\ref{sec:drift_detection}); (3)~interactive query
-APIs that were not included in the original budget allocation.
-Each of these is a legitimate operational action that, in
-aggregate, exhausts the budget ahead of the quarterly reset.
-\end{tcolorbox}
-
-\begin{tcolorbox}[debtpattern,
-  title={Debt Management Pattern 1 --- Budget Triage Protocol}]
-
-The Budget Triage Protocol defines a three-stage response to
-approaching budget exhaustion, triggered at three threshold
-levels:
-
-\medskip
-\begin{tabular}{@{}p{1.6cm} p{2.0cm} p{7.2cm}@{}}
-\hline\noalign{\smallskip}
-\textbf{Stage} & \textbf{Threshold} & \textbf{Actions} \\
-\noalign{\smallskip}\svhline\noalign{\smallskip}
-\textsc{Yellow}
-  & $\varepsilon_{\mathrm{consumed}} \geq 0.70\,
-    \varepsilon_{\mathrm{budget}}$
-  & Disable all non-essential interactive queries.
-    Freeze scheduled fine-tuning.
-    Notify Data Protection Officer.
-    Project exhaustion date at current burn rate. \\[4pt]
-\textsc{Orange}
-  & $\varepsilon_{\mathrm{consumed}} \geq 0.90\,
-    \varepsilon_{\mathrm{budget}}$
-  & Switch all inference to read-only mode
-    (no gradient computation).
-    Activate cached response serving for common queries.
-    DPO escalation: request emergency budget reallocation
-    or regulatory guidance. \\[4pt]
-\textsc{Red}
-  & $\varepsilon_{\mathrm{consumed}} \geq
-    \varepsilon_{\mathrm{budget}}$
-  & Suspend all model interactions that consume budget.
-    Serve only cached, pre-certified responses.
-    File regulatory notification within 72 hours.
-    Initiate emergency budget reset procedure. \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\begin{table}[h]
+\caption{Extract from the Gap Analysis worksheet for the Vietnamese
+         fintech credit-scoring agent.  Eight of the 21 in-scope
+         techniques shown; full worksheet covers all 21.}
+\label{tab:attm-gap-template}
+\begin{tabular}{p{1.1cm} p{3.0cm} p{0.6cm} p{1.5cm} p{5.5cm}}
+\toprule
+\textbf{Tech.}
+  & \textbf{Name}
+  & \textbf{Sev.}
+  & \textbf{Gap Flag}
+  & \textbf{Evidence / Notes} \\
+\midrule
+ATT-01 & Training Data Extraction
+  & \critical & \checkmark
+  & Opacus DP-SGD, $\epsilon=1.0$, $\delta=10^{-5}$; Conformity Assessment
+    filed March 2026. \\
+ATT-05 & Gradient Inversion
+  & \critical & \ding{55}
+  & \textbf{GAP: No Secure Aggregation deployed.}  Raw gradients
+    sent to central server during fine-tuning rounds. \\
+ATT-09 & Supply Chain Tampering
+  & \critical & ?
+  & SBOM present but not SLSA-compliant; build pipeline lacks
+    hermetic isolation.  SLSA upgrade scheduled Q3 2026. \\
+ATT-16 & Membership Inference
+  & \critical & \checkmark
+  & DP guarantee covers MIA; shadow-model audit passed
+    (MIA-S AUC $= 0.54 < 0.60$). \\
+ATT-22 & ZK-Circuit Staleness
+  & \critical & \ding{55}
+  & \textbf{GAP: No ZK-circuit compiled.}  Verifiability
+    pillar entirely unaddressed.  ZK-ML backlog item created. \\
+ATT-23 & Audit Log Tampering
+  & \critical & ?
+  & Standard database audit log present; not ZK-verified.
+    Migration to ZK-Audit Log in progress. \\
+ATT-26 & Direct Prompt Injection
+  & \critical & \checkmark
+  & NeMo Guardrails deployed with Decree-13 Colang ruleset;
+    red-team pass rate 97\% (threshold $\geq 95\%$). \\
+ATT-27 & Indirect Prompt Injection
+  & \critical & \ding{55}
+  & \textbf{GAP: Behavioural Fingerprinting not implemented.}
+    Tool-response poisoning vector fully open. \\
+\bottomrule
 \end{tabular}
+\end{table}
 
-\medskip
-\textbf{Budget Reset Procedure:}
-A DP budget reset is not simply incrementing a counter.
-It requires: (1)~generating a new Privacy Accountant checkpoint
-with a fresh composition baseline; (2)~revalidating the
-Gaussian noise scale $\sigma$ against the new
-$(\varepsilon_{\mathrm{new}}, \delta)$ target, accounting for
-any model or dataset changes since the last calibration;
-(3)~updating the Conformity Assessment documentation to record
-the reset event, its trigger, and the actions taken during
-each triage stage.
-\end{tcolorbox}
+\paragraph{Step 3: Coverage Score.}
 
-\subsubsection{Scenario 2: The Stale ZK-Circuit}
-\label{subsubsec:scenario-zk-circuit}
+\begin{equation*}
+\text{Coverage} =
+\frac{(3 \times 1.0) + (3 \times 0.0) + (3 \times 0.5) +
+      (3 \times 1.0) + (3 \times 0.0) + (3 \times 0.5) +
+      (3 \times 1.0) + (3 \times 0.0) + \ldots_{\text{13 remaining}}}
+     {21 \times \bar{w}}
+\approx 0.61
+\end{equation*}
 
-\begin{tcolorbox}[scenariobox,
-  title={Scenario 2 --- The Stale ZK-Circuit (Type~2 Debt)}]
+A score of 0.61 is below the 0.85 Conformity Assessment threshold.
+The analysis immediately surfaces the remediation priority:
 
-\textbf{Trigger:}
-The production model has been updated---through fine-tuning,
-quantisation, or weight pruning---since the ZK-circuit was
-compiled.
-The ZK-proof system continues to generate valid proofs, but
-those proofs now verify execution of the \emph{old} model
-computation, not the current one.
-
-\textbf{Formal statement of the failure:}
-Let $\mathcal{C}_{\mathrm{circuit}}$ be the arithmetic circuit
-compiled from model checkpoint $\theta_0$, and let
-$\theta_1 \neq \theta_0$ be the current production weights.
-The ZK-proof $\pi$ generated for a query $(x, y)$ satisfies:
-\begin{equation}
-  \label{eq:stale-circuit}
-  \mathrm{Verify}(\pi, \mathcal{C}_{\mathrm{circuit}}, x, y)
-    = \textsc{True}
-  \quad \text{but} \quad
-  y \neq f_{\theta_1}(x)
-\end{equation}
-The verifier accepts the proof, but the proof is a proof of
-the wrong function.
-The system has \emph{verifiable incorrectness}.
-
-\textbf{Why this is common:}
-Model updates in production are frequent (accuracy drift
-remediation, fairness corrections, security patches) and are
-typically handled by the MLOps pipeline with no awareness of
-the ZK-circuit compilation dependency.
-The circuit compilation step is expensive (hours of GPU time
-for a 7B-parameter model) and is therefore omitted from
-the fast-path update workflow.
-This is the canonical form of Trustworthy AI technical debt:
-the expensive trust component is the first to be skipped
-under time pressure.
-\end{tcolorbox}
-
-\begin{tcolorbox}[debtpattern,
-  title={Debt Management Pattern 2 --- Circuit Versioning Gate}]
-
-The Circuit Versioning Gate is a mandatory CI/CD pipeline
-check that blocks any model weight update from reaching
-production unless one of two conditions is satisfied:
-(1)~the update is certified as \emph{circuit-preserving} by
-a structural equivalence check; or (2)~a new ZK-circuit has
-been compiled and validated against the updated weights.
-
-\textbf{Circuit-Preserving Update Definition:}
-An update $\theta_0 \to \theta_1$ is circuit-preserving if
-and only if the model's architectural graph---the sequence
-of operations, their dimensions, and their activation
-functions---is unchanged.
-Weight-only updates (e.g., gradient descent steps, LoRA
-adapter updates where the base architecture is frozen)
-are circuit-preserving.
-Structural changes (quantisation bit-width changes, layer
-pruning, architectural modifications) are circuit-breaking
-and require circuit recompilation.
-
-\textbf{Implementation:}
-The gate is implemented as a Git pre-merge hook that computes
-the SHA-256 hash of the model's ONNX computational graph
-(structure only, not weights) and compares it to the hash
-recorded in the Debt Registry at the time of the last
-circuit compilation.
-A hash mismatch blocks the merge and opens a Debt Registry
-ticket of Type~2 with estimated recompilation cost.
-\end{tcolorbox}
-
-\subsubsection{Scenario 3: The Broken Composition Guarantee}
-\label{subsubsec:scenario-composition}
-
-\begin{tcolorbox}[scenariobox,
-  title={Scenario 3 --- The Broken Composition Guarantee
-         (Type~3 Debt)}]
-
-\textbf{Trigger:}
-A component of the trust stack has been independently updated
-in a way that violates the assumptions of the composition
-proof.
-The canonical example: the Secure Aggregation protocol is
-upgraded to a new batched variant, changing the masking
-granularity.
-The existing DP noise calibration was computed under the
-assumption of the old SecAgg's aggregation properties.
-The new SecAgg has different sensitivity bounds.
-The DP guarantee $(\varepsilon, \delta)$ that the stack
-certified is no longer achievable at the configured noise
-level $\sigma$.
-
-\textbf{The composition theorem dependency graph:}
-The formal guarantee of the full stack
-(TEE + DP + SecAgg) is not the conjunction
-of three independent guarantees.
-It is a \emph{proof over their interaction}, which makes
-specific assumptions about each component's operational
-parameters.
-Updating any component breaks the proof until it is
-re-derived for the new configuration.
-
-\textbf{Why this is the most dangerous debt type:}
-Unlike Scenario~1 (budget exhaustion is visible) and
-Scenario~2 (circuit hash mismatch is detectable),
-composition debt produces no observable signal in
-mechanism-level monitoring.
-Every individual component passes its own health checks.
-The stack as a whole is broken.
-\end{tcolorbox}
-
-\begin{tcolorbox}[debtpattern,
-  title={Debt Management Pattern 3 --- Composition Audit Cycle}]
-
-The Composition Audit Cycle is a mandatory quarterly review
-process that re-derives the stack-level composition guarantee
-from the current operational parameters of each mechanism.
-
-\textbf{Audit Inputs:}
-\begin{itemize}
-  \item Current DP noise scale $\sigma$ and clipping norm $C$
-    for each DP-protected component.
-  \item Current SecAgg aggregation group size $n$ and
-    masking scheme version.
-  \item Current TEE firmware version and attestation
-    certificate expiry.
-  \item Current ZK-circuit version and proof system
-    parameters (elliptic curve, field size).
-\end{itemize}
-
-\textbf{Audit Procedure:}
-The audit re-derives the effective privacy guarantee
-$\varepsilon_{\mathrm{eff}}$ of the composed stack using
-the Privacy Loss Random Variable (PRV) accountant or
-R\'{e}nyi DP composition, and
-compares it to the certified value $\varepsilon_{\mathrm{cert}}$.
-If $\varepsilon_{\mathrm{eff}} > \varepsilon_{\mathrm{cert}}$,
-the stack carries active Type~3 debt that must be remediated
-before the next production traffic window.
-
-\textbf{Audit Trigger Events:}
-In addition to the quarterly cycle, a Composition Audit is
-triggered immediately by any of the following events:
-(1)~SecAgg protocol version change;
-(2)~TEE firmware update;
-(3)~DP accountant library version update;
-(4)~addition or removal of any mechanism from the stack;
-(5)~any change to the production dataset size $N$ that
-affects the $\delta = 1/N$ calibration.
-
-\textbf{Composition Debt Resolution:}
-Resolution requires recalibrating $\sigma$ to restore
-$\varepsilon_{\mathrm{eff}} \leq \varepsilon_{\mathrm{cert}}$
-under the new composition, or obtaining a new Conformity
-Assessment certification for the updated $\varepsilon_{\mathrm{cert}}$.
-The recalibrated stack must pass the full acceptance
-protocol before returning to production.
-\end{tcolorbox}
-
-\subsubsection{Scenario 4: The Decaying TEE Enclave}
-\label{subsubsec:scenario-tee-entropy}
-
-\begin{tcolorbox}[scenariobox,
-  title={Scenario 4 --- The Decaying TEE Enclave (Type~4 Debt)}]
-
-\textbf{Trigger:}
-One of three entropy events: (1)~Intel or AMD publishes a
-microcode security advisory (SGX~AEPIC leak class,
-Spectre/Meltdown variants) requiring enclave firmware
-patching; (2)~the attestation certificate's root of trust
-key approaches expiry; (3)~a side-channel attack technique
-is published that targets the specific memory access pattern
-of the deployed model workload (as occurred in the LedgerNet
-incident, Appendix~\ref{app:roi-of-trust}).
-
-\textbf{The operational complexity of TEE patching:}
-A TEE firmware patch is not a software update.
-It requires: (1)~draining all live inference requests from
-the enclave; (2)~re-measuring the enclave image against
-the new firmware; (3)~re-generating and distributing the
-remote attestation certificate to all clients that hold
-the previous certificate; (4)~re-establishing all encrypted
-channels that were bound to the old attestation.
-For a system serving thousands of concurrent sessions,
-this is a multi-hour operation with complete service
-interruption.
-
-\textbf{The compounding risk:}
-Entropy debt does not announce itself with a monitoring
-alert.
-It arrives via an external CVE or vendor advisory and
-requires an immediate response to a complex, high-stakes
-operation on a live production system---precisely the
-conditions under which human error rates are highest and
-the consequences of error are most severe.
-\end{tcolorbox}
-
-\begin{tcolorbox}[debtpattern,
-  title={Debt Management Pattern 4 --- Enclave Lifecycle
-         Management Protocol}]
-
-The Enclave Lifecycle Management Protocol (ELMP) pre-plans
-the full TEE update workflow so that it can be executed
-under time pressure without improvisation.
-
-\textbf{Standing Maintenance Window:}
-Every deployment that uses TEEs must have a monthly
-maintenance window of at least 4 hours during which the
-enclave can be patched without violating SLA commitments.
-The window schedule and the fallback serving strategy (cached
-responses, graceful degradation to non-enclave inference
-with appropriate user notification) must be documented in
-the system's operational runbook.
-
-\textbf{CVE Response Ladder:}
-\begin{enumerate}
-  \item \textbf{CVE Published (Day~0):}
-    Security team assesses applicability to deployed
-    enclave configuration within 4 hours.
-    If applicable, the maintenance window is activated
-    immediately regardless of schedule.
-
-  \item \textbf{Patch Staging (Day~0--1):}
-    New enclave image built and measured in staging
-    environment.
-    New attestation certificate generated and verified
-    against staging clients.
-    Composition Audit triggered (Pattern~3) to confirm
-    that the patched enclave does not invalidate stack
-    composition guarantees.
-
-  \item \textbf{Canary Deployment (Day~1--2):}
-    Patched enclave deployed to 5\% of production traffic.
-    Attestation success rate, inference latency, and
-    ZK-proof validity monitored for 24 hours.
-
-  \item \textbf{Full Rollout (Day~2--3):}
-    Patched enclave promoted to 100\% of production traffic.
-    Old enclave drained and decommissioned.
-    Debt Registry updated: Type~4 debt entry closed.
-    Conformity Assessment documentation updated with
-    patch event record.
-\end{enumerate}
-
-\textbf{Certificate Rotation:}
-Remote attestation certificates must be rotated before
-expiry on a schedule maintained in the Debt Registry.
-The recommended rotation trigger is 30 days before
-certificate expiry, providing a buffer for the rotation
-workflow to complete within the standing maintenance window.
-\end{tcolorbox}
-
-% ------------------------------------------------------------------
-\subsection{The Trust Debt Registry}
-\label{subsec:debt-registry}
-% ------------------------------------------------------------------
-
-The four debt management patterns of
-Section~\ref{subsec:debt-scenarios} share a common
-operational requirement: a single authoritative record of
-every active and resolved debt item across the full trust
-stack.
-We call this the \textbf{Trust Debt Registry}: a versioned,
-auditable data structure maintained as a first-class
-infrastructure artifact alongside the model weights, the
-ZK-circuit, and the DP accountant state.
-
-The Trust Debt Registry serves three functions:
+\paragraph{Step 4: Priority Remediation List.}
 
 \begin{enumerate}
-  \item \textbf{Continuous Debt Scoring.}
-    Provides the input data for the Trust Debt Score
-    $\mathcal{D}(t)$ of
-    Equation~\eqref{eq:debt-score}, enabling real-time
-    dashboard display.
-
-  \item \textbf{Regulatory Evidence.}
-    Provides a tamper-evident record of every debt event,
-    its detection time, the actions taken, and the
-    resolution timestamp---the primary evidence artifact
-    for Conformity Assessment re-submissions and regulatory
-    audits under Vietnam's AI Law.
-
-  \item \textbf{Remediation Scheduling.}
-    Drives the operational calendar: circuit recompilation
-    windows, composition audit dates, enclave maintenance
-    windows, and budget reset checkpoints are all derived
-    from open Debt Registry entries.
+  \item \textbf{ATT-05 / Gradient Inversion} (priority $= 3 \times
+        21.8 = 65.4$): Deploy Secure Aggregation (Bonawitz SecAgg,
+        §8.3) on fine-tuning pipeline.  Estimated annual cost:
+        \$30K--\$80K (Table~A.3); RAV \$1.9M.
+  \item \textbf{ATT-27 / Indirect Prompt Injection} (priority $= 3
+        \times 36.9 = 110.7$): Implement Behavioural Fingerprinting
+        with Mahalanobis drift detection (§23.5.4).  Estimated annual
+        cost: \$15K--\$40K; RAV \$2.4M.
+  \item \textbf{ATT-22 / ZK-Circuit Staleness} (priority $= 3 \times
+        21.8 = 65.4$): Compile initial ZK-circuit from ONNX graph;
+        integrate Circuit Versioning Gate into CI/CD (§25.4.3.2).
 \end{enumerate}
 
-Listing~\ref{lst:debt-registry} provides a complete
-implementation of the Trust Debt Registry, including the
-Debt Score calculator, the four debt detectors, and the
-registry persistence layer.
+Addressing these three gaps raises the projected Coverage Score from
+0.61 to 0.83, within one quarter of the Conformity Assessment
+threshold, at a combined annual cost of approximately \$130K---a RAV
+Ratio of approximately $40\times$ on the combined expected loss
+reduction.
+
+% ------------------------------------------------------------------
+\section{Implementation: The ATTM Gap Analyser}
+\label{sec:attm-implementation}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:attm-gap-analyser} provides a machine-readable
+implementation of the Gap Analyser, enabling Architects to integrate
+the ATTM into a CI/CD pipeline or a Trustworthy MLOps dashboard
+(Chapter~25).
 
 \begin{lstlisting}[
-  style=pythonstyle,
-  caption={Trust Debt Registry: unified tracking and scoring
-           for all four Trustworthy AI debt types across the
-           full mechanism stack.},
-  label={lst:debt-registry}
-]
+  language=Python,
+  caption={ATTM Gap Analyser: scores deployment coverage against the
+           28-technique AI Trust Threat Matrix and generates a
+           prioritised remediation report.},
+  label={lst:attm-gap-analyser}]
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
-import hashlib, time, json
+from typing import Dict, List, Optional
+import json
 
-# -- Debt taxonomy ------------------------------------------------
-class DebtType(Enum):
-    BUDGET      = 1   # Consumable resource exhaustion
-    STALENESS   = 2   # Artifact hash mismatch
-    COMPOSITION = 3   # Stack-level guarantee invalidation
-    ENTROPY     = 4   # Cryptographic / hardware decay
+# ----------------------------------------------------------------
+# Enumerations
+# ----------------------------------------------------------------
 
-class DebtStatus(Enum):
-    OPEN     = "open"
-    TRIAGED  = "triaged"
-    RESOLVED = "resolved"
+class Tactic(Enum):
+    DATA_EXFILTRATION     = "T1"
+    MODEL_CORRUPTION      = "T2"
+    EVASION               = "T3"
+    PRIVACY_INFERENCE     = "T4"
+    INTEGRITY_SUBVERSION  = "T5"
+    ALIGNMENT_MANIPULATION= "T6"
+
+class Severity(Enum):
+    CRITICAL = 3
+    HIGH     = 2
+    MEDIUM   = 1
+
+class GapFlag(Enum):
+    DEPLOYED = 1.0   # Primary defence implemented & monitored
+    PARTIAL  = 0.5   # Defence present but not fully operational
+    GAP      = 0.0   # No defence
+
+# ----------------------------------------------------------------
+# Technique catalogue
+# ----------------------------------------------------------------
 
 @dataclass
-class DebtEntry:
-    debt_id:      str
-    debt_type:    DebtType
-    mechanism:    str            # e.g., "DP-SGD", "ZK-circuit-v3"
-    description:  str
-    severity:     float          # normalised [0, 1]
-    detected_at:  float = field(default_factory=time.time)
-    resolved_at:  Optional[float] = None
-    status:       DebtStatus = DebtStatus.OPEN
-    audit_hash:   Optional[str] = None   # ZK-verified audit ref
+class Technique:
+    id:              str
+    name:            str
+    tactic:          Tactic
+    severity:        Severity
+    book_ref:        str
+    primary_defence: str
+    secondary_defence: str
+    # Populated by Architect during gap analysis:
+    gap_flag:        Optional[GapFlag] = None
+    evidence:        Optional[str]     = None
+    # Modality tags for scope filtering:
+    requires_federated:  bool = False
+    requires_multimodal: bool = False
+    requires_metaverse:  bool = False
+    requires_interagent: bool = False
 
-# -- Registry weights for High-Risk Vietnamese deployment ---------
-DEBT_WEIGHTS = {
-    DebtType.BUDGET:      0.30,
-    DebtType.STALENESS:   0.25,
-    DebtType.COMPOSITION: 0.35,
-    DebtType.ENTROPY:     0.10,
-}
+ATTM_CATALOGUE: List[Technique] = [
+    # -- T1: Data Exfiltration ----------------------------------
+    Technique("ATT-01","Training Data Extraction",
+      Tactic.DATA_EXFILTRATION, Severity.CRITICAL,
+      "Sec.6.3, Sec.17.1",
+      "DP-SGD fine-tuning (Sec.5.4)",
+      "Output PII guardrails (Sec.17.4.2)"),
+    Technique("ATT-02","Prompt Leakage",
+      Tactic.DATA_EXFILTRATION, Severity.HIGH,
+      "Sec.17.2",
+      "On-device SLM execution (Sec.17.6)",
+      "Input guardrails + TEE inference (Sec.17.4.1, Sec.9.5)"),
+    Technique("ATT-03","Fine-Tuning Leakage",
+      Tactic.DATA_EXFILTRATION, Severity.HIGH,
+      "Sec.17.2",
+      "DP-SGD on fine-tuning dataset (Sec.17.5)",
+      "Federated Learning (Sec.7.2)"),
+    Technique("ATT-04","Synthetic MIA-S",
+      Tactic.DATA_EXFILTRATION, Severity.HIGH,
+      "Sec.4.6.3",
+      "DP-trained generative model (Sec.4.6.5)",
+      "NNDR + MIA-S AUC audit (Table 4.2)"),
+    Technique("ATT-05","Gradient Inversion",
+      Tactic.DATA_EXFILTRATION, Severity.CRITICAL,
+      "Sec.6.4, Sec.7.3",
+      "Secure Aggregation pairwise masking (Sec.8.2)",
+      "DP-FL noise injection (Sec.7.4)",
+      requires_federated=True),
+    # -- T2: Model Corruption -----------------------------------
+    Technique("ATT-06","Data Poisoning",
+      Tactic.MODEL_CORRUPTION, Severity.CRITICAL,
+      "Sec.6.5",
+      "Trimmed Mean aggregation (Sec.10.3)",
+      "SBOM dataset provenance (Sec.24.2)",
+      requires_federated=True),
+    Technique("ATT-07","Backdoor Injection",
+      Tactic.MODEL_CORRUPTION, Severity.CRITICAL,
+      "Sec.10.2",
+      "Krum distance-based aggregation (Sec.10.3)",
+      "Formal verification (Sec.22.1)",
+      requires_federated=True),
+    Technique("ATT-15","TEE Side-Channel",
+      Tactic.EVASION, Severity.CRITICAL,
+      "Sec.9.1",
+      "Defence-in-depth: TEE+DP+SecAgg (Sec.9.4)",
+      "ELMP patching protocol (Sec.25.4.3.4)"),
+    # -- T4: Privacy Inference ----------------------------------
+    Technique("ATT-16","Membership Inference",
+      Tactic.PRIVACY_INFERENCE, Severity.CRITICAL,
+      "Sec.6.3",
+      "(eps,delta)-DP (Sec.5.2)",
+      "Shadow-model MIA audit (Sec.4.6.4)"),
+    Technique("ATT-17","Model Inversion",
+      Tactic.PRIVACY_INFERENCE, Severity.HIGH,
+      "Sec.6.4",
+      "DP-SGD gradient clipping (Sec.5.4)",
+      "TEE-protected inference (Sec.9.5)"),
+    Technique("ATT-18","Quasi-ID Linkage",
+      Tactic.PRIVACY_INFERENCE, Severity.HIGH,
+      "Sec.4.1, Sec.4.3",
+      "l-Diversity (Sec.4.2.1.3)",
+      "t-Closeness EMD bound (Sec.4.2.2)"),
+    Technique("ATT-19","Cross-Modal Inference",
+      Tactic.PRIVACY_INFERENCE, Severity.HIGH,
+      "Sec.18.2.1",
+      "Modality isolation + per-stream DP (Sec.18.3)",
+      "Late fusion architecture (Table 18.1)",
+      requires_multimodal=True),
+    Technique("ATT-20","Gaze/Spatial Reconstruction",
+      Tactic.PRIVACY_INFERENCE, Severity.MEDIUM,
+      "Sec.20.2",
+      "Local DP on eye-tracking data (Sec.20.3)",
+      "On-device TEE spatial filtering (Sec.20.3)",
+      requires_metaverse=True),
+    Technique("ATT-21","Background-Knowledge Re-ID",
+      Tactic.PRIVACY_INFERENCE, Severity.HIGH,
+      "Sec.4.3",
+      "k-Anonymity + l-Diversity (Sec.4.2.1)",
+      "DP synthetic data (Sec.4.6.5)"),
+    # -- T5: Integrity Subversion -------------------------------
+    Technique("ATT-22","ZK-Circuit Staleness",
+      Tactic.INTEGRITY_SUBVERSION, Severity.CRITICAL,
+      "Sec.25.4.3.2",
+      "Circuit Versioning Gate (Sec.25.4.3.2)",
+      "Debt Registry Type-2 block (Sec.25.4.4)"),
+    Technique("ATT-23","Audit Log Tampering",
+      Tactic.INTEGRITY_SUBVERSION, Severity.CRITICAL,
+      "Sec.23.3",
+      "ZK-Audit Log (Sec.23.3)",
+      "DID-ZK Binding Protocol (Sec.23.5.3)"),
+    Technique("ATT-24","SBOM Provenance Falsification",
+      Tactic.INTEGRITY_SUBVERSION, Severity.HIGH,
+      "Sec.24.2",
+      "SLSA Level 3 build pipeline (Sec.24.4)",
+      "Dataset checksums + scan-date fields (Sec.24.5.4)"),
+    Technique("ATT-25","DP Budget Exhaustion",
+      Tactic.INTEGRITY_SUBVERSION, Severity.HIGH,
+      "Sec.25.4.3.1",
+      "Budget Triage Protocol (Sec.25.4.3.1)",
+      "Renyi DP accounting (Sec.5.5)"),
+    # -- T6: Alignment Manipulation ----------------------------
+    Technique("ATT-26","Direct Prompt Injection",
+      Tactic.ALIGNMENT_MANIPULATION, Severity.CRITICAL,
+      "Sec.17.3",
+      "Input guardrails (Sec.17.4.1)",
+      "Constitutional Policy Engine (Sec.23.4.4)"),
+    Technique("ATT-27","Indirect Prompt Injection",
+      Tactic.ALIGNMENT_MANIPULATION, Severity.CRITICAL,
+      "Sec.17.3, Sec.23.6.1",
+      "Behavioural Fingerprinting (Sec.23.5.4)",
+      "Stateful red teaming + MAP (Sec.23.6.2)"),
+    Technique("ATT-28","Cultural Norm Drift",
+      Tactic.ALIGNMENT_MANIPULATION, Severity.MEDIUM,
+      "Sec.1.4.1.1",
+      "CA-RLHF Dual Reward Arbiter (Sec.1.4.1.4)",
+      "Norm Constraint Boundary (Sec.1.4.1.5)"),
+]
 
-class TrustDebtRegistry:
-    def __init__(self, audit_logger, alert_threshold=0.60,
-                 emergency_threshold=1.00):
-        self.entries   = []
-        self.auditor   = audit_logger
-        self.alert_thr = alert_threshold
-        self.emerg_thr = emergency_threshold
+# ----------------------------------------------------------------
+# Gap Analyser
+# ----------------------------------------------------------------
 
-    # -- Core CRUD ------------------------------------------------
-    def open_debt(self, debt_type, mechanism,
-                  description, severity):
-        entry = DebtEntry(
-            debt_id     = self._generate_id(mechanism, debt_type),
-            debt_type   = debt_type,
-            mechanism   = mechanism,
-            description = description,
-            severity    = min(max(severity, 0.0), 1.0),
-        )
-        entry.audit_hash = self.auditor.log(
-            event="debt_opened", entry=entry.__dict__)
-        self.entries.append(entry)
-        return entry
+class ATTMGapAnalyser:
+    """
+    Scores a deployment's coverage against the ATTM and produces
+    a prioritised remediation report.
+    """
 
-    def resolve_debt(self, debt_id, resolution_note):
-        for entry in self.entries:
-            if entry.debt_id == debt_id \
-                    and entry.status != DebtStatus.RESOLVED:
-                entry.status      = DebtStatus.RESOLVED
-                entry.resolved_at = time.time()
-                self.auditor.log(
-                    event="debt_resolved",
-                    debt_id=debt_id,
-                    note=resolution_note)
+    def __init__(self,
+                 deployment_modality: dict,
+                 risk_tier: str = "HIGH"):
+        """
+        deployment_modality: dict with boolean keys:
+          federated, multimodal, metaverse, inter_agent
+        risk_tier: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+        """
+        self.modality  = deployment_modality
+        self.risk_tier = risk_tier
+        self._techniques = self._scope_techniques()
+
+    def _scope_techniques(self) -> List[Technique]:
+        """Filter catalogue to in-scope techniques."""
+        result = []
+        for t in ATTM_CATALOGUE:
+            if t.requires_federated  and not self.modality.get("federated"):
+                continue
+            if t.requires_multimodal and not self.modality.get("multimodal"):
+                continue
+            if t.requires_metaverse  and not self.modality.get("metaverse"):
+                continue
+            if t.requires_interagent and not self.modality.get("inter_agent"):
+                continue
+            # For LOW risk tier, defer MEDIUM severity
+            if self.risk_tier == "LOW" \
+                    and t.severity == Severity.MEDIUM:
+                continue
+            result.append(t)
+        return result
+
+    def record_assessment(self, tech_id: str,
+                          flag: GapFlag,
+                          evidence: str = ""):
+        """Record a Gap Flag for a specific technique."""
+        for t in self._techniques:
+            if t.id == tech_id:
+                t.gap_flag = flag
+                t.evidence = evidence
                 return
-        raise ValueError(f"Debt {debt_id} not found/resolved.")
+        raise ValueError(f"Technique {tech_id} not in scope.")
 
-    # -- Debt Score (Equation 25.1) --------------------------------
-    def compute_score(self):
-        open_entries = [e for e in self.entries
-                        if e.status != DebtStatus.RESOLVED]
-        score = sum(
-            DEBT_WEIGHTS[e.debt_type] * e.severity
-            for e in open_entries
-        )
-        return round(score, 4)
+    def coverage_score(self) -> float:
+        """Compute weighted Coverage Score (Eq. 24.attm.1)."""
+        assessed = [t for t in self._techniques
+                    if t.gap_flag is not None]
+        if not assessed:
+            return 0.0
+        num = sum(t.gap_flag.value * t.severity.value
+                  for t in assessed)
+        den = sum(t.severity.value for t in assessed)
+        return round(num / den, 4) if den else 0.0
 
-    # -- Automated Debt Detectors ---------------------------------
-    def check_budget_debt(self, eps_consumed, eps_budget,
-                          mechanism="DP-SGD"):
-        """Type 1: Open debt if budget >= 70%."""
-        ratio = eps_consumed / eps_budget
-        if ratio >= 0.70:
-            severity = min((ratio - 0.70) / 0.30, 1.0)
-            self.open_debt(
-                DebtType.BUDGET, mechanism,
-                f"Budget at {ratio:.0%}: "
-                f"eps={eps_consumed:.3f}/{eps_budget:.3f}",
-                severity=severity)
+    def gap_report(self) -> dict:
+        """
+        Generate structured gap report with prioritised
+        remediation list sorted by (severity * rav_proxy).
+        """
+        gaps = [t for t in self._techniques
+                if t.gap_flag in (GapFlag.GAP, GapFlag.PARTIAL,
+                                  None)]
+        # Priority = severity_weight * 2 (proxy for avg RAV ratio)
+        gaps_sorted = sorted(
+            gaps,
+            key=lambda t: t.severity.value * 2,
+            reverse=True)
 
-    def check_staleness_debt(self, current_onnx_graph,
-                             certified_hash,
-                             mechanism="ZK-circuit"):
-        """Type 2: Open debt if model graph hash changed."""
-        current_hash = hashlib.sha256(
-            current_onnx_graph).hexdigest()
-        if current_hash != certified_hash:
-            self.open_debt(
-                DebtType.STALENESS, mechanism,
-                f"ONNX hash mismatch: cert={certified_hash[:12]}"
-                f"... cur={current_hash[:12]}...",
-                severity=0.85)
-
-    def check_composition_debt(self, eps_effective,
-                               eps_certified,
-                               mechanism="DP+SecAgg"):
-        """Type 3: Open debt if eps_eff > eps_cert."""
-        if eps_effective > eps_certified:
-            severity = min(
-                (eps_effective - eps_certified) / eps_certified,
-                1.0)
-            self.open_debt(
-                DebtType.COMPOSITION, mechanism,
-                f"Composition violated: "
-                f"eps_eff={eps_effective:.3f} > "
-                f"eps_cert={eps_certified:.3f}",
-                severity=severity)
-
-    def check_entropy_debt(self, cert_expiry_days,
-                           rotation_buffer_days=30,
-                           mechanism="TEE-attestation"):
-        """Type 4: Open debt if certificate nears expiry."""
-        if cert_expiry_days <= rotation_buffer_days:
-            severity = 1.0 - (cert_expiry_days /
-                               rotation_buffer_days)
-            self.open_debt(
-                DebtType.ENTROPY, mechanism,
-                f"Cert expires in {cert_expiry_days} days",
-                severity=severity)
-
-    # -- Operational Interface ------------------------------------
-    def operational_status(self):
-        score  = self.compute_score()
-        status = ("NOMINAL"   if score < self.alert_thr  else
-                  "ALERT"     if score < self.emerg_thr  else
-                  "EMERGENCY")
         return {
-            "debt_score":   score,
-            "status":       status,
-            "open_entries": sum(1 for e in self.entries
-                                if e.status != DebtStatus.RESOLVED),
-            "by_type": {
-                dt.name: sum(1 for e in self.entries
-                             if e.debt_type == dt
-                             and e.status != DebtStatus.RESOLVED)
-                for dt in DebtType
-            }
+            "deployment_risk_tier":  self.risk_tier,
+            "scoped_technique_count":len(self._techniques),
+            "assessed_count":        sum(1 for t in self._techniques
+                                         if t.gap_flag is not None),
+            "coverage_score":        self.coverage_score(),
+            "conformity_threshold":  0.85,
+            "meets_threshold":       self.coverage_score() >= 0.85,
+            "gaps": [
+                {
+                    "id":              t.id,
+                    "name":            t.name,
+                    "tactic":          t.tactic.value,
+                    "severity":        t.severity.name,
+                    "status":          t.gap_flag.name
+                                       if t.gap_flag else "UNASSESSED",
+                    "primary_defence": t.primary_defence,
+                    "evidence":        t.evidence or "",
+                }
+                for t in gaps_sorted
+            ],
         }
 
-    @staticmethod
-    def _generate_id(mechanism, debt_type):
-        raw = f"{mechanism}-{debt_type.name}-{time.time()}"
-        return "DEBT-" + hashlib.sha256(
-            raw.encode()).hexdigest()[:8].upper()
+    def export_json(self, path: str):
+        """Export full assessment to JSON for MLOps dashboard."""
+        payload = self.gap_report()
+        payload["full_assessment"] = [
+            {
+                "id":       t.id,
+                "name":     t.name,
+                "severity": t.severity.name,
+                "flag":     t.gap_flag.name if t.gap_flag else "UNASSESSED",
+                "evidence": t.evidence or "",
+            }
+            for t in self._techniques
+        ]
+        with open(path, "w") as f:
+            json.dump(payload, f, indent=2)
+        return path
+
+
+# ----------------------------------------------------------------
+# Example: Vietnamese fintech credit-scoring agent
+# ----------------------------------------------------------------
+if __name__ == "__main__":
+    analyser = ATTMGapAnalyser(
+        deployment_modality={
+            "federated":   False,
+            "multimodal":  False,
+            "metaverse":   False,
+            "inter_agent": False,
+        },
+        risk_tier="HIGH",
+    )
+
+    # Record assessments (subset shown)
+    analyser.record_assessment(
+        "ATT-01", GapFlag.DEPLOYED,
+        "Opacus DP-SGD eps=1.0; Conformity Assessment filed.")
+    analyser.record_assessment(
+        "ATT-05", GapFlag.GAP,
+        "No SecAgg deployed. Raw gradients exposed.")
+    analyser.record_assessment(
+        "ATT-09", GapFlag.PARTIAL,
+        "SBOM present; SLSA upgrade scheduled Q3 2026.")
+    analyser.record_assessment(
+        "ATT-16", GapFlag.DEPLOYED,
+        "MIA-S AUC=0.54 < 0.60 threshold.")
+    analyser.record_assessment(
+        "ATT-22", GapFlag.GAP,
+        "No ZK-circuit compiled. Verifiability pillar absent.")
+    analyser.record_assessment(
+        "ATT-23", GapFlag.PARTIAL,
+        "DB audit log present; ZK migration in progress.")
+    analyser.record_assessment(
+        "ATT-26", GapFlag.DEPLOYED,
+        "NeMo Guardrails; red-team pass rate 97%.")
+    analyser.record_assessment(
+        "ATT-27", GapFlag.GAP,
+        "Behavioural Fingerprinting not implemented.")
+
+    report = analyser.gap_report()
+    print(f"Coverage Score : {report['coverage_score']:.2f}")
+    print(f"Meets Threshold: {report['meets_threshold']}")
+    print(f"Open Gaps      : {len(report['gaps'])}")
+    print("\nTop 3 Remediation Priorities:")
+    for item in report["gaps"][:3]:
+        print(f"  [{item['severity']}] {item['id']} "
+              f"{item['name']}")
+        print(f"    Defence: {item['primary_defence']}")
 \end{lstlisting}
 
 % ------------------------------------------------------------------
-\subsection{The Debt-Aware Deployment Checklist}
-\label{subsec:deployment-checklist}
+\section{Relationship to Existing Frameworks}
 % ------------------------------------------------------------------
 
-The four debt management patterns and the Debt Registry
-implementation converge in a single operational artifact:
-the \textbf{Debt-Aware Deployment Checklist}, which must
-be completed and signed off by both the Technical Lead and
-the Data Protection Officer before any model or mechanism
-update is promoted to production.
+Table~\ref{tab:attm-framework-comparison} positions the ATTM relative
+to the three frameworks it synthesises and extends.  The ATTM is not
+a replacement for MITRE ATLAS or OWASP LLM Top~10; it is the
+layer that binds them to the specific architectural defences of the
+Trustworthy AI Stack and the regulatory context of the 2026
+Vietnamese and ASEAN deployment environment.
 
-\begin{table}[ht]
-\centering
-\caption{Debt-Aware Deployment Checklist.
-  All items must be \textbf{PASS} before the deployment
-  proceeds.
-  Any \textbf{FAIL} or \textbf{BLOCK} opens a mandatory
-  Debt Registry entry and suspends the deployment until
-  the entry is resolved.}
-\label{tab:deployment-checklist}
-\small
-\begin{tabular}{p{0.4cm}p{4.4cm}p{2.0cm}p{4.0cm}}
-\hline\noalign{\smallskip}
-\textbf{\#}
-  & \textbf{Check}
-  & \textbf{Debt Type}
-  & \textbf{Pass Condition} \\
-\noalign{\smallskip}\svhline\noalign{\smallskip}
-
-1 & DP budget remaining $\geq 30\%$ of quarterly allocation
-  & Type~1
-  & $\varepsilon_{\mathrm{remaining}} \geq 0.30\,
-    \varepsilon_{\mathrm{budget}}$ \\[3pt]
-
-2 & ONNX graph hash matches certified circuit hash
-  & Type~2
-  & SHA-256 match confirmed \\[3pt]
-
-3 & LoRA / fine-tune delta is circuit-preserving
-  & Type~2
-  & Architectural graph unchanged \\[3pt]
-
-4 & Composition audit current ($\leq 90$ days old)
-  & Type~3
-  & Audit timestamp in Registry \\[3pt]
-
-5 & $\varepsilon_{\mathrm{eff}} \leq \varepsilon_{\mathrm{cert}}$
-    under new configuration
-  & Type~3
-  & PRV accountant output verified \\[3pt]
-
-6 & No open CVEs affecting TEE firmware version
-  & Type~4
-  & CVE scan result: clean \\[3pt]
-
-7 & Attestation certificate valid $> 30$ days
-  & Type~4
-  & Expiry date confirmed in Registry \\[3pt]
-
-8 & Debt Score $\mathcal{D}(t) < 0.60$
-  & All types
-  & Registry operational status: NOMINAL \\[3pt]
-
-9 & ZK-circuit recompiled if architectural change detected
-  & Type~2
-  & New circuit hash recorded in Registry \\[3pt]
-
-10 & DPO sign-off recorded in Registry
-   & Regulatory
-   & DPO signature timestamp present \\
-
-\noalign{\smallskip}\hline\noalign{\smallskip}
+\begin{table}[h]
+\caption{ATTM positioning relative to existing AI security
+         frameworks.  \checkmark\ = framework covers this dimension;
+         \texttildelow\ = partial coverage;
+         \ding{55} = not covered.}
+\label{tab:attm-framework-comparison}
+\begin{tabular}{p{3.8cm} p{1.5cm} p{1.5cm} p{1.5cm} p{1.5cm} p{2.0cm}}
+\toprule
+\textbf{Dimension}
+  & \textbf{MITRE ATT\&CK}
+  & \textbf{MITRE ATLAS}
+  & \textbf{OWASP LLM Top~10}
+  & \textbf{NIST AI RMF}
+  & \textbf{ATTM (This Chapter)} \\
+\midrule
+Adversarial ML techniques    &\ding{55}&\checkmark&\texttildelow&\texttildelow&\checkmark\\
+LLM-specific threats         &\ding{55}&\texttildelow&\checkmark&\texttildelow&\checkmark\\
+Federated / distributed      &\ding{55}&\texttildelow&\ding{55}&\texttildelow&\checkmark\\
+Privacy (DP / anonymisation) &\ding{55}&\ding{55}&\ding{55}&\texttildelow&\checkmark\\
+Verifiability / ZK-proofs    &\ding{55}&\ding{55}&\ding{55}&\ding{55}&\checkmark\\
+Agentic / multi-agent        &\ding{55}&\texttildelow&\texttildelow&\ding{55}&\checkmark\\
+Post-quantum threats         &\ding{55}&\ding{55}&\ding{55}&\ding{55}&\checkmark\\
+Mapped to specific defences  &\checkmark&\texttildelow&\texttildelow&\ding{55}&\checkmark\\
+Gap score computation        &\checkmark&\ding{55}&\ding{55}&\ding{55}&\checkmark\\
+Vietnamese regulatory mapping&\ding{55}&\ding{55}&\ding{55}&\ding{55}&\checkmark\\
+\bottomrule
 \end{tabular}
 \end{table}
 
 % ------------------------------------------------------------------
-\subsection{Conclusion: Debt as a First-Class Architectural
-            Concern}
-\label{subsec:debt-conclusion}
+\section{Conclusion}
 % ------------------------------------------------------------------
 
-The four debt types of Section~\ref{subsec:debt-taxonomy}
-represent a fundamental property of the Trustworthy AI Stack:
-it is not a static certificate but a dynamic commitment that
-must be continuously earned.
-Every mechanism in the stack---every DP noise calibration,
-every ZK-circuit, every TEE attestation, every composition
-proof---carries an implicit expiry condition.
-The architect who does not track these conditions is not
-building a Trustworthy AI system.
-They are building a system that was trustworthy on the day
-of its Conformity Assessment and has been accruing hidden
-debt ever since.
+The AI Trust Threat Matrix transforms the book's individual defence
+mechanisms from a catalogue into a \emph{posture}: a structured,
+measurable, improvable configuration of protections against a known
+adversary landscape.  The Gap Analyser of
+Listing~\ref{lst:attm-gap-analyser} makes this posture machine-readable,
+enabling integration into the Trustworthy MLOps pipeline of Chapter~25
+as a continuous coverage metric alongside the Trust Debt Score of
+Equation~\ref{eq:trust-debt-score}.
 
-The Trust Debt Registry, the four management patterns, and
-the Deployment Checklist of this section are not
-bureaucratic additions to the engineering workflow.
-They are the operational expression of the most important
-insight of this book: \textbf{trust is a performance, not a
-property.}
-It must be demonstrated, measured, and maintained with every
-deployment, every update, and every operational decision.
-
-The Self-Healing Lifecycle of Section~\ref{sec:self_healing}
-provides the automated remediation responses for the subset
-of debt conditions that can be resolved through rollback
-and retraining.
-The four patterns of this section handle the conditions that
-the Self-Healing Lifecycle cannot: the exhausted budget that
-requires a regulatory decision, the stale circuit that
-requires a GPU-day of recompilation, the broken composition
-that requires a re-derivation of the stack guarantee, and
-the decaying enclave that requires a coordinated
-infrastructure operation.
-
-Together, they form the complete operational framework for
-a Trustworthy AI system that earns its trust not once,
-at deployment, but continuously, in production.
-
-\section{The Self-Healing Lifecycle}
-\label{sec:self_healing}
-
-A Trustworthy MLOps pipeline is not just a dashboard; it is an active control loop. We implement \textbf{Automated Fallbacks}:
-\begin{enumerate}
-    \item \textbf{Silent Monitoring:} The new model runs in parallel with a known-safe baseline.
-    \item \textbf{Threshold Breach:} If drift or privacy risks exceed limits, the system diverts traffic back to the baseline model.
-    \item \textbf{Automated Retraining:} The system initiates a retraining loop using curated, recently localized data (following the integrity rules of Chapter 24).
-\end{enumerate}
-
-\section{Conclusion}
-\label{sec:conclusion_mlops}
-
-Trustworthy MLOps ensures that our systems are resilient to the passage of time. By closing the loop between deployment and monitoring, we move from ``One-Time Trust'' to ``Continuous Accountability.'' With these operational safeguards in place, we can now navigate the global regulatory environment with the confidence that our systems remain compliant in practice, not just in theory. In the next chapter, we provide a comparative guide to \textbf{Global Compliance}.
+A deployment whose Gap Analysis produces a Coverage Score below 0.85
+is not merely ``less secure.''  Under Vietnam's AI Law and the EU AI
+Act, it is a deployment whose Conformity Assessment documentation
+contains a quantified, unresolved risk---a liability that the RAV
+Framework of Appendix~A can translate directly into expected financial
+exposure.  The ATTM ensures that no Architect is surprised by that
+liability on the day of audit.

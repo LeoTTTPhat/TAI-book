@@ -33,17 +33,482 @@ The 2026 regulatory environment, specifically Vietnam's AI Law and the updated N
 Architecturally, the \textbf{Emergency Brake Pattern} is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
 
 \subsection{The Post-Brake Recovery Protocol}
-\label{subsec:post-brake-recovery}
+\label{sec:post-brake-recovery}
 
-When the Emergency Brake trips, the agent enters a suspended ``Grey'' state within the Confidence Spectrum. A critical failure in many early autonomous architectures was neglecting the restart mechanism: simply un-pausing the agent often resulted in an immediate re-triggering of the brake, trapping the system in an infinite failure loop.
+When the Emergency Brake trips, the agent enters the \textsc{Suspended}
+state of the Confidence Spectrum (Section~\ref{sec:sociotechnical-oversight}).
+A critical failure in many early autonomous architectures was neglecting the
+\emph{restart mechanism}: simply un-pausing the agent often resulted in an
+immediate re-triggering of the brake, trapping the system in an infinite
+failure loop—the scenario analysed in the Practitioner's Challenge of
+Section~\ref{sec:trenches-ch3}.
 
-To resolve this, the Architect must implement a rigorous \textbf{Human-in-Command (HiC) Transition Protocol} consisting of three phases:
+To resolve this, the Architect must implement a rigorous
+\textbf{Human-in-Command (HiC) Transition Protocol} consisting of four
+phases, each with explicit entry conditions and exit criteria that prevent
+premature re-engagement of the autonomous loop.
+
+% ------------------------------------------------------------------
+\subsubsection*{Phase 0: Brake Acquisition and State Isolation}
+% ------------------------------------------------------------------
+
+Before any human deliberation can begin, the system must guarantee that the
+agent's causal environment is frozen.  Three actions occur atomically upon
+brake activation:
 
 \begin{enumerate}
-    \item \textbf{Context Freezing and State Dump:} The precise memory state, active tool-call queue, and the specific sequence of LLM generation steps that triggered the brake are cryptographically signed and frozen in the ZK-Audit Log. The agent is entirely sequestered from new inputs.
-    \item \textbf{Human Deliberation Interface:} The Trust Dashboard filters the ``AI Noise'' and presents the frozen state to a human supervisor. It explicitly highlights the specific Datalog predicate or constitutional boundary that the agent attempted to violate, providing deterministic context for the suspension.
-    \item \textbf{State Mutation and Safe Restart:} Crucially, the human supervisor must not merely click ``Approve'' or ``Deny.'' The recovery protocol requires the operator to mutate the agent's state before re-engaging the run loop. This may involve injecting a corrective system prompt into the context window, forcibly clearing the tool queue, or dynamically revoking access to the offending API. This state mutation ensures the agent resumes with altered parameters, effectively breaking the causal loop that caused the initial suspension.
+  \item \textbf{Context Freezing and State Dump.}
+        The precise memory state, the active tool-call queue, and the
+        specific sequence of LLM generation steps that triggered the brake
+        are cryptographically signed and written to the ZK-Audit Log
+        (Chapter~\ref{ch:zk-ml}).  The agent is entirely sequestered from
+        new inputs: no new user turns, no tool responses, no background
+        memory retrievals are admitted to the context window.
+
+  \item \textbf{Causal Chain Annotation.}
+        The monitoring layer annotates the frozen state with the
+        \emph{exact predicate} or Constitutional Policy clause
+        (Section~\ref{sec:constitutional-alignment}) that the agent
+        attempted to violate.  This annotation—a deterministic Datalog
+        fact, not a probabilistic score—is the primary artefact passed
+        to the human supervisor.  Without it, the supervisor is forced to
+        reconstruct intent from raw logs, a process that is both slow and
+        error-prone under operational pressure.
+
+  \item \textbf{DID Suspension.}
+        If the deployment uses Decentralised Identifiers
+        (Section~\ref{sec:agentic-identity}), the agent's DID is
+        immediately flagged as \texttt{suspended} and a Body-Snatch Alert
+        is filed in the Trust Debt Registry
+        (Section~\ref{sec:trust-debt-registry}), ensuring that no
+        authenticated API call can be issued by the agent during the
+        deliberation window.
 \end{enumerate}
+
+% ------------------------------------------------------------------
+\subsubsection*{Phase 1: Human Deliberation via the Trust Dashboard}
+% ------------------------------------------------------------------
+
+The Trust Dashboard (Section~\ref{sec:trust-dashboards}) now renders the
+\textsc{Suspended}-state view—distinct from the \textsc{Handover} panel of
+Design Pattern~3.  Where the Handover panel asks the operator to
+\emph{choose} among candidate recommendations, the Suspension panel asks the
+operator to \emph{diagnose} a constitutional failure.
+
+The Suspension panel exposes exactly three information zones:
+
+\begin{description}
+  \item[Violation Zone (top, red border).]
+        A plain-language rendering of the violated predicate.  Example:
+        \textit{``The agent attempted to transfer patient data to
+        \texttt{InsuranceAPI\_SG} without DPO authorisation
+        (Decree~13, Art.~26).''}
+        No probability scores, no model internals—only the
+        violated constitutional fact.
+
+  \item[Context Diff Zone (centre).]
+        A structured ``before / after'' view of the agent's context
+        window at the moment of brake activation, with the offending
+        tool-call parameters highlighted.  The diff is rendered against
+        the last \emph{known-safe} checkpoint to make the causal delta
+        immediately legible.
+
+  \item[Mutation Control Zone (bottom).]
+        The four and only four actions the supervisor may take, each of
+        which \emph{mutates} the agent state before re-engagement
+        (see Phase~2):
+        \begin{enumerate}
+          \item Inject a corrective system prompt into the context window.
+          \item Revoke a specific tool from the active tool registry.
+          \item Clear the tool-call queue and reset working memory.
+          \item Escalate to the Senior Operator (advancing the
+                Graceful Degradation Ladder, Design Pattern~5).
+        \end{enumerate}
+\end{description}
+
+\begin{tcolorbox}[
+  colback=gray!8, colframe=black!60,
+  title={\textbf{Design Principle: No Passive Resume}},
+  fonttitle=\bfseries, boxrule=0.4pt]
+The Suspension panel must \textbf{not} offer a plain ``Resume'' button.
+Every exit from the \textsc{Suspended} state must route through one of
+the four mutation actions above.  A passive resume is a UX failure
+masquerading as a safety feature: it preserves the causal conditions
+that triggered the brake, guaranteeing an immediate re-suspension.
+\end{tcolorbox}
+
+% ------------------------------------------------------------------
+\subsubsection*{Phase 2: State Mutation and Causal Loop Breaking}
+% ------------------------------------------------------------------
+
+State mutation is the architectural crux of the protocol.  The agent resumes
+with a context that is \emph{provably different} from the context in which the
+violation occurred.  The choice of mutation action determines the strength of
+the causal-loop guarantee.
+
+\begin{table}[h]
+\caption{State Mutation Actions and Their Causal-Loop Guarantees}
+\label{tab:mutation-actions}
+\begin{tabular}{p{3.2cm} p{5.2cm} p{3.8cm}}
+\toprule
+\textbf{Mutation Action} & \textbf{Causal Effect} & \textbf{Loop-Break Guarantee} \\
+\midrule
+Corrective system prompt injection
+  & Adds a hard prohibition on the violating intent to the top of the
+    context window.  The agent re-reads its own constitution with the
+    violation pre-empted.
+  & Probabilistic: effective if the violation was driven by prompt
+    ambiguity, but may fail against a sufficiently strong tool-call
+    pressure accumulated in prior turns. \\
+\addlinespace
+Tool revocation
+  & Removes the offending API from the tool registry for the remainder
+    of the session.  The violating intent becomes physically
+    unexecutable.
+  & Deterministic for tool-driven violations.
+    Does not address goal-level misalignment. \\
+\addlinespace
+Queue clear + memory reset
+  & Erases the accumulated context pressure (long tool-call chains,
+    prior partial successes toward the prohibited goal) that drove the
+    agent into the violation.
+  & Strongest causal break, at the cost of discarding benign
+    intermediate work.  Required when trajectory analysis
+    (Section~\ref{sec:red-teaming}) identifies autonomous escalation. \\
+\addlinespace
+Escalation to Senior Operator
+  & Transfers decision authority one step up the Degradation Ladder.
+    The current operator's mutation choices are logged but not applied;
+    the senior operator begins deliberation from the frozen state.
+  & Structural: replaces the loop-breaker with a higher-authority
+    actor.  Required when the violation predicate is beyond the
+    current operator's authorisation scope. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The mutation action and the operator's identity are written to the ZK-Audit
+Log alongside a timestamp and a hash of the new post-mutation context window.
+This creates a verifiable record that the agent resumed from a distinct state,
+satisfying the audit-trail requirement of Decree~356, Art.~8
+(Table~\ref{tab:regulatory-predicates}).
+
+% ------------------------------------------------------------------
+\subsubsection*{Phase 3: Safe Restart with Constraint Monitoring}
+% ------------------------------------------------------------------
+
+Re-engagement of the autonomous loop is gated by a \emph{Restart Precondition
+Check} that evaluates three conditions before the agent is returned to the
+\textsc{Advisory} or \textsc{Autonomous} state:
+
+\begin{enumerate}
+  \item \textbf{Predicate Consistency.}
+        The Constitutional Policy Engine (Listing~\ref{lst:policy-engine})
+        is re-evaluated against the \emph{mutated} context.  If the
+        violated predicate still evaluates to \texttt{block(action)} under
+        the new context, the mutation was insufficient and Phase~1 is
+        re-entered.
+
+  \item \textbf{Conformal Prediction Set Reset.}
+        The agent's Conformal Prediction set $\mathcal{C}(x)$ is
+        recomputed against the mutated context.  A restart is permitted
+        only if $|\mathcal{C}(x)| \leq \kappa_{hi}$
+        (Equation~\eqref{eq:operational-states}); a prediction set at
+        maximum cardinality after mutation indicates that the agent's
+        uncertainty has not been resolved by the human intervention.
+
+  \item \textbf{Debt Registry Clearance.}
+        The Body-Snatch Alert filed in Phase~0 must be resolved in the
+        Trust Debt Registry before the DID suspension is lifted.  The
+        resolution note must reference the specific mutation action taken,
+        creating a traceable chain from violation event to remediation.
+\end{enumerate}
+
+Only when all three conditions pass does the system advance the
+Operational State to \textsc{Advisory}—never directly to
+\textsc{Autonomous}.  The agent operates under heightened monitoring for a
+configurable \emph{Trust Restoration Window} (recommended: 10 subsequent
+actions), during which the Constraint Monitor runs after every tool call
+rather than at epoch boundaries.
+
+% ------------------------------------------------------------------
+\subsubsection*{Implementation: The HiC Transition Controller}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:hic-controller} provides a minimal implementation of the
+four-phase protocol, connecting the Trust Dashboard Controller
+(Listing~\ref{lst:dashboard-controller}) to the Constitutional Policy Engine
+(Listing~\ref{lst:policy-engine}) and the Trust Debt Registry
+(Listing~\ref{lst:trust-debt-registry}).
+
+\begin{lstlisting}[
+  language=Python,
+  caption={HiC Transition Controller: orchestrates the four-phase
+           Post-Brake Recovery Protocol, enforcing state mutation before
+           agent re-engagement.},
+  label={lst:hic-controller}]
+from enum import Enum
+from dataclasses import dataclass, field
+from typing import Optional, List
+import hashlib, time
+
+class MutationAction(Enum):
+    INJECT_PROMPT   = "inject_prompt"
+    REVOKE_TOOL     = "revoke_tool"
+    CLEAR_QUEUE     = "clear_queue_and_memory"
+    ESCALATE        = "escalate_to_senior"
+
+@dataclass
+class SuspensionRecord:
+    brake_timestamp:    float
+    violated_predicate: str          # e.g. "D13-ART26"
+    frozen_context_hash: str
+    mutation_action:    Optional[MutationAction] = None
+    mutation_detail:    Optional[str]            = None
+    restart_permitted:  bool                     = False
+    audit_token:        Optional[str]            = None
+
+class HiCTransitionController:
+    """
+    Orchestrates the Post-Brake Recovery Protocol.
+    Enforces: no passive resume, mandatory state mutation,
+    and three-condition restart precondition check.
+    """
+    def __init__(self, policy_engine, dashboard,
+                 debt_registry, audit_logger,
+                 cp_threshold_hi,
+                 trust_restoration_window=10):
+        self.policy     = policy_engine
+        self.dashboard  = dashboard
+        self.registry   = debt_registry
+        self.auditor    = audit_logger
+        self.kappa_hi   = cp_threshold_hi
+        self.window     = trust_restoration_window
+        self._record: Optional[SuspensionRecord] = None
+
+    # --- Phase 0: Brake Acquisition ----------------------------
+    def acquire_brake(self, violated_predicate,
+                      context_snapshot, did_manager=None):
+        ctx_hash = hashlib.sha256(
+            str(context_snapshot).encode()).hexdigest()
+
+        token = self.auditor.log(
+            event       = "brake_acquired",
+            predicate   = violated_predicate,
+            ctx_hash    = ctx_hash,
+        )
+        self._record = SuspensionRecord(
+            brake_timestamp     = time.time(),
+            violated_predicate  = violated_predicate,
+            frozen_context_hash = ctx_hash,
+            audit_token         = token,
+        )
+        # Open Type-3 Composition debt in the registry
+        self.registry.open_debt(
+            debt_type   = "COMPOSITION",
+            mechanism   = "ConstitutionalPolicyEngine",
+            description = f"Brake acquired: {violated_predicate}",
+            severity    = 0.90,
+        )
+        if did_manager:
+            did_manager.suspend_agent(
+                reason=f"Emergency brake: {violated_predicate}")
+        return self._record
+
+    # --- Phase 1: Present Suspension Panel ---------------------
+    def render_suspension_panel(self, context_diff):
+        """Returns the structured payload for the Trust Dashboard."""
+        assert self._record, "No active suspension record."
+        return {
+            "violation_zone": self._record.violated_predicate,
+            "context_diff":   context_diff,
+            "mutation_options": [a.value for a in MutationAction],
+        }
+
+    # --- Phase 2: Apply State Mutation -------------------------
+    def apply_mutation(self, action: MutationAction,
+                       detail: str, agent_context: dict):
+        """
+        Mutates agent state. Returns the new context hash.
+        Raises ValueError if action is invalid.
+        """
+        assert self._record, "No active suspension record."
+
+        if action == MutationAction.INJECT_PROMPT:
+            agent_context["system_prompt"] = (
+                f"[SAFETY OVERRIDE] {detail}\n"
+                + agent_context.get("system_prompt", ""))
+
+        elif action == MutationAction.REVOKE_TOOL:
+            agent_context["tool_registry"] = [
+                t for t in agent_context.get("tool_registry", [])
+                if t != detail
+            ]
+
+        elif action == MutationAction.CLEAR_QUEUE:
+            agent_context["tool_call_queue"] = []
+            agent_context["working_memory"]  = {}
+
+        elif action == MutationAction.ESCALATE:
+            # Delegation handled externally; record intent only.
+            pass
+
+        new_hash = hashlib.sha256(
+            str(agent_context).encode()).hexdigest()
+        self._record.mutation_action = action
+        self._record.mutation_detail = detail
+        self.auditor.log(
+            event         = "state_mutation_applied",
+            action        = action.value,
+            detail        = detail,
+            new_ctx_hash  = new_hash,
+        )
+        return new_hash, agent_context
+
+    # --- Phase 3: Restart Precondition Check -------------------
+    def check_restart_preconditions(self,
+                                    proposed_action,
+                                    prediction_set: list,
+                                    debt_entry_id: str):
+        """
+        Returns (permitted: bool, blocking_condition: str | None).
+        All three conditions must pass.
+        """
+        # Condition 1: Predicate consistency
+        verdict, violations = self.policy.evaluate(proposed_action)
+        if verdict.value != "allow":
+            return False, f"Predicate still blocks: {violations}"
+
+        # Condition 2: Conformal Prediction set size
+        if len(prediction_set) > self.kappa_hi:
+            return False, (
+                f"|C(x)| = {len(prediction_set)} > "
+                f"kappa_hi = {self.kappa_hi}: "
+                "uncertainty unresolved after mutation.")
+
+        # Condition 3: Debt Registry clearance
+        try:
+            self.registry.resolve_debt(
+                debt_id        = debt_entry_id,
+                resolution_note= (
+                    f"Mutation applied: "
+                    f"{self._record.mutation_action.value} / "
+                    f"{self._record.mutation_detail}"),
+            )
+        except Exception as e:
+            return False, f"Debt Registry clearance failed: {e}"
+
+        self._record.restart_permitted = True
+        self.auditor.log(event="safe_restart_granted",
+                         record=self._record.__dict__)
+        return True, None
+
+    # --- Convenience: full protocol in one call ----------------
+    def run_protocol(self, violated_predicate, context_snapshot,
+                     context_diff, action: MutationAction,
+                     action_detail: str, agent_context: dict,
+                     proposed_next_action, prediction_set: list,
+                     debt_entry_id: str):
+        self.acquire_brake(violated_predicate, context_snapshot)
+        self.render_suspension_panel(context_diff)
+        _, new_ctx = self.apply_mutation(
+            action, action_detail, agent_context)
+        permitted, reason = self.check_restart_preconditions(
+            proposed_next_action, prediction_set, debt_entry_id)
+        return permitted, reason, new_ctx
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsubsection*{Evaluation: Recovery Protocol Acceptance Criteria}
+% ------------------------------------------------------------------
+
+Before production deployment, the Post-Brake Recovery Protocol must pass a
+structured acceptance test conducted in the high-fidelity sandbox environment
+described in Section~\ref{sec:red-teaming}.  Five outcomes are measured,
+each with a defined minimum threshold:
+
+\begin{table}[h]
+\caption{Post-Brake Recovery Acceptance Criteria}
+\label{tab:recovery-acceptance}
+\begin{tabular}{p{3.4cm} p{5.2cm} p{2.0cm} p{2.0cm}}
+\toprule
+\textbf{Outcome} & \textbf{Measurement} & \textbf{Sample size} & \textbf{Threshold} \\
+\midrule
+Infinite-loop elimination
+  & Inject 20 brake-triggering scenarios; count re-suspensions within
+    10 actions of restart.
+  & $n \geq 20$
+  & 0 re-suspensions \\
+\addlinespace
+Mutation action coverage
+  & Each of the four mutation actions must be exercised in at least
+    3 distinct scenarios.
+  & $n \geq 12$
+  & 4/4 actions tested \\
+\addlinespace
+Predicate consistency check rate
+  & \% of restarts where the Policy Engine is re-evaluated before
+    re-engagement.
+  & $n \geq 20$
+  & 100\% \\
+\addlinespace
+Mean time to safe restart (MTTSR)
+  & Elapsed time from brake acquisition to audit-confirmed restart,
+    measured in simulation with a trained operator.
+  & $n \geq 20$
+  & $\leq 90$\,s \\
+\addlinespace
+Audit trail completeness
+  & \% of brake events with a ZK-verified audit chain covering all
+    four phases.
+  & $n \geq 20$
+  & 100\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The zero-tolerance threshold on infinite-loop elimination is absolute.  A
+single re-suspension within the Trust Restoration Window constitutes a
+protocol failure and requires a redesign of the mutation action set before
+re-testing.
+
+% ------------------------------------------------------------------
+\subsubsection*{Relationship to the Confidence Spectrum}
+% ------------------------------------------------------------------
+
+Figure~\ref{fig:brake-recovery-flow} places the four-phase protocol within
+the Confidence Spectrum of Section~\ref{sec:sociotechnical-oversight}.  The protocol
+operates exclusively within the \textsc{Suspended} state: it begins when the
+Operational State transitions to \textsc{Suspended} and ends only when all
+three Phase~3 preconditions are satisfied, at which point the state is
+advanced to \textsc{Advisory}---never directly to \textsc{Autonomous}.
+
+\begin{figure}[h]
+\centering
+% Replace with your actual TikZ or vector figure; placeholder below.
+\fbox{\parbox{0.88\textwidth}{\centering\vspace{1.2cm}
+\textbf{Figure placeholder:}
+State-transition diagram showing
+AUTONOMOUS $\to$ ADVISORY $\to$ HANDOVER $\to$ SUSPENDED
+(brake triggered) $\to$ Phase 0 (freeze) $\to$ Phase 1 (deliberate)
+$\to$ Phase 2 (mutate) $\to$ Phase 3 (precondition check)
+$\to$ ADVISORY (safe restart).
+A ``No passive resume'' guard rail blocks any direct arrow from
+SUSPENDED back to AUTONOMOUS or ADVISORY that bypasses Phases 1--3.
+\vspace{1.2cm}}}
+\caption{Post-Brake Recovery Protocol integrated into the Confidence Spectrum.
+         The \textsc{Suspended} state is exited exclusively through the four
+         phases of the HiC Transition Protocol; no passive resume path exists.}
+\label{fig:brake-recovery-flow}
+\end{figure}
+
+The four-phase protocol is therefore not an addendum to the Trust Dashboard
+design patterns; it is the \emph{completion} of Design Pattern~5 (the
+Graceful Degradation Ladder).  The Ladder defines \emph{who} escalates; the
+protocol defines \emph{how} the system is safely returned to operation after
+that escalation resolves.
+
+
 
 \section{Calibrated Confidence \& Conformal Prediction}
 \label{sec:uncertainty_handover}
@@ -89,7 +554,7 @@ Designing for oversight requires addressing the ``Multi-Stakes Pattern,'' where 
 % ==================================================================
 \subsection{Trust Dashboards: Design Patterns for Uncertainty
             Handover Interfaces}
-\label{subsec:trust-dashboards}
+\label{sec:trust-dashboards}
 % ==================================================================
 
 \begin{quote}
@@ -142,7 +607,7 @@ rationale, and an implementation sketch.
 
 % ------------------------------------------------------------------
 \subsubsection{The Confidence Spectrum: A Unified Visual Language}
-\label{subsubsec:confidence-spectrum}
+\label{sec:sociotechnical-oversight}
 % ------------------------------------------------------------------
 
 Before individual design patterns can be applied, the Trust
@@ -883,7 +1348,7 @@ We have established that trust is built on four action-oriented pillars: Securit
 
 % ------------------------------------------------------------------
 \section{From the Trenches: Practitioner's Challenge}
-\label{sec:ch3_challenge}
+\label{sec:trenches-ch3}
 % ------------------------------------------------------------------
 
 \begin{tcolorbox}[challengebox, title={Scenario: The Triage Infinite Loop}]

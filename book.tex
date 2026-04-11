@@ -38,6 +38,11 @@
 \pgfplotsset{compat=1.18}
 \usepackage{tcolorbox}         % design-pattern boxes (Ch.3 Trust Dashboards)
 \tcbuselibrary{skins,breakable}
+\usepackage{booktabs}               % for professional tables (\toprule, \midrule, etc.)
+\usepackage{longtable}              % tables spanning multiple pages (Ch.25 ATTM)
+\usepackage{pdflscape}              % landscape orientation for wide tables
+\usepackage{rotating}               % rotating figures/tables
+\usepackage{pifont}                 % Dingbats (cross-marks for ATTM gaps)
 
 % --- Pedagogical Box Styles ---
 \tcbset{
@@ -155,6 +160,7 @@
 \include{Chapters/Chapter26}
 \include{Chapters/Chapter27}
 \include{Chapters/Chapter28}
+\include{Chapters/Chapter29}
 
 \appendix
 \include{Chapters/AppendixA}

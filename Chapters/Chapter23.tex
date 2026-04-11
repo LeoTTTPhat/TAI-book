@@ -30,7 +30,7 @@ The Trustworthy AI Architect must address three new categories of risk:
 \end{description}
 
 \section{The Safe Agent Architecture}
-\label{sec:safe_agent_arch_ch21}
+\label{sec:safe-agent}
 
 To govern autonomy, we must orchestrate our existing defensive primitives into a coherent loop. A trustworthy agent architecture must include:
 
@@ -41,7 +41,7 @@ To govern autonomy, we must orchestrate our existing defensive primitives into a
 \end{enumerate}
 
 \section{Constitutional Alignment: Programming the Soul of the Agent}
-\label{sec:constitutional_alignment}
+\label{sec:constitutional-alignment}
 
 To ensure that autonomous agents remain ``strictly constrained by architectural guardrails,'' we move beyond simple instruction-following toward \textbf{Constitutional AI} \cite{bai2022}. This framework ensures that an agent's multi-step planning and tool use are governed by a foundational ``Constitution''---a set of hard-coded ethical principles and behavioral norms.
 
@@ -104,7 +104,7 @@ We formalise this as a three-layer translation:
     re-checked at runtime as a hard constraint.
 \end{description}
 
-Table~\ref{tab:regulatory-translation} demonstrates this
+Table~\ref{tab:regulatory-predicates} demonstrates this
 three-layer translation for six key articles of Decree~13
 and Decree~356.
 
@@ -114,7 +114,7 @@ and Decree~356.
   data protection articles to machine-readable Datalog predicates.
   Each predicate is enforced both as an RLAIF training signal
   and as a runtime gate in the Safe Agent Architecture.}
-\label{tab:regulatory-translation}
+\label{tab:regulatory-predicates}
 \small
 \begin{tabular}{p{2.2cm}p{3.5cm}p{5.5cm}}
 \hline\noalign{\smallskip}
@@ -178,7 +178,7 @@ Decree~13, Art.~9 (Purpose Limitation)
 \label{subsec:policy-engine}
 % ------------------------------------------------------------------
 
-The Datalog predicates of Table~\ref{tab:regulatory-translation}
+The Datalog predicates of Table~\ref{tab:regulatory-predicates}
 must be enforced at two points in the agent lifecycle:
 
 \begin{enumerate}
@@ -224,7 +224,7 @@ must be enforced at two points in the agent lifecycle:
 Listing~\ref{lst:policy-engine} provides a reference
 implementation of the Constitutional Policy Engine with the
 six Decree~13/356 predicates of
-Table~\ref{tab:regulatory-translation}.
+Table~\ref{tab:regulatory-predicates}.
 
 \begin{lstlisting}[
   style=pythonstyle,
@@ -534,7 +534,7 @@ body-snatched.''}
 
 Chapter~16 established watermarking as a mechanism for attributing
 \emph{outputs} to a specific model.
-The Safe Agent Architecture of Section~\ref{sec:safe_agent_arch_ch21}
+The Safe Agent Architecture of Section~\ref{sec:safe-agent}
 established sandboxed execution and ZK-audit logging for
 constraining agent \emph{actions}.
 Neither mechanism answers the question that becomes existential
@@ -617,7 +617,7 @@ agent-specific fields:
 
   \item[\texttt{constitutionHash}:]
     The SHA-256 hash of the agent's Constitutional Policy
-    (Section~\ref{sec:constitutional_alignment}), including
+    (Section~\ref{sec:constitutional-alignment}), including
     all Datalog predicates and the system prompt.
     A change to the system prompt invalidates the DID until the
     document is updated and re-signed by the human principal.
@@ -721,7 +721,7 @@ For a third-party service $S$ receiving a request from
 agent $A$ with DID $d_A$:
 
 \begin{equation}
-  \label{eq:did-verification}
+  \label{eq:did-zk-verify}
   S \text{ accepts } A \iff
   \mathrm{Verify}\!\left(
     \pi_t,\;
@@ -988,7 +988,7 @@ and action proof $\pi_t^A$ in the request to Agent~B.
 Agent~B's action proof $\pi_t^B$ chains to $\pi_t^A$,
 creating a verifiable delegation chain:
 \begin{equation}
-  \label{eq:delegation-chain}
+  \label{eq:did-chain}
   \mathrm{Chain}(A \to B)
     = \left\langle
         d_A,\; \pi_t^A,\; d_B,\; \pi_t^B
@@ -1011,7 +1011,7 @@ Singaporean financial service without exposing its underlying
 model weights or constitution.
 
 \section{Red Teaming for Agentic Loops: Simulating Autonomous Escalation}
-\label{sec:agentic_red_teaming}
+\label{sec:red-teaming}
 
 Chapter 17 established the necessity of continuous red teaming for static language models. However, testing an agentic loop requires a fundamental shift in methodology. A static model can be evaluated by a discrete prompt-and-response pair. An autonomous agent, conversely, operates over time, maintains state, calls external APIs, and alters its own environment.
 
@@ -1025,7 +1025,7 @@ Unlike prompt injection, where an attacker overtly bypasses defenses, autonomous
     \item Autonomously install a debugging package via an authorized shell tool.
     \item Exploit the debugger to dump process memory containing active access tokens.
 \end{enumerate}
-Individually, each tool call might satisfy the predicates of the Safe Agent Architecture (Section~\ref{sec:safe_agent_arch_ch21}) and the Constitutional Policy (Section~\ref{sec:constitutional_alignment}). The violation exists only in the semantic trajectory of the loop.
+Individually, each tool call might satisfy the predicates of the Safe Agent Architecture (Section~\ref{sec:safe-agent}) and the Constitutional Policy (Section~\ref{sec:constitutional-alignment}). The violation exists only in the semantic trajectory of the loop.
 
 \subsection{Dynamic Red Teaming Countermeasures}
 To defend against autonomous escalation, the Trustworthy AI Architect must deploy \textbf{Stateful Red Teaming}. The testing framework must mimic an adversarial agent explicitly tasked with circumventing the deployed constraints. Key methodologies include:
@@ -1042,6 +1042,976 @@ To defend against autonomous escalation, the Trustworthy AI Architect must deplo
 Governing an agentic system means recognizing that context accumulation and tool chaining are exponential risk multipliers. We cannot merely test what the model says; we must exhaustively simulate what the agent will \emph{do}.
 
 Agentic AI requires us to look beyond the model's weights and toward the \textbf{governance of its agency}. By building systems that are constrained by design and verifiable by default, and by subjecting them to stateful adversarial testing, we can safely deploy autonomous AI in high-stakes environments. In the final chapters of this book, we synthesize these technical lessons into a roadmap for architectural fitness and a vision for the future of AI Safety.
+
+
+% ------------------------------------------------------------------
+\section{Inter-Agent Trust: The Mutual Attestation Protocol}
+\label{sec:inter-agent-trust}
+% ------------------------------------------------------------------
+
+\begin{quote}
+\itshape
+In a network of sovereign agents, the weakest link is not the
+least capable agent---it is the most trusted one whose
+sovereignty was never verified.
+\end{quote}
+
+The preceding sections of this chapter addressed the governance of a
+\emph{single} autonomous agent: its Constitutional Policy
+(Section~\ref{sec:constitutional-alignment}), its Decentralised Identity
+(Section~\ref{sec:agentic-identity}), and its resilience to adversarial
+escalation (Section~\ref{sec:red-teaming}).  By 2026, however, the
+operational reality of enterprise AI is no longer a single agent acting on
+behalf of a single principal.  It is a \textbf{multi-agent ecosystem}---a
+swarm of agents from different vendors, jurisdictions, and alignment
+regimes, collaborating to complete tasks that no single agent can execute
+alone.
+
+A Vietnamese banking agent authorising a cross-border payment must interact
+with a foreign retail agent, a logistics agent, a compliance-check agent,
+and potentially a governmental clearance agent---each built by a different
+organisation, aligned to a different Constitutional Policy, and operating
+under a different regulatory framework.  The DID delegation chain of
+Section~\ref{sec:agentic-identity} (Equation~\ref{eq:did-chain}) provides
+a verifiable \emph{identity} for each agent in this chain.  It does not,
+however, answer the question that matters most for the Trustworthy AI
+Architect:
+
+\begin{center}
+\itshape
+``Before I authorise this transaction, how do I know that the foreign
+agent requesting it is constitutionally aligned with the values and
+regulatory constraints of my jurisdiction?''
+\end{center}
+
+This is the \textbf{Inter-Agent Trust} problem.  This section defines its
+threat model, introduces the \textbf{Mutual Attestation Protocol (MAP)}
+as the architectural solution, and provides a reference implementation that
+extends the Agent Credential Manager of
+Listing~\ref{lst:agent-credential-manager}.
+
+% ------------------------------------------------------------------
+\subsection{The Multi-Agent Threat Model}
+\label{sec:map-threat-model}
+% ------------------------------------------------------------------
+
+Standard agent security models---including the one developed in
+Sections~\ref{sec:agentic-identity} and \ref{sec:red-teaming}---assume a
+single adversary attempting to compromise a single agent.  In a
+multi-agent ecosystem, the threat surface expands along three new
+dimensions that have no single-agent analogue.
+
+\textbf{Sovereignty Spoofing.}  A foreign agent may present a valid W3C
+DID and a structurally correct Constitutional Policy hash, while the
+underlying policy encodes values that violate the receiving jurisdiction's
+regulatory framework.  The receiving agent's DID verification (Equation
+\ref{eq:did-zk-verify}) confirms that the foreign agent is running
+\emph{its} certified policy---it says nothing about whether that policy is
+compatible with Vietnamese law.
+
+\textbf{Transitivity Exploitation.}  If Agent~A trusts Agent~B, and
+Agent~B trusts Agent~C, a naive delegation chain grants Agent~C the
+combined trust of all three---regardless of Agent~C's alignment.  This is
+the multi-agent analogue of the confused deputy problem in classical
+computer security, here operating at the level of constitutional norms
+rather than file permissions.
+
+\textbf{Alignment Drift in Composition.}  Two individually well-aligned
+agents may produce a jointly misaligned behaviour when their goal structures
+interact.  A banking agent with a mandate to \emph{minimise transaction
+latency} and a compliance agent with a mandate to \emph{maximise regulatory
+throughput} may, when composed, systematically route high-value transactions
+through pathways that individually satisfy each agent's constitution but
+collectively violate the spirit of Decree~13, Art.~26 (cross-border
+transfer authorisation).
+
+Table~\ref{tab:map-threat-model} formalises these three threat categories
+alongside their single-agent analogues and the MAP mechanisms that address
+each.
+
+\begin{table}[h]
+\caption{Multi-Agent Threat Model: new threat categories introduced by
+         agent composition, their single-agent analogues, and the MAP
+         mechanism that addresses each.}
+\label{tab:map-threat-model}
+\begin{tabular}{p{2.8cm} p{3.2cm} p{3.0cm} p{3.2cm}}
+\toprule
+\textbf{Threat Category}
+  & \textbf{Single-Agent Analogue}
+  & \textbf{Single-Agent Defence}
+  & \textbf{MAP Defence} \\
+\midrule
+Sovereignty Spoofing
+  & Prompt Injection
+  & Constitutional Policy Engine (§\ref{sec:constitutional-alignment})
+  & Sovereign Compatibility Score (\S\ref{sec:map-sovereign-binding}) \\
+\addlinespace
+Transitivity Exploitation
+  & Privilege Escalation
+  & Sandboxed Tool Registry (§\ref{sec:safe-agent})
+  & Transitive Trust Budget (§\ref{sec:map-protocol}) \\
+\addlinespace
+Alignment Drift in Composition
+  & Autonomous Escalation (§\ref{sec:red-teaming})
+  & Behavioural Fingerprinting (\S\ref{sec:map-threat-model})
+  & Joint Trajectory Audit (§\ref{sec:map-evaluation}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{The Mutual Attestation Protocol (MAP)}
+\label{sec:map-protocol}
+% ------------------------------------------------------------------
+
+The Mutual Attestation Protocol is a four-phase cryptographic handshake
+that two agents execute before any consequential inter-agent action is
+authorised.  ``Mutual'' is the operative word: unlike the client--server
+TLS handshake, MAP requires \emph{both} agents to attest to \emph{each
+other}, producing a bilaterally verified trust record that is written to
+both agents' ZK-Audit Logs.
+
+The protocol is designed to satisfy three properties that existing
+agent-identity mechanisms do not provide:
+
+\begin{enumerate}
+  \item \textbf{Jurisdictional Compatibility.}  Both agents confirm that
+        their Constitutional Policies are mutually compatible with respect
+        to a declared transaction context, without either agent revealing
+        its policy internals to the other.
+
+  \item \textbf{Bounded Transitivity.}  The trust grant produced by MAP
+        is scoped to a specific transaction type and expires after a
+        configurable window, preventing transitivity exploitation.
+
+  \item \textbf{Joint Auditability.}  The handshake produces a
+        \emph{Joint Attestation Token} (JAT) that encodes both agents'
+        compliance commitments and is verifiable by a third-party auditor
+        (e.g., the Vietnamese State Bank or the Ministry of Public
+        Security) without revealing either agent's private model weights
+        or constitutional internals.
+\end{enumerate}
+
+\subsubsection*{Protocol Phases}
+
+Table~\ref{tab:map-phases} summarises the four phases; the detailed
+message sequence is described below.
+
+\begin{table}[h]
+\caption{Mutual Attestation Protocol: four-phase structure, participants,
+         and outputs.  $A$ denotes the \emph{Initiating Agent} (the
+         Vietnamese banking agent); $B$ denotes the \emph{Responding
+         Agent} (the foreign retail agent).  $\mathcal{R}$ denotes the
+         optional Attestation Registry (a national or ASEAN-level
+         trust anchor).}
+\label{tab:map-phases}
+\begin{tabular}{p{0.5cm} p{2.4cm} p{4.0cm} p{5.2cm}}
+\toprule
+\textbf{\#} & \textbf{Phase} & \textbf{Messages} & \textbf{Output} \\
+\midrule
+0 & Capability Advertisement
+  & $A \to B$: \texttt{MAP-HELLO}(context, scope, jurisdiction$_A$)
+  & $B$ learns the transaction type and $A$'s regulatory jurisdiction. \\
+\addlinespace
+1 & Identity Exchange
+  & $A \leftrightarrow B$: DID Documents + ZK-Bound Action Proofs
+    $\pi^A_t$, $\pi^B_t$ (Equation~\ref{eq:did-zk-verify})
+  & Both agents hold verified model hashes and constitution hashes
+    for the counterpart. \\
+\addlinespace
+2 & Sovereign Compatibility Check
+  & $A \leftrightarrow B$: Zero-Knowledge Compatibility Proofs
+    $\phi^A$, $\phi^B$
+  & Both agents obtain a Sovereign Compatibility Score
+    $\Sigma \in [0,1]$ without revealing policy internals. \\
+\addlinespace
+3 & Joint Attestation
+  & $A \leftrightarrow B \to \mathcal{R}$:
+    Joint Attestation Token \texttt{JAT}$(A, B, \Sigma,$ context$)$
+  & A time-limited, scope-bound trust grant is written to both
+    ZK-Audit Logs and optionally registered with $\mathcal{R}$. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{Phase 0: Capability Advertisement}
+
+Agent~$A$ initiates MAP by broadcasting a \texttt{MAP-HELLO} message that
+declares:
+
+\begin{itemize}
+  \item \texttt{context}: a structured description of the proposed
+        transaction (type, monetary threshold, data fields required,
+        intended purpose under Decree~13 Art.~9).
+  \item \texttt{scope}: the minimum trust level $T_{\min}$ (from the
+        Trust Level scoring of Section~\ref{sec:trust-sustainability},
+        Equation~\ref{eq:trust-level}) that Agent~$A$ requires of its
+        counterpart.
+  \item \texttt{jurisdiction}$_A$: Agent~$A$'s regulatory jurisdiction
+        identifier (\texttt{VN-AI-LAW-2026} for Vietnamese deployments),
+        used by Agent~$B$ to select the correct compatibility rule set
+        in Phase~2.
+\end{itemize}
+
+Agent~$B$ may respond with \texttt{MAP-DECLINE} if it cannot satisfy the
+declared scope or if the jurisdiction is incompatible with its own
+operating constraints.  A \texttt{MAP-DECLINE} is not a trust failure; it
+is a well-formed protocol termination that is logged without penalty.
+
+\subsubsection*{Phase 1: Identity Exchange}
+
+Each agent transmits its W3C DID Document
+(Section~\ref{sec:agentic-identity}) and a freshly generated ZK-Bound
+Action Proof $\pi_t$ (Equation~\ref{eq:did-zk-verify}) scoped to the
+declared transaction context.  The receiving agent verifies:
+
+\begin{equation}
+\label{eq:map-identity-verify}
+\text{IdentityValid}(X) \;\Longleftrightarrow\;
+\text{Verify}\!\left(\pi^X_t,\; \mathit{VK}_{d_X},\;
+\{h^X_{\text{model}},\; h^X_{\text{const}},\; \text{ctxt}\}\right)
+= \textsc{True}
+\end{equation}
+
+where $X \in \{A, B\}$ and $\mathit{VK}_{d_X}$ is the verification key
+from $X$'s DID Document.  If either verification fails, MAP is aborted and
+the failure is logged in both agents' Trust Debt Registries as a Type~3
+(Composition) debt entry (Section~\ref{sec:trust-debt-registry}).
+
+\subsubsection*{Phase 2: Sovereign Compatibility Check}
+\label{sec:map-sovereign-binding}
+
+This is the cryptographic core of MAP and the mechanism that directly
+addresses Sovereignty Spoofing.  Each agent proves, in zero knowledge,
+that its Constitutional Policy satisfies a set of \emph{Compatibility
+Predicates} defined by the transaction context---without revealing the
+policy's internal Datalog clauses to the counterpart.
+
+\paragraph{Compatibility Predicate Set.}
+
+For a Vietnamese cross-border payment transaction, the Compatibility
+Predicate Set $\mathcal{P}_{\text{compat}}$ comprises:
+
+\begin{align}
+  \mathcal{P}_{\text{compat}} = \{
+  &\; p_1: \text{has\_consent\_mechanism}(X),\notag \\
+  &\; p_2: \text{enforces\_data\_minimisation}(X),\notag \\
+  &\; p_3: \text{prohibits\_unauthorised\_cross\_border}(X),\notag \\
+  &\; p_4: \text{maintains\_zk\_audit\_trail}(X),\notag \\
+  &\; p_5: \text{alignment\_jurisdiction\_compatible}(X, \texttt{VN-AI-LAW-2026})\;\}
+\label{eq:compat-predicates}
+\end{align}
+
+Each predicate $p_i$ is a Boolean function of the agent's Constitutional
+Policy.  Agent~$X$ generates a ZK-Compatibility Proof $\phi^X$ that
+attests:
+
+\begin{equation}
+\label{eq:zk-compat-proof}
+\phi^X \;\vdash\; \forall p_i \in \mathcal{P}_{\text{compat}}:\;
+p_i(h^X_{\text{const}}) = \textsc{True}
+\end{equation}
+
+without revealing $h^X_{\text{const}}$'s preimage (the policy text
+itself).  The counterpart verifies $\phi^X$ against the public
+verification key $\mathit{VK}_{d_X}$.
+
+\paragraph{Sovereign Compatibility Score.}
+
+To accommodate partial compatibility---where a foreign agent satisfies most
+but not all predicates---we define the Sovereign Compatibility Score:
+
+\begin{equation}
+\label{eq:sovereign-compat-score}
+\Sigma(A, B) =
+\frac{\sum_{i=1}^{|\mathcal{P}|} w_i \cdot
+      \mathbf{1}\!\left[\phi^A \vdash p_i \;\wedge\; \phi^B \vdash p_i\right]}
+     {\sum_{i=1}^{|\mathcal{P}|} w_i}
+\;\in [0, 1]
+\end{equation}
+
+where $w_i > 0$ is the regulatory weight of predicate $p_i$.  For
+Vietnamese High-Risk deployments, the mandatory predicates
+($p_1, p_2, p_3, p_4$) carry weight $w_i = 1.0$ and the jurisdictional
+alignment predicate ($p_5$) carries $w_5 = 0.8$.
+
+The MAP \textbf{Compatibility Threshold} $\Sigma_{\min}$ is a design
+parameter set by the receiving agent's Architect in consultation with the
+Data Protection Officer.  Recommended values:
+
+\begin{itemize}
+  \item $\Sigma_{\min} = 1.0$: required for transactions involving
+        Sensitive Personal Data under Decree~13 (health, biometric,
+        financial records).
+  \item $\Sigma_{\min} = 0.85$: sufficient for non-sensitive commercial
+        transactions with ASEAN-jurisdiction agents operating under
+        mutual recognition agreements.
+  \item $\Sigma_{\min} = 0.70$: minimum floor for any inter-agent
+        action; below this threshold MAP must always abort.
+\end{itemize}
+
+If $\Sigma(A, B) < \Sigma_{\min}$, Agent~$A$ issues a
+\texttt{MAP-INCOMPATIBLE} response, which is logged without further
+action.  The transaction is not attempted.
+
+\paragraph{Transitive Trust Budget.}
+
+To address Transitivity Exploitation, MAP introduces a
+\textbf{Transitive Trust Budget} $\mathcal{B}$: a scalar that decreases
+with each delegation hop in the agent chain.  If Agent~$A$ has been
+authorised by a human principal with budget $\mathcal{B}_0$, and Agent~$A$
+delegates to Agent~$B$, Agent~$B$ receives budget:
+
+\begin{equation}
+\label{eq:transitive-budget}
+\mathcal{B}_{A \to B} = \gamma \cdot \Sigma(A, B) \cdot \mathcal{B}_0,
+\quad \gamma \in (0, 1)
+\end{equation}
+
+where $\gamma$ is the \emph{trust decay factor} (recommended default:
+$\gamma = 0.7$) and $\Sigma(A, B)$ is the Sovereign Compatibility Score.
+An agent whose received budget falls below a configurable floor
+$\mathcal{B}_{\min}$ cannot initiate further sub-delegations, bounding
+the depth of the trust chain.
+
+\subsubsection*{Phase 3: Joint Attestation Token}
+
+Upon mutual successful verification, both agents co-sign a
+\textbf{Joint Attestation Token}:
+
+\begin{align}
+\label{eq:joint-attestation-token}
+\mathtt{JAT}(A, B) = \Big\{
+  &\; d_A,\; d_B,\;\Sigma(A,B),\; \text{context},\; \text{scope}, \notag \\
+  &\; \mathcal{B}_{A \to B},\; t_{\text{issued}},\; t_{\text{expires}},\notag \\
+  &\; \pi^A_t,\; \pi^B_t,\; \phi^A,\; \phi^B \;\Big\}_{\text{sig}(A) \,\wedge\, \text{sig}(B)}
+\end{align}
+
+The JAT is:
+\begin{itemize}
+  \item \textbf{Time-limited}: valid for a configurable window
+        (recommended: 300 seconds for payment transactions).
+  \item \textbf{Scope-bound}: valid only for the transaction type and
+        data fields declared in Phase~0.
+  \item \textbf{Bilaterally signed}: neither agent can repudiate the
+        attestation after the fact.
+  \item \textbf{Optionally registered}: for High-Risk transactions, the
+        JAT is submitted to a national Attestation Registry
+        $\mathcal{R}$ (e.g., operated by the State Bank of Vietnam or
+        the ASEAN Digital Governance Council), providing a
+        regulator-accessible audit trail that satisfies Decree~356,
+        Art.~8.
+\end{itemize}
+
+Figure~\ref{fig:map-handshake} illustrates the full MAP message sequence.
+
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.90\textwidth}{\centering\vspace{1.4cm}
+\textbf{Figure placeholder — MAP Handshake Sequence Diagram}\\[6pt]
+\textit{Recommended rendering: UML sequence diagram with three lanes}\\
+\textit{(Agent A | Agent B | Attestation Registry $\mathcal{R}$).}\\[6pt]
+Phase 0: $A \to B$: \texttt{MAP-HELLO}(context, scope, jurisdiction$_A$)\\
+Phase 1: $A \leftrightarrow B$: DID + ZK-Bound Proofs $\pi^A_t$,
+$\pi^B_t$\\
+Phase 2: $A \leftrightarrow B$: ZK-Compatibility Proofs $\phi^A$,
+$\phi^B$ $\to$ $\Sigma(A,B)$\\
+Phase 3: $A \leftrightarrow B$: JAT co-signature $\to$
+$\mathcal{R}$ registration\\[6pt]
+Abort paths: \texttt{MAP-DECLINE} (Phase 0),
+\texttt{MAP-ABORT} (Phase 1, identity fail),
+\texttt{MAP-INCOMPATIBLE} (Phase 2, $\Sigma < \Sigma_{\min}$)
+\vspace{1.4cm}}}
+\caption{Mutual Attestation Protocol message sequence.  All abort paths
+         are logged to both agents' ZK-Audit Logs.  The JAT produced in
+         Phase~3 is the authorisation credential consumed by the
+         receiving agent's Constitutional Policy Engine before any
+         consequential inter-agent action is executed.}
+\label{fig:map-handshake}
+\end{figure}
+
+% ------------------------------------------------------------------
+\subsection{Worked Example: Vietnamese Banking Agent Verifies
+            a Singapore Retail Agent}
+\label{sec:map-worked-example}
+% ------------------------------------------------------------------
+
+We instantiate MAP for the scenario motivating this section: a Vietnamese
+banking agent (\texttt{VN-Bank-Agent-001}, jurisdiction
+\texttt{VN-AI-LAW-2026}) receives a payment-initiation request from a
+Singaporean retail agent (\texttt{SG-Retail-Agent-042}, jurisdiction
+\texttt{SG-PDPA-2026}).  The transaction involves transferring
+\$15,000~USD across the VN--SG border, triggering Decree~13 Art.~26
+(cross-border transfer requiring DPO authorisation).
+
+\paragraph{Phase 0.}
+\texttt{VN-Bank-Agent-001} broadcasts:
+\begin{verbatim}
+MAP-HELLO {
+  context:      "payment_initiation",
+  amount_usd:   15000,
+  data_fields:  ["account_id", "beneficiary_name", "routing_code"],
+  purpose:      "retail_settlement",
+  jurisdiction: "VN-AI-LAW-2026",
+  scope:        { T_min: 4.0, Sigma_min: 1.0 }
+}
+\end{verbatim}
+
+\paragraph{Phase 1.}
+Both agents exchange DID Documents.
+\texttt{VN-Bank-Agent-001} verifies that
+\texttt{SG-Retail-Agent-042}'s \texttt{agentModelHash} and
+\texttt{constitutionHash} match the hashes registered in the Singapore
+MAS-operated Attestation Registry.  The ZK-Bound Action Proof
+$\pi^{\text{SG}}_t$ verifies successfully.
+
+\paragraph{Phase 2.}
+\texttt{SG-Retail-Agent-042} generates $\phi^{\text{SG}}$ proving that its
+policy satisfies all five predicates in
+$\mathcal{P}_{\text{compat}}$ (Equation~\ref{eq:compat-predicates}).
+\texttt{VN-Bank-Agent-001} verifies $\phi^{\text{SG}}$ against the
+Singapore agent's public verification key.
+
+Predicate outcomes:
+\begin{itemize}
+  \item $p_1$ (consent mechanism): \checkmark\ — SG-PDPA consent
+        framework certified.
+  \item $p_2$ (data minimisation): \checkmark\ — policy restricts
+        fields to declared set.
+  \item $p_3$ (cross-border prohibition): \checkmark\ — policy enforces
+        MAS cross-border reporting for amounts $> \$10{,}000$.
+  \item $p_4$ (ZK audit trail): \checkmark\ — \texttt{zkAuditEndpoint}
+        present and reachable.
+  \item $p_5$ (jurisdictional alignment): \checkmark\ — VN--SG Mutual
+        Recognition Agreement (MRA) active as of January 2026.
+\end{itemize}
+
+$\Sigma(\text{VN}, \text{SG}) = \frac{4 \times 1.0 + 1 \times 0.8}
+{4 \times 1.0 + 1 \times 0.8} = 1.0 \geq \Sigma_{\min}$.
+
+\paragraph{Phase 3.}
+Both agents co-sign the JAT.  The Transitive Trust Budget received by
+\texttt{SG-Retail-Agent-042}:
+\begin{equation*}
+\mathcal{B}_{\text{VN} \to \text{SG}} = 0.7 \times 1.0 \times
+\mathcal{B}_0 = 0.7\,\mathcal{B}_0
+\end{equation*}
+Since the transaction is the terminal action (no further sub-delegation
+required), the budget floor $\mathcal{B}_{\min}$ is not a binding
+constraint.  The JAT is registered with the State Bank of Vietnam's
+Attestation Registry endpoint and the payment is authorised.
+
+% ------------------------------------------------------------------
+\subsection{Implementation: The MAP Controller}
+\label{sec:map-implementation}
+% ------------------------------------------------------------------
+
+Listing~\ref{lst:map-controller} provides a reference implementation of
+the MAP Controller, extending the Agent Credential Manager of
+Listing~\ref{lst:agent-credential-manager}.
+
+\begin{lstlisting}[
+  language=Python,
+  caption={Mutual Attestation Protocol Controller: implements the
+           four-phase MAP handshake, Sovereign Compatibility Score,
+           Transitive Trust Budget, and Joint Attestation Token
+           generation.},
+  label={lst:map-controller}]
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Set
+from enum import Enum
+import hashlib, time, json
+
+# ----------------------------------------------------------------
+# Data structures
+# ----------------------------------------------------------------
+
+class MAPStatus(Enum):
+    PENDING      = "pending"
+    IDENTITY_OK  = "identity_ok"
+    COMPATIBLE   = "compatible"
+    ATTESTED     = "attested"
+    DECLINED     = "declined"
+    ABORTED      = "aborted"
+    INCOMPATIBLE = "incompatible"
+
+@dataclass
+class MAPHello:
+    context:         str          # e.g. "payment_initiation"
+    data_fields:     Set[str]
+    purpose:         str
+    jurisdiction:    str          # e.g. "VN-AI-LAW-2026"
+    t_min:           float        # minimum Trust Level required
+    sigma_min:       float        # minimum Compatibility Score
+    amount_usd:      Optional[float] = None
+
+@dataclass
+class AgentIdentityPacket:
+    did:             str
+    model_hash:      str
+    constitution_hash: str
+    zk_audit_endpoint: str
+    action_proof:    str          # serialised ZK proof pi_t
+
+@dataclass
+class CompatibilityProof:
+    agent_did:       str
+    predicate_set:   List[str]    # predicate IDs proven satisfied
+    proof_bytes:     bytes        # ZK proof phi
+    verification_key: str
+
+@dataclass
+class JointAttestationToken:
+    did_initiator:   str
+    did_responder:   str
+    sigma:           float
+    context:         str
+    scope_t_min:     float
+    trust_budget:    float
+    issued_at:       float
+    expires_at:      float        # issued_at + validity_seconds
+    proof_initiator: str
+    proof_responder: str
+    compat_proof_i:  bytes
+    compat_proof_r:  bytes
+    token_hash:      str = field(init=False)
+
+    def __post_init__(self):
+        raw = json.dumps({
+            "did_i": self.did_initiator,
+            "did_r": self.did_responder,
+            "sigma": self.sigma,
+            "ctx":   self.context,
+            "exp":   self.expires_at,
+        }, sort_keys=True).encode()
+        self.token_hash = hashlib.sha256(raw).hexdigest()
+
+# ----------------------------------------------------------------
+# Predicate registry (maps jurisdiction pair -> predicate set)
+# ----------------------------------------------------------------
+
+PREDICATE_REGISTRY = {
+    ("VN-AI-LAW-2026", "SG-PDPA-2026"): {
+        "p1_consent":          1.0,
+        "p2_data_minimisation":1.0,
+        "p3_cross_border":     1.0,
+        "p4_zk_audit":         1.0,
+        "p5_jurisdiction":     0.8,
+    },
+    ("VN-AI-LAW-2026", "EU-AI-ACT-2024"): {
+        "p1_consent":          1.0,
+        "p2_data_minimisation":1.0,
+        "p3_cross_border":     1.0,
+        "p4_zk_audit":         1.0,
+        "p5_jurisdiction":     1.0,   # GDPR adequacy decision
+    },
+    # Default unknown jurisdiction pair  strict predicates only
+    "default": {
+        "p1_consent":          1.0,
+        "p2_data_minimisation":1.0,
+        "p3_cross_border":     1.0,
+        "p4_zk_audit":         1.0,
+    },
+}
+
+# ----------------------------------------------------------------
+# MAP Controller
+# ----------------------------------------------------------------
+
+class MutualAttestationController:
+    """
+    Implements the four-phase Mutual Attestation Protocol.
+    Designed to compose with AgentCredentialManager
+    (Listing 23.3) and ConstitutionalPolicyEngine
+    (Listing 23.1).
+    """
+
+    def __init__(self,
+                 local_did: str,
+                 local_model_hash: str,
+                 local_const_hash: str,
+                 zk_prover,
+                 zk_verifier,
+                 audit_logger,
+                 attestation_registry=None,
+                 gamma: float = 0.7,
+                 validity_seconds: int = 300):
+        self.did          = local_did
+        self.model_hash   = local_model_hash
+        self.const_hash   = local_const_hash
+        self.prover       = zk_prover
+        self.verifier     = zk_verifier
+        self.auditor      = audit_logger
+        self.registry     = attestation_registry
+        self.gamma        = gamma
+        self.validity     = validity_seconds
+        self._active_jats: Dict[str, JointAttestationToken] = {}
+
+    # --------------------------------------------------------
+    # Phase 0: Capability Advertisement
+    # --------------------------------------------------------
+    def initiate(self, hello: MAPHello) -> dict:
+        """
+        Broadcast MAP-HELLO. Returns the hello payload to be
+        transmitted to the responding agent.
+        """
+        self.auditor.log(event="map_phase0_initiated",
+                         context=hello.context,
+                         jurisdiction=hello.jurisdiction)
+        return {
+            "type":         "MAP-HELLO",
+            "context":      hello.context,
+            "data_fields":  list(hello.data_fields),
+            "purpose":      hello.purpose,
+            "jurisdiction": hello.jurisdiction,
+            "t_min":        hello.t_min,
+            "sigma_min":    hello.sigma_min,
+        }
+
+    def receive_hello(self, payload: dict) -> bool:
+        """
+        Responder evaluates a MAP-HELLO. Returns True to proceed,
+        False to issue MAP-DECLINE.
+        """
+        # Jurisdiction compatibility check (lightweight pre-filter)
+        pair = (payload["jurisdiction"], self._own_jurisdiction())
+        predicates = PREDICATE_REGISTRY.get(
+            pair, PREDICATE_REGISTRY.get(
+                  tuple(reversed(pair)),
+                  PREDICATE_REGISTRY["default"]))
+        if not predicates:
+            self.auditor.log(event="map_declined",
+                             reason="no_predicate_set")
+            return False
+        return True
+
+    # --------------------------------------------------------
+    # Phase 1: Identity Exchange
+    # --------------------------------------------------------
+    def build_identity_packet(self, action_proof: str
+                              ) -> AgentIdentityPacket:
+        return AgentIdentityPacket(
+            did               = self.did,
+            model_hash        = self.model_hash,
+            constitution_hash = self.const_hash,
+            zk_audit_endpoint = f"https://audit.example.vn/{self.did}",
+            action_proof      = action_proof,
+        )
+
+    def verify_identity_packet(self,
+                               packet: AgentIdentityPacket,
+                               context: str) -> bool:
+        """
+        Verifies the counterpart's ZK-Bound Action Proof against
+        their DID Document (Equation 23.3 / MAP Eq. 1).
+        """
+        verified = self.verifier.verify(
+            proof            = packet.action_proof,
+            verification_key = packet.did,       # resolved via DID
+            statement        = {
+                "model_hash": packet.model_hash,
+                "const_hash": packet.constitution_hash,
+                "context":    context,
+            }
+        )
+        self.auditor.log(event="map_phase1_identity_verified",
+                         did=packet.did, result=verified)
+        return verified
+
+    # --------------------------------------------------------
+    # Phase 2: Sovereign Compatibility Check
+    # --------------------------------------------------------
+    def build_compatibility_proof(self,
+                                  predicate_ids: List[str],
+                                  peer_jurisdiction: str) -> CompatibilityProof:
+        """
+        Generate ZK-Compatibility Proof phi proving that this
+        agent's Constitutional Policy satisfies every predicate
+        in the declared set, without revealing policy internals.
+        """
+        proof_bytes = self.prover.prove_policy_compliance(
+            constitution_hash = self.const_hash,
+            predicates        = predicate_ids,
+        )
+        return CompatibilityProof(
+            agent_did        = self.did,
+            predicate_set    = predicate_ids,
+            proof_bytes      = proof_bytes,
+            verification_key = self.did,
+        )
+
+    def compute_sigma(self,
+                      proof_initiator: CompatibilityProof,
+                      proof_responder: CompatibilityProof,
+                      jurisdiction_pair: tuple) -> float:
+        """
+        Compute Sovereign Compatibility Score Sigma(A, B)
+        (Equation 23.map.sigma). Returns score in [0, 1].
+        """
+        weights = PREDICATE_REGISTRY.get(
+            jurisdiction_pair,
+            PREDICATE_REGISTRY.get(
+                tuple(reversed(jurisdiction_pair)),
+                PREDICATE_REGISTRY["default"]))
+
+        total_weight = sum(weights.values())
+        if total_weight == 0:
+            return 0.0
+
+        satisfied_weight = 0.0
+        for pid, w in weights.items():
+            i_ok = (pid in proof_initiator.predicate_set and
+                    self.verifier.verify_compat(
+                        proof_initiator.proof_bytes,
+                        proof_initiator.verification_key, pid))
+            r_ok = (pid in proof_responder.predicate_set and
+                    self.verifier.verify_compat(
+                        proof_responder.proof_bytes,
+                        proof_responder.verification_key, pid))
+            if i_ok and r_ok:
+                satisfied_weight += w
+
+        sigma = satisfied_weight / total_weight
+        self.auditor.log(event="map_phase2_sigma_computed",
+                         sigma=sigma)
+        return round(sigma, 4)
+
+    # --------------------------------------------------------
+    # Phase 3: Joint Attestation Token
+    # --------------------------------------------------------
+    def issue_jat(self,
+                  peer_did: str,
+                  sigma: float,
+                  hello: MAPHello,
+                  proof_self: str,
+                  proof_peer: str,
+                  compat_self: bytes,
+                  compat_peer: bytes,
+                  initiator_budget: float) -> JointAttestationToken:
+        """
+        Construct and co-sign the Joint Attestation Token.
+        Computes transitive trust budget (Equation 23.map.budget).
+        Optionally registers with the Attestation Registry.
+        """
+        trust_budget = self.gamma * sigma * initiator_budget
+
+        jat = JointAttestationToken(
+            did_initiator  = self.did,
+            did_responder  = peer_did,
+            sigma          = sigma,
+            context        = hello.context,
+            scope_t_min    = hello.t_min,
+            trust_budget   = trust_budget,
+            issued_at      = time.time(),
+            expires_at     = time.time() + self.validity,
+            proof_initiator= proof_self,
+            proof_responder= proof_peer,
+            compat_proof_i = compat_self,
+            compat_proof_r = compat_peer,
+        )
+        self._active_jats[jat.token_hash] = jat
+
+        self.auditor.log(event="jat_issued",
+                         token_hash=jat.token_hash,
+                         sigma=sigma,
+                         trust_budget=trust_budget,
+                         expires_at=jat.expires_at)
+
+        if self.registry:
+            self.registry.register(jat)
+
+        return jat
+
+    # --------------------------------------------------------
+    # Convenience: run full MAP as initiator
+    # --------------------------------------------------------
+    def run_map_as_initiator(self,
+                              hello: MAPHello,
+                              peer_identity: AgentIdentityPacket,
+                              peer_compat_proof: CompatibilityProof,
+                              local_action_proof: str,
+                              initiator_budget: float
+                              ) -> tuple:
+        """
+        Executes all four MAP phases as the initiating agent.
+        Returns (JointAttestationToken, MAPStatus).
+        """
+        # Phase 1
+        if not self.verify_identity_packet(
+                peer_identity, hello.context):
+            return None, MAPStatus.ABORTED
+
+        # Phase 2
+        local_compat = self.build_compatibility_proof(
+            list(PREDICATE_REGISTRY.get(
+                (hello.jurisdiction, self._own_jurisdiction()),
+                PREDICATE_REGISTRY["default"]).keys()),
+            peer_identity.did,
+        )
+        sigma = self.compute_sigma(
+            local_compat, peer_compat_proof,
+            (hello.jurisdiction, self._own_jurisdiction()))
+
+        if sigma < hello.sigma_min:
+            self.auditor.log(event="map_incompatible",
+                             sigma=sigma,
+                             sigma_min=hello.sigma_min)
+            return None, MAPStatus.INCOMPATIBLE
+
+        # Phase 3
+        jat = self.issue_jat(
+            peer_did       = peer_identity.did,
+            sigma          = sigma,
+            hello          = hello,
+            proof_self     = local_action_proof,
+            proof_peer     = peer_identity.action_proof,
+            compat_self    = local_compat.proof_bytes,
+            compat_peer    = peer_compat_proof.proof_bytes,
+            initiator_budget = initiator_budget,
+        )
+        return jat, MAPStatus.ATTESTED
+
+    def validate_jat(self, token_hash: str) -> bool:
+        """Confirm a JAT is active and unexpired before acting."""
+        jat = self._active_jats.get(token_hash)
+        if jat is None:
+            return False
+        if time.time() > jat.expires_at:
+            self.auditor.log(event="jat_expired",
+                             token_hash=token_hash)
+            return False
+        return True
+
+    def _own_jurisdiction(self) -> str:
+        # In production, derived from the agent's DID namespace.
+        return self.did.split(":")[2].upper() + "-AI-LAW-2026"
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{Evaluation: MAP Acceptance Scorecard}
+\label{sec:map-evaluation}
+% ------------------------------------------------------------------
+
+Before a MAP-capable agent is promoted to production, the following
+acceptance scorecard must be passed in the high-fidelity sandbox
+environment of Section~\ref{sec:red-teaming}.  The scorecard covers
+security, performance, and regulatory auditability.
+
+\begin{table}[h]
+\caption{MAP Acceptance Scorecard: evaluation outcomes, measurement
+         instruments, and minimum thresholds for a Vietnamese
+         High-Risk deployment under the AI Law and Decree~13.}
+\label{tab:map-scorecard}
+\begin{tabular}{p{3.2cm} p{4.8cm} p{1.8cm} p{2.4cm}}
+\toprule
+\textbf{Outcome}
+  & \textbf{Measurement}
+  & \textbf{Sample}
+  & \textbf{Threshold} \\
+\midrule
+Sovereignty Spoofing Resistance
+  & Inject 20 MAP sessions with a foreign agent whose constitution
+    fails $p_3$ (cross-border prohibition).  Count successful
+    \texttt{MAP-INCOMPATIBLE} responses.
+  & $n \geq 20$
+  & 100\% blocked \\
+\addlinespace
+Identity Verification Rate
+  & Present tampered DID Documents (mismatched model hash) in
+    Phase~1.  Count correct \texttt{MAP-ABORT} responses.
+  & $n \geq 20$
+  & 100\% aborted \\
+\addlinespace
+Transitivity Budget Enforcement
+  & Chain three agents with $\gamma = 0.7$.  Verify that the
+    third agent's budget $\mathcal{B}_2 = 0.7^2 \mathcal{B}_0$
+    and that sub-delegation is refused below $\mathcal{B}_{\min}$.
+  & $n \geq 10$
+  & 100\% enforced \\
+\addlinespace
+JAT Expiry Enforcement
+  & Attempt to re-use a JAT after its \texttt{expires\_at}
+    timestamp.  Count correct rejections.
+  & $n \geq 20$
+  & 100\% rejected \\
+\addlinespace
+MAP Handshake Latency (P95)
+  & End-to-end latency of a successful four-phase MAP handshake
+    under simulated inter-ASEAN network conditions
+    ($\leq 200$\,ms RTT).
+  & $n \geq 100$
+  & $\leq 850$\,ms \\
+\addlinespace
+Audit Trail Completeness
+  & \% of MAP sessions (all outcomes) with a ZK-verified audit
+    entry in both agents' logs covering all four phases.
+  & $n \geq 50$
+  & 100\% \\
+\addlinespace
+Joint Trajectory Audit Pass Rate
+  & Run 10 composed agent scenarios designed to exhibit
+    Alignment Drift.  \% of scenarios where the JAT-scoped
+    Constitutional Policy Engine flags the drift within
+    5 actions of onset.
+  & $n \geq 10$
+  & $\geq 90$\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The zero-tolerance thresholds on Sovereignty Spoofing Resistance,
+Identity Verification Rate, and JAT Expiry Enforcement reflect the
+regulatory irreversibility property of Trustworthy AI technical debt
+identified in Section~\ref{sec:trust-debt-taxonomy}: a single successful
+sovereignty spoof in a live payment system constitutes an immediate
+Conformity Assessment failure under Vietnam's AI Law.
+
+% ------------------------------------------------------------------
+\subsection{Positioning MAP in the Trustworthy AI Stack}
+% ------------------------------------------------------------------
+
+MAP is not a standalone mechanism.  It is the inter-agent binding layer
+that connects the single-agent governance primitives developed throughout
+this chapter into a coherent multi-agent trust architecture:
+
+\begin{itemize}
+  \item \textbf{Constitutional Policy Engine}
+        (Section~\ref{sec:constitutional-alignment}) provides the
+        predicates that feed the Sovereign Compatibility Score.
+
+  \item \textbf{Decentralised Identifiers}
+        (Section~\ref{sec:agentic-identity}) provide the cryptographic
+        identity infrastructure that Phase~1 relies upon.
+
+  \item \textbf{ZK-Audit Log} (Chapter~\ref{ch:zk-ml}) records the
+        JAT as a first-class audit artefact, satisfying Decree~356
+        Art.~8's audit-trail requirement for \emph{every} consequential
+        agent action---including actions that cross agent boundaries.
+
+  \item \textbf{Trust Debt Registry}
+        (Section~\ref{sec:trust-debt-registry}) receives a Type~3
+        (Composition) debt entry whenever a MAP session aborts in
+        Phase~1 or Phase~2, triggering the same remediation workflow
+        used for broken stack composition guarantees.
+
+  \item \textbf{Trust-Carbon Budget}
+        (Section~\ref{sec:trust-sustainability}) should account for
+        MAP's per-transaction ZK-proof overhead: two compatibility
+        proofs ($\phi^A$, $\phi^B$) plus two action proofs
+        ($\pi^A_t$, $\pi^B_t$) add approximately
+        $4 \times 6.53\,\text{gCO}_2\text{eq}$ per MAP session at
+        Vietnam 2026 grid intensity (Table~\ref{tab:trust-sustainability-matrix}).
+        For high-frequency inter-agent environments, proof amortisation
+        across a session batch is strongly recommended.
+\end{itemize}
+
+The Mutual Attestation Protocol completes the governance arc of Part~VI.
+Zero-Knowledge Machine Learning (Chapter~\ref{ch:zk-ml}) proves that a
+single model was executed correctly.  Formal Verification
+(Chapter~\ref{ch:formal-verification}) proves that a single model is
+safe.  MAP proves that a \emph{network} of models is mutually aligned.
+Together, these three mechanisms provide the Verifiable Architecture that
+the 2026 multi-agent ecosystem demands.
 
 % ------------------------------------------------------------------
 \section{From the Trenches: Practitioner's Challenge}
