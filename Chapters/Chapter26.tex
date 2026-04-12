@@ -1091,6 +1091,138 @@ A Trustworthy MLOps pipeline is not just a dashboard; it is an active control lo
     \item \textbf{Automated Retraining:} The system initiates a retraining loop using curated, recently localized data (following the integrity rules of Chapter 24).
 \end{enumerate}
 
+% ------------------------------------------------------------------
+\section{AI Model Forensics: Post-Incident Analysis and Evidence Preservation}
+\label{sec:model_forensics}
+% ------------------------------------------------------------------
+
+Continuous monitoring and drift detection (Section~\ref{sec:self_healing}) tell you \emph{when} something goes wrong. \textbf{AI Model Forensics} tells you \emph{what}, \emph{why}, and \emph{who is accountable}---the structured investigation discipline that begins the moment an Emergency Brake fires or a compliance alert is raised. Without forensics, post-incident reviews are reconstructions from incomplete memory; with them, they are verifiable replays of a cryptographically signed chain of evidence.
+
+Forensics in AI systems faces two constraints that do not appear in traditional software debugging:
+
+\begin{description}
+  \item[Privacy of Bystanders:] The evidence needed to reconstruct an incident---model inputs, intermediate activations, agent memory---often contains data belonging to \emph{other} users who were not party to the failure. Freezing and disclosing this evidence would constitute a secondary privacy breach.
+  \item[Model Weight Volatility:] Unlike a static binary, model weights change continuously under retraining. Without a forensic snapshot, the model state at the moment of failure is irrecoverable within hours.
+\end{description}
+
+\subsection{Incident Classification}
+\label{subsec:incident_classification}
+
+Before a forensic protocol can be applied, the incident must be classified. Table~\ref{tab:incident_classes} defines four severity classes, each with distinct forensic obligations.
+
+\begin{table}[ht]
+\centering
+\caption{AI Incident Classification and Forensic Obligations}
+\label{tab:incident_classes}
+\begin{tabular}{p{1.5cm} p{3.8cm} p{3.5cm} p{3.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Class} & \textbf{Trigger} & \textbf{Evidence Required} & \textbf{Retention Period} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+S1 & Harm to a data subject (physical, financial, reputational) & Full forensic snapshot + ZK-replay + DPO notification & 7 years (GDPR Art.~5) \\[4pt]
+S2 & Constitutional Policy violation without confirmed harm & Partial snapshot (context diff) + audit log chain & 3 years \\[4pt]
+S3 & Drift threshold breach with no policy violation & Drift metrics + retraining trigger log & 1 year \\[4pt]
+S4 & Operational anomaly (latency spike, OOM) & System telemetry + alert log & 90 days \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\subsection{The Forensic Capture Protocol}
+\label{subsec:forensic_capture}
+
+For S1 and S2 incidents, the following four-phase Forensic Capture Protocol executes automatically upon brake acquisition (complementing Phase~0 of the HiC Transition Controller, Chapter~\ref{chap:hitl}):
+
+\begin{enumerate}
+  \item \textbf{Weight Snapshot.} The exact model checkpoint ($\theta_t$) active at the moment of the incident is hashed (SHA-256) and written to immutable cold storage, tagged with the incident ID and timestamp. This is the forensic ``crime scene.''
+  \item \textbf{Differential Evidence Capture.} Only the context window of the \emph{violating session} is preserved---not raw inputs from other concurrent sessions. Inputs from bystander sessions are replaced with their HMAC tokens (verifiable proxies that confirm the input existed without revealing its content), preserving bystander privacy while maintaining audit integrity.
+  \item \textbf{ZK-Replay Certificate.} A Zero-Knowledge proof is generated, attesting that the sequence of inputs in the frozen context window produces the recorded output under the frozen model weights---without revealing either the inputs or the weights to any inspector who does not hold the decryption key.
+  \item \textbf{Regulatory Notification Package.} For S1 incidents, the system auto-generates a GDPR Article~33 notification draft, pre-populated with: the incident timestamp, the affected subject count (derived from HMAC token count), the technical root cause (the violated Datalog predicate), and the containment action taken (the HiC mutation applied).
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={Forensic Capture Controller: preserves differential evidence for incident investigation while protecting bystander privacy through HMAC tokenization of concurrent session inputs.},
+  label={lst:forensic-capture}]
+import hashlib, time, json
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+
+@dataclass
+class ForensicSnapshot:
+    incident_id:        str
+    severity_class:     str          # S1, S2, S3, S4
+    weight_hash:        str          # SHA-256 of model checkpoint
+    context_diff:       dict         # violating session only
+    bystander_tokens:   List[str]    # HMAC proxies, not raw inputs
+    zk_replay_cert:     Optional[str] = None
+    timestamp:          float = field(default_factory=time.time)
+
+class ForensicCaptureController:
+    """
+    Executes the four-phase Forensic Capture Protocol.
+    Designed to be called from HiCTransitionController.acquire_brake().
+    """
+    def __init__(self, cold_storage, zk_prover,
+                 hmac_key: bytes, audit_logger):
+        self.storage   = cold_storage
+        self.prover    = zk_prover
+        self.hmac_key  = hmac_key
+        self.auditor   = audit_logger
+
+    def _hash_weights(self, checkpoint_path: str) -> str:
+        import pathlib
+        data = pathlib.Path(checkpoint_path).read_bytes()
+        return hashlib.sha256(data).hexdigest()
+
+    def _tokenize_bystanders(self, concurrent_sessions: List[dict]) \
+            -> List[str]:
+        """Replace raw bystander inputs with HMAC tokens."""
+        return [
+            hashlib.blake2b(
+                json.dumps(s, sort_keys=True).encode(),
+                key=self.hmac_key, digest_size=32
+            ).hexdigest()
+            for s in concurrent_sessions
+        ]
+
+    def capture(self, incident_id: str, severity: str,
+                checkpoint_path: str, violating_context: dict,
+                concurrent_sessions: List[dict]) -> ForensicSnapshot:
+        # Phase 1: Weight snapshot
+        w_hash = self._hash_weights(checkpoint_path)
+        self.storage.write_immutable(
+            key=f"forensic/{incident_id}/weights",
+            value={"hash": w_hash, "path": checkpoint_path},
+        )
+
+        # Phase 2: Differential evidence
+        bystander_tokens = self._tokenize_bystanders(
+            concurrent_sessions)
+
+        # Phase 3: ZK-Replay certificate (async in production)
+        zk_cert = self.prover.prove_replay(
+            context=violating_context,
+            weight_hash=w_hash,
+        ) if severity in ("S1", "S2") else None
+
+        snap = ForensicSnapshot(
+            incident_id      = incident_id,
+            severity_class   = severity,
+            weight_hash      = w_hash,
+            context_diff     = violating_context,
+            bystander_tokens = bystander_tokens,
+            zk_replay_cert   = zk_cert,
+        )
+
+        self.auditor.log(event="forensic_capture_complete",
+                         incident_id=incident_id,
+                         severity=severity,
+                         weight_hash=w_hash)
+        return snap
+\end{lstlisting}
+
+\begin{svgraybox}
+\textbf{Design Heuristic:} Evidence preservation and bystander privacy are not in tension if the forensic architecture is designed correctly from the start. The key principle is \textbf{differential evidence}: capture only the minimal context required to reproduce the incident, and tokenize everything else. A forensic snapshot that contains one session's full context plus HMAC proxies for all concurrent sessions satisfies both the regulator's demand for reproducibility and the data subjects' right to confidentiality.
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_mlops}
 

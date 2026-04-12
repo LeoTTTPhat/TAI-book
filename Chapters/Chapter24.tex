@@ -526,6 +526,72 @@ architects building training pipelines in 2026:
     of Chapter~25.
 \end{enumerate}
 
+% ------------------------------------------------------------------
+\section{Hardware Integrity: From Silicon to System}
+\label{sec:hardware_integrity}
+% ------------------------------------------------------------------
+
+The supply chain attacks covered so far---dataset poisoning, synthetic contamination, adversarial model weights---all target the \emph{software} layers of the AI stack. Below the software, however, sits a hardware substrate whose integrity is equally critical and far harder to audit. A model trained with perfect DP-SGD, verified with ZK-ML, and deployed in a TEE can still be compromised if the \textbf{silicon} executing those computations is itself malicious.
+
+\subsection{Hardware Trojans: Silent Saboteurs in the Chip}
+\label{subsec:hardware_trojans}
+
+A \textbf{Hardware Trojan} is a malicious modification to an integrated circuit's design or manufacturing mask, introduced during fabrication at a foundry or during the chip design phase. Unlike software vulnerabilities, Hardware Trojans are:
+\begin{itemize}
+  \item \textbf{Persistent:} They survive software updates, OS reinstallation, and enclave re-provisioning.
+  \item \textbf{Targeted:} A Trojan can be designed to activate only when a specific model weight pattern or instruction sequence is executed, making it invisible under standard functional testing.
+  \item \textbf{Physically undetectable} without destructive analysis (die delayering, scanning electron microscopy) or side-channel measurement equipment.
+\end{itemize}
+
+For AI systems deployed in critical infrastructure (power grids, financial settlement, military logistics), the threat model must include the possibility that the GPU or NPU executing inference has been compromised at the silicon level.
+
+\begin{table}[ht]
+\centering
+\caption{Hardware Attack Vectors Against AI Systems and Architectural Countermeasures}
+\label{tab:hardware_attacks}
+\begin{tabular}{p{3.0cm} p{4.0cm} p{5.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Attack Vector} & \textbf{AI System Impact} & \textbf{Countermeasure} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Hardware Trojan (chip design) & Selective output manipulation; exfiltration of model weights via covert channel & Trusted foundry programs (DARPA TRUST); formal verification of RTL netlists; side-channel behavioral fingerprinting \\[4pt]
+Supply chain substitution (counterfeit chips) & Incorrect computation; reduced TEE entropy quality & Cryptographic chip authentication (PUF-based attestation); mandatory procurement from NIST-listed vendors \\[4pt]
+Cache timing side-channel (Spectre/Meltdown class) & Model weight extraction; training data inference from memory access patterns & ORAM for TEE memory access (Chapter~\ref{chap:privacy_attacks}); constant-time inference paths \\[4pt]
+Power side-channel (SCA) & Reconstruction of secret model parameters from power trace correlation & Differential power analysis countermeasures in enclave firmware; power noise injection \\[4pt]
+Rowhammer / DRAM fault injection & Bit-flip attacks corrupting model weights or ZK-proof verification tables & ECC memory mandated for all AI inference servers; fault-tolerant weight encoding \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\subsection{Practical Hardware Assurance for AI Architects}
+\label{subsec:hardware_assurance}
+
+The Trustworthy AI Architect cannot inspect chip silicon directly. Instead, the architect's toolkit comprises three practical assurance strategies:
+
+\begin{description}
+  \item[1. Behavioral Fingerprinting.] Establish a \textbf{golden reference profile} of the hardware platform under a known-safe workload (inference on a published benchmark model). Periodically replay this workload and compare latency histograms, power consumption curves, and output bit patterns against the reference. Statistically significant deviations trigger a Type-2 (Staleness) Trust Debt entry and a hardware replacement request.
+  \item[2. PUF-Based Attestation.] \textbf{Physical Unclonable Functions (PUFs)} exploit manufacturing variations to generate unique, unforgeable hardware fingerprints. For critical deployments, require that every compute node presents a PUF-signed attestation report as part of its TEE attestation chain. This adds a hardware-rooted identity layer that cannot be spoofed by software.
+  \item[3. Diversity and Redundancy.] For the highest-criticality workloads, execute inference across chips from \textbf{two independent semiconductor supply chains} (e.g., AMD + Intel, or domestic + allied-nation foundries) and flag any output divergence exceeding a hardware-calibrated tolerance. This is the silicon-level analogue of Byzantine-fault-tolerant aggregation (Chapter~\ref{chap:fl_security}).
+\end{description}
+
+\subsection{Conflict-Free Sustainability in AI Hardware}
+\label{subsec:conflict_free}
+
+The physical hardware on which Trustworthy AI runs requires rare-earth elements and conflict minerals whose extraction chains carry significant social and environmental risks. Cobalt (used in lithium-ion batteries for edge inference devices), tantalum (capacitors in high-density compute boards), and tungsten (chip interconnects) are among the minerals listed under the OECD Due Diligence Guidance for Responsible Supply Chains of Minerals from Conflict-Affected and High-Risk Areas.
+
+\begin{svgraybox}
+\textbf{The Social Trust Layer of Hardware:} A model that protects the privacy of its users while running on hardware whose supply chain funds armed conflict in Eastern Congo has not achieved genuine Social Trust---it has merely shifted the harm downstream, outside the visibility of its architects. The \textbf{RBA (Responsible Business Alliance) Code of Conduct} and the \textbf{Conflict Minerals Reporting Template (CMRT)} provide standardized audit frameworks that Trustworthy AI teams should require from their hardware procurement partners as part of the supply chain SBOM (Section~\ref{sec:supply_chain_sbom}).
+\end{svgraybox}
+
+The architect's practical action is to extend the Software Bill of Materials (SBOM) to a \textbf{Hardware Bill of Materials (HBOM)}, documenting:
+\begin{enumerate}
+  \item Chip manufacturer, foundry country, and process node for every compute component.
+  \item Conflict mineral sourcing declarations (CMRT form) from the chip manufacturer.
+  \item PUF attestation certificate and the trusted authority that issued it.
+  \item Date of last behavioral fingerprint comparison against the golden reference.
+\end{enumerate}
+
+The HBOM becomes part of the system's verifiable trust evidence package alongside the software SBOM, model card, and Privacy Budget Ledger.
+
 \section{Conclusion}
 \label{sec:conclusion_supply_chain}
 
