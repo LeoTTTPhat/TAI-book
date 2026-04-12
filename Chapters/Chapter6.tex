@@ -36,6 +36,7 @@ Attack Type & Goal & Phase \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
 Membership Inference & Determine if a specific record was in the training set. & Inference \\
 Model Inversion & Reconstruct sensitive input data from outputs. & Inference \\
+Evasion & Craft perturbed inputs to fool the deployed model. & Inference \\
 Data Poisoning & Inject malicious data to corrupt the model. & Training \\
 Model Extraction & Steal model functionality by querying it. & Inference \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
@@ -152,6 +153,180 @@ Data Poisoning occurs during the training phase. An attacker injects malicious s
 \end{svgraybox}
 
 % ------------------------------------------------------------------
+\section{Evasion Attacks and Certified Robustness}
+\label{sec:evasion_attacks}
+% ------------------------------------------------------------------
+
+Data Poisoning corrupts the training phase. \textbf{Evasion Attacks} target the \emph{deployed} model: an adversary crafts a specially perturbed input $\tilde{x} = x + \delta$ that is imperceptible to a human (or falls within a system-defined tolerance $\|\delta\|_p \leq \epsilon_{\mathrm{adv}}$) but causes the model to produce a completely wrong output. A fraud detection model, a medical triage classifier, a credit risk engine — all are vulnerable if their inputs can be manipulated before reaching the inference endpoint.
+
+\subsection{The Gradient-Based Attack Taxonomy}
+\label{subsec:gradient_attacks}
+
+The two canonical gradient-based evasion algorithms define the threat baseline that any robust defense must defeat:
+
+\begin{description}
+  \item[FGSM (Fast Gradient Sign Method) \cite{goodfellow2015}.]
+    A single-step attack that perturbs the input in the direction that maximally increases loss:
+    \begin{equation}
+      \tilde{x} = x + \epsilon_{\mathrm{adv}} \cdot \operatorname{sign}\!\bigl(\nabla_x \mathcal{L}(\theta, x, y)\bigr)
+      \label{eq:fgsm}
+    \end{equation}
+    Fast but weak: a single step rarely crosses a well-trained decision boundary.
+
+  \item[PGD (Projected Gradient Descent) \cite{madry2018}.]
+    An iterative refinement of FGSM — $T$ steps of FGSM followed by projection back onto the $\ell_\infty$ ball:
+    \begin{equation}
+      x^{(t+1)} = \Pi_{\|x - x_0\|_\infty \leq \epsilon_{\mathrm{adv}}} \Bigl( x^{(t)} + \alpha \cdot \operatorname{sign}\!\bigl(\nabla_{x^{(t)}} \mathcal{L}\bigr) \Bigr)
+      \label{eq:pgd}
+    \end{equation}
+    PGD with $T \geq 20$ steps and random restarts is the standard \textbf{white-box strength benchmark}: if a defense withstands PGD, it passes the baseline robustness bar.
+\end{description}
+
+\textbf{Black-box transfer attacks} extend evasion to settings where the adversary cannot access model gradients: they craft adversarial examples against a surrogate model and rely on the empirical observation that adversarial perturbations transfer across architectures sharing the same training distribution.
+
+\subsection{Certified Robustness via Randomized Smoothing}
+\label{subsec:certified_robustness}
+
+Adversarial training (retraining the model on PGD-generated examples) provides empirical robustness but no formal guarantee. \textbf{Randomized Smoothing} \cite{cohen2019} provides a mathematical certificate: given a base classifier $f$ and a smoothed classifier $g$ defined by:
+\begin{equation}
+  g(x) = \arg\max_c \; \Pr_{\varepsilon \sim \mathcal{N}(0, \sigma^2 I)}\!\bigl[f(x + \varepsilon) = c\bigr]
+  \label{eq:smoothed_classifier}
+\end{equation}
+the smoothed classifier $g$ is certifiably robust within $\ell_2$ radius:
+\begin{equation}
+  r = \frac{\sigma}{2} \Bigl( \Phi^{-1}(p_A) - \Phi^{-1}(p_B) \Bigr)
+  \label{eq:certified_radius}
+\end{equation}
+where $p_A$ is the probability that $f$ predicts the top class and $p_B$ the runner-up, and $\Phi^{-1}$ is the Gaussian quantile function. Any perturbation with $\|\delta\|_2 < r$ cannot change $g$'s prediction.
+
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={PGD attack simulation and Randomized Smoothing certification. Certification radius $r > 0$ means no $\ell_2$ perturbation below that radius can flip the prediction.},
+  label={lst:robustness-lab}]
+import numpy as np
+from scipy.stats import norm
+
+# -- PGD Attack (white-box, L_inf) ----------------------------
+def pgd_attack(model, x, y, eps=0.03, alpha=0.007,
+               steps=20, restarts=5):
+    """Returns strongest adversarial example found."""
+    best_loss, best_adv = -np.inf, x.copy()
+    for _ in range(restarts):
+        x_adv = x + np.random.uniform(-eps, eps, x.shape)
+        for _ in range(steps):
+            grad = model.gradient(x_adv, y)          # white-box
+            x_adv = x_adv + alpha * np.sign(grad)
+            x_adv = np.clip(x_adv, x - eps, x + eps) # L_inf proj
+        loss = model.loss(x_adv, y)
+        if loss > best_loss:
+            best_loss, best_adv = loss, x_adv.copy()
+    return best_adv
+
+# -- Randomized Smoothing Certification -----------------------
+def certify(model, x, sigma=0.25, n_samples=1000,
+            alpha=0.001):
+    """
+    Returns (predicted_class, certified_radius).
+    radius > 0 means certifiably robust within that L2 ball.
+    """
+    noisy = x[None] + np.random.randn(n_samples, *x.shape)*sigma
+    counts = np.bincount(model.predict_batch(noisy),
+                         minlength=model.n_classes)
+    c_A = counts.argmax()
+    p_A = counts[c_A] / n_samples  # point estimate; use Clopper-Pearson in production
+    c_B_count = sorted(counts)[-2]
+    p_B = c_B_count / n_samples
+
+    if p_A <= 0.5:
+        return c_A, 0.0            # abstain: cannot certify
+    radius = sigma / 2 * (norm.ppf(p_A) - norm.ppf(p_B))
+    return c_A, max(radius, 0.0)
+\end{lstlisting}
+
+\begin{svgraybox}
+\textbf{Deployment Standard:} For High-Risk AI systems under the EU AI Act (Article~9), the Sovereign AI Scorecard sets a minimum certified radius of $r \geq 0.25$ (with $\sigma = 0.25$) for safety-critical classifiers. Systems that cannot meet this threshold under $n \geq 1000$ Monte Carlo samples must implement adversarial training before production deployment.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\section{Model Extraction and Watermarking: Protecting Intellectual Property}
+\label{sec:model_watermarking}
+% ------------------------------------------------------------------
+
+The Chapter~\ref{tab:attack_taxonomy} taxonomy identifies \textbf{Model Extraction} as an inference-phase attack: an adversary queries the victim model systematically, recording input-output pairs sufficient to train a clone (``stolen model'') that replicates the original's functionality. The stolen model bypasses the victim's licensing, access controls, and regulatory certifications.
+
+The defense is \textbf{Model Watermarking}: embedding a verifiable, unforgeable ownership marker into the model's weights that survives fine-tuning and model distillation, enabling the owner to \emph{prove in a legal proceeding} that a suspected stolen model derived from theirs.
+
+\subsection{Two Watermarking Paradigms}
+\label{subsec:watermarking_paradigms}
+
+\begin{description}
+  \item[Backdoor Watermarking \cite{adi2018}.]
+    A set of \textbf{secret trigger inputs} $(x_1^*, \ldots, x_k^*)$ is chosen by the owner before training. The model is trained to produce a specific \textbf{ownership output} $y^*$ for each trigger (e.g., always predict class ``7'' for the trigger images) while behaving normally on all other inputs. Ownership verification: present the triggers to the suspected stolen model; if it produces $y^*$ with probability $\geq \tau$ (typically $\tau = 0.95$), the watermark is intact.
+
+    \emph{Strength:} Survives fine-tuning on the stolen model's distribution. \emph{Weakness:} A sophisticated adversary who discovers the trigger set can retrain to remove it.
+
+  \item[Feature-Space Fingerprinting.]
+    Rather than embedding triggers, the owner encodes a cryptographic fingerprint into the distribution of model activations: a statistical signature $\mathbf{s} = h(\theta)$ (e.g., the top-$k$ singular vectors of a specific weight matrix) that is unique to the owner's training run and verifiable against an independently generated reference published in a trusted registry at training time.
+
+    \emph{Strength:} No secret trigger set to discover. \emph{Weakness:} Weaker survival under heavy fine-tuning.
+\end{description}
+
+\subsection{Verification Without Exposure: ZK-Proof of Ownership}
+\label{subsec:zk_watermark}
+
+A critical limitation of backdoor watermarking is the verification paradox: to prove ownership in court, the owner must reveal the trigger set---which, once public, is worthless as a future watermark. \textbf{Zero-Knowledge Watermark Verification} resolves this: the owner generates a ZK-proof attesting ``the suspected model produces output $y^*$ on the trigger set $\{x_i^*\}$'' without revealing any member of the trigger set. The court verifies the proof; the trigger remains secret for future enforcement actions.
+
+\begin{svgraybox}
+\textbf{Architect's Checklist:} Before public API deployment of any proprietary model, (1)~generate and register the feature-space fingerprint $h(\theta)$ with a trusted timestamp authority; (2)~embed a backdoor watermark with $k \geq 100$ trigger pairs; (3)~generate the ZK-ownership proof circuit; (4)~configure the query rate limiter to detect model extraction patterns ($>10^5$ diverse queries from a single API key within 24 hours triggers automatic alerting).
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\section{Oblivious Inference: When the Query Itself Is Private}
+\label{sec:oblivious_inference}
+% ------------------------------------------------------------------
+
+Every attack and defense discussed so far targets the \textbf{content} of training data or model outputs. A structurally distinct privacy threat arises at inference time: even when the model output is safe, the \emph{query itself} reveals sensitive information. A user submitting a query to a cancer-screening API reveals, before the model responds, that they may have cancer-related symptoms. A user querying a mental health chatbot reveals psychological vulnerability. A corporate user querying a competitive intelligence model reveals strategic intent.
+
+This is not a metadata side-channel (Section~\ref{sec:metadata_privacy}), which is about \emph{when} and \emph{how often} queries arrive. It is a \textbf{content-level input privacy} problem: the server learns the raw input before any output is produced. DP-SGD protects training data. ZK-ML protects model weights. Neither protects the query.
+
+\subsection{Three Architectural Solutions}
+\label{subsec:oblivious_solutions}
+
+\begin{description}
+  \item[Homomorphic Encryption (HE) Inference.]
+    The client encrypts its input under a Fully Homomorphic Encryption (FHE) scheme (e.g., CKKS for floating-point neural networks). The server computes inference \emph{on the ciphertext} without ever decrypting, returning an encrypted output that only the client can decrypt. The server learns nothing about the input or the output.
+
+    \emph{Cost:} FHE inference is $10^3$--$10^5\times$ slower than plaintext inference for current neural network depths. Practical for simple classifiers ($\leq 5$ layers); prohibitive for LLMs at 2026 computational costs.
+
+  \item[Batch Oblivious Inference.]
+    The client pads its query to a fixed-length vector drawn from a public ``decoy query'' distribution, submits it as part of a \textbf{fixed-size batch} (padding with dummy queries if necessary), and receives the full batch result, discarding the padded outputs. An external observer---and the server's query log---sees only a constant-rate stream of uniform-length batches; individual query content is hidden within the batch.
+
+    \emph{Cost:} Bandwidth overhead proportional to batch size. Latency bounded by batch assembly time. The server still processes each query individually but cannot link any specific query to its client without breaking the batch-level anonymity assumption.
+
+  \item[Private Information Retrieval (PIR).]
+    In settings where the model is used for lookup rather than generation (e.g., drug interaction checks, regulatory compliance databases), \textbf{PIR protocols} \cite{chor1998} allow a client to retrieve the record at index $i$ from a database of $N$ records without the server learning $i$. For two non-colluding servers holding identical model outputs, the client queries each server with complementary random masks; the XOR of the two responses yields the desired output. Single-server PIR (computationally secure) exists but is more expensive.
+\end{description}
+
+\begin{table}[ht]
+\centering
+\caption{Oblivious Inference Solutions: Practical Trade-offs for 2026 Deployment}
+\label{tab:oblivious_inference}
+\begin{tabular}{p{3.5cm} p{3.0cm} p{2.5cm} p{3.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Approach} & \textbf{Privacy Guarantee} & \textbf{Latency Overhead} & \textbf{Practical Use Case} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+FHE Inference & Perfect (computational) & $10^3\times$ -- $10^5\times$ & Simple classifiers; regulatory compliance checks \\[4pt]
+Batch Oblivious Inference & $k$-anonymity within batch & $O(k)$ batch assembly & Healthcare query APIs; mental health chatbots \\[4pt]
+Two-Server PIR & Information-theoretic (2-server) & $O(\sqrt{N})$ communication & Drug interaction DBs; legal reference lookups \\[4pt]
+TEE + Encrypted Channel & Trust shifts to hardware & $\approx 10$--$20$\% & General LLM inference with hardware attestation \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Pragmatic Recommendation (2026):} For most production deployments, \textbf{Batch Oblivious Inference combined with Traffic Padding} (Section~\ref{subsec:traffic_padding}) provides the best privacy-cost trade-off: the server cannot link query content to individual clients (batch oblivion) and cannot infer clinical state from call frequency (traffic padding). FHE inference should be reserved for the specific case where the server itself is untrusted---a constraint that TEEs (Chapter~\ref{chap:tee}) often satisfy more efficiently at current hardware costs.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
 \section{The Unlearning Vulnerability: When Forgetting Reveals}
 \label{sec:unlearning_vulnerability}
 % ------------------------------------------------------------------
@@ -242,7 +417,7 @@ In this pipeline, raw patient records are first sanitized through a \textbf{k-An
 \section{Conclusion}
 \label{sec:conclusion_attacks}
 
-Part II has provided the essential "Data Defense" toolkit. We have seen how simple anonymization fails (Chapter 4), how Differential Privacy provides a mathematical shield (Chapter 5), and the specific attacks that this shield must withstand (Chapter 6). 
+Part II has provided the essential "Data Defense" toolkit. We have seen how simple anonymization fails (Chapter~4), how Differential Privacy provides a mathematical shield (Chapter~5), and the full spectrum of attacks that shield must withstand (Chapter~6): Membership Inference, Model Inversion, Evasion, Data Poisoning, Model Extraction, metadata side-channels, the Unlearning Vulnerability, and the inference-time query-privacy problem of Oblivious Inference. For each attack, we have paired an architectural countermeasure---from DP-SGD to Randomized Smoothing to Batch Oblivious Inference to Model Watermarking.
 
 In Part III, we will expand our perspective from single-point data defense to \textbf{Secure Distributed Systems}, exploring how to orchestrate training across multiple locations without ever moving the raw data through \textbf{Federated Learning}.
 

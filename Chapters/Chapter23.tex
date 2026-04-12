@@ -1038,7 +1038,124 @@ To defend against autonomous escalation, the Trustworthy AI Architect must deplo
 
 Governing an agentic system means recognizing that context accumulation and tool chaining are exponential risk multipliers. We cannot merely test what the model says; we must exhaustively simulate what the agent will \emph{do}.
 
-Agentic AI requires us to look beyond the model's weights and toward the \textbf{governance of its agency}. By building systems that are constrained by design and verifiable by default, and by subjecting them to stateful adversarial testing, we can safely deploy autonomous AI in high-stakes environments. In the final chapters of this book, we synthesize these technical lessons into a roadmap for architectural fitness and a vision for the future of AI Safety.
+\subsection{Structured Red Team Protocol: A Universal Framework}
+\label{subsec:red-team-protocol}
+
+The agentic red teaming methodology above addresses loop-level escalation. A production-grade red team practice must also cover the full attack surface of the Trustworthy AI Stack: privacy attacks at inference time, evasion of the Constitutional Policy Engine, manipulation of the Trust Dashboard, and supply-chain compromise of the model weights. This subsection establishes the universal structured protocol that gates all Sovereign AI Scorecard assessments.
+
+\subsubsection*{Tier Structure}
+
+A Trustworthy AI red team is organized in three tiers of increasing cost and independence:
+
+\begin{description}
+  \item[Tier 1 — Internal Automated Red Team.] Runs continuously in the CI/CD pipeline. Executes a fixed attack scenario library (Table~\ref{tab:red-team-scenarios}) against every model candidate before promotion to staging. Automated; no human attacker. Produces a pass/fail gate on each scenario category.
+  \item[Tier 2 — Internal Human Red Team.] Quarterly exercise by a dedicated internal security team with domain knowledge of the deployment context. Scope: novel scenario development, multi-step escalation testing, cross-layer attack chaining. Output: an updated Tier~1 scenario library and an updated ATTM entry (Chapter~25).
+  \item[Tier 3 — External Independent Red Team.] Annual exercise by an external adversarial ML specialist team with no prior access to model weights, training data, or system architecture. Required before: (a) deployment to High-Risk AI categories under EU AI Act; (b) any system handling Decree~13 sensitive personal data; (c) any system where an S1 incident has occurred in the preceding 12 months.
+\end{description}
+
+\subsubsection*{Attack Scenario Library}
+
+\begin{table}[ht]
+\centering
+\caption{Universal Red Team Attack Scenario Library: 10 scenario categories covering the full Trustworthy AI Stack, with target chapter references and minimum Tier 1 automated coverage requirements.}
+\label{tab:red-team-scenarios}
+\small
+\begin{tabular}{p{3.0cm} p{4.5cm} p{2.5cm} p{2.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Scenario Category} & \textbf{Attack Vector} & \textbf{Target Component} & \textbf{Min.\ Automated Cases} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Membership Inference & Shadow model AUC attack (Ch.~\ref{sec:mia}) & Training data & $n \geq 5$ datasets \\[3pt]
+Evasion (L$_\infty$) & PGD 20-step, 5 restarts (Ch.~\ref{sec:evasion_attacks}) & Inference endpoint & $n \geq 200$ inputs \\[3pt]
+Data Poisoning & 5\% label-flip backdoor injection & Training pipeline & $n \geq 3$ poisoning rates \\[3pt]
+Model Extraction & Query-budget clone attack ($10^5$ queries) & API rate limiter + watermark & $n \geq 1$ extraction run \\[3pt]
+Prompt Injection & Direct + indirect injection via tool outputs & Constitutional Policy Engine & $n \geq 50$ payloads \\[3pt]
+Autonomous Escalation & Multi-step honeypot approach (§\ref{subsec:red-team-protocol}) & Agentic loop + trajectory monitor & $n \geq 20$ scenarios \\[3pt]
+Trust Dashboard Manipulation & Calibration attack inflating $|\mathcal{C}(x)|$ & Conformal Prediction layer & $n \geq 10$ perturbations \\[3pt]
+Unlearning Vulnerability & Model-comparison $\Delta\theta$ attack (Ch.~\ref{sec:unlearning_vulnerability}) & Version access control & $n \geq 3$ checkpoint pairs \\[3pt]
+Side-Channel & Timing oracle on TEE inference path & Constant-time execution layer & $n \geq 1000$ timing samples \\[3pt]
+Deception / Manipulation & ICC bypass via subtle epistemic framing & Intent-Consistency Checker & $n \geq 30$ outputs \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\subsubsection*{Production Gate: Acceptance Criteria}
+
+A system progresses from staging to production only when all Tier~1 automated cases pass, defined as:
+
+\begin{enumerate}
+  \item MIA AUC $< 0.60$ on all five test datasets (Sovereign AI Scorecard threshold).
+  \item Evasion success rate $< 5\%$ under PGD-20 at the system's certified $\epsilon_{\mathrm{adv}}$ boundary.
+  \item Poisoning detection: all backdoor triggers identified by the Synthetic Verification Gateway before training completes.
+  \item Model Extraction: watermark intact ($\geq 95\%$ trigger accuracy) after $10^5$-query clone attempt.
+  \item Constitutional Policy Engine: zero prompt injection bypasses across all 50 payloads.
+  \item Autonomous Escalation: zero honeypot approach completions across 20 scenarios.
+  \item Any single failure in categories 5 or 6 is an \textbf{unconditional production block} regardless of other scores.
+\end{enumerate}
+
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={Tier 1 Red Team Orchestrator: runs the full scenario library against a model candidate and returns a structured gate report. A single unconditional-block failure prevents promotion to staging.},
+  label={lst:red-team-orchestrator}]
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from enum import Enum
+
+class GateStatus(Enum):
+    PASS           = "pass"
+    FAIL_SOFT      = "fail_soft"          # blocks staging, repairable
+    FAIL_HARD      = "fail_hard"          # unconditional production block
+
+@dataclass
+class ScenarioResult:
+    category:    str
+    gate_status: GateStatus
+    metric:      float
+    threshold:   float
+    detail:      str
+
+class Tier1RedTeamOrchestrator:
+    """
+    Runs all 10 scenario categories and returns a GateReport.
+    Unconditional block if any FAIL_HARD result is present.
+    """
+    UNCONDITIONAL_BLOCK = {"Prompt Injection", "Autonomous Escalation"}
+
+    def __init__(self, model, api_client, scenario_lib):
+        self.model    = model
+        self.api      = api_client
+        self.lib      = scenario_lib   # dict: category -> AttackRunner
+
+    def run(self) -> List[ScenarioResult]:
+        results = []
+        for category, runner in self.lib.items():
+            metric, detail = runner.execute(self.model, self.api)
+            threshold      = runner.threshold
+            passed         = runner.passes(metric)
+
+            if not passed and category in self.UNCONDITIONAL_BLOCK:
+                status = GateStatus.FAIL_HARD
+            elif not passed:
+                status = GateStatus.FAIL_SOFT
+            else:
+                status = GateStatus.PASS
+
+            results.append(ScenarioResult(
+                category    = category,
+                gate_status = status,
+                metric      = metric,
+                threshold   = threshold,
+                detail      = detail,
+            ))
+        return results
+
+    def gate_decision(self, results: List[ScenarioResult]) -> str:
+        if any(r.gate_status == GateStatus.FAIL_HARD for r in results):
+            return "PRODUCTION_BLOCKED"
+        if any(r.gate_status == GateStatus.FAIL_SOFT for r in results):
+            return "STAGING_BLOCKED"
+        return "PROMOTION_APPROVED"
+\end{lstlisting}
+
+Agentic AI requires us to look beyond the model's weights and toward the \textbf{governance of its agency}. By building systems that are constrained by design and verifiable by default, and by subjecting them to stateful adversarial testing across all ten scenario categories, we can safely deploy autonomous AI in high-stakes environments.
 
 
 % ------------------------------------------------------------------
