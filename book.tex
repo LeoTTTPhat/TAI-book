@@ -65,6 +65,7 @@
 \usepackage{pdflscape}              % landscape orientation for wide tables
 \usepackage{rotating}               % rotating figures/tables
 \usepackage{pifont}                 % Dingbats (cross-marks for ATTM gaps)
+\usepackage[numbers,sort&compress]{natbib}  % BibTeX support (Bibliography.bib)
 
 % --- Pedagogical Box Styles ---
 \tcbset{
@@ -195,7 +196,8 @@
 \backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \include{glossary}
 \include{solutions}
-\include{references}
+\bibliographystyle{spmpsci}
+\bibliography{Bibliography}
 \printindex
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
