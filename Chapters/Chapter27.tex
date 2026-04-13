@@ -288,8 +288,219 @@ LGPD-inspired frameworks & Individual rights + collective social function & Indi
 \textbf{For the Global Architect:} The most dangerous assumption is that Trustworthy AI is a culturally neutral technical discipline---that DP-SGD with $\varepsilon = 1.0$ means the same thing to a farmer in Mozambique as it does to a banker in Frankfurt. It does not. The mathematical guarantee is universal; the social meaning of that guarantee is locally constructed. The Sovereign Alignment Workbook (Chapter~1) and the CA-RLHF Norm Taxonomy (Chapter~2) are the tools for making this local construction explicit. When entering a new cultural context, run the Workbook before writing a line of code.
 \end{svgraybox}
 
+% ==================================================================
+\section{Conflict Resolution and Norm Evolution}
+\label{sec:norm_evolution}
+% ==================================================================
+
+Section~\ref{sec:regulatory_collision} treated regulatory conflict as a \emph{static} problem: two obligations exist simultaneously, and we resolve them with a fixed architectural pattern. This framing is necessary but incomplete. In practice, the obligations themselves are \emph{dynamic}: regulations are amended, court rulings reinterpret existing clauses, social norms shift, and new technology creates categories of harm for which no norm yet exists. The architect who designs only for the conflict that exists at deployment will encounter a system that is legally compliant on launch day and legally exposed within 18 months.
+
+This section addresses the \textbf{temporal dimension} of compliance: how to design systems that resolve both current conflicts and the conflicts that will emerge as norms evolve.
+
+% ------------------------------------------------------------------
+\subsection{The Norm Lifecycle}
+\label{subsec:norm_lifecycle}
+% ------------------------------------------------------------------
+
+A \textbf{norm}---whether a legal statute, a regulatory guideline, a social convention, or a Contextual Integrity transmission principle---passes through four phases during its operational life. Each phase has distinct architectural implications.
+
+\begin{table}[ht]
+\centering
+\caption{Norm Lifecycle: four phases, their distinguishing characteristics, and the architectural posture required at each phase. A single deployed AI system may simultaneously encounter norms at different lifecycle stages across different jurisdictions.}
+\label{tab:norm_lifecycle}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{p{2.2cm} p{3.0cm} p{3.5cm} p{4.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Phase} & \textbf{Characteristics} & \textbf{Indicators} & \textbf{Architectural Posture} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\textbf{Emergence} & Norm is proposed but not yet binding; regulatory guidance is inconsistent; courts have not yet ruled & Draft legislation; industry white papers; enforcement moratoriums & Monitor; implement as optional policy flag; do not commit to hard architectural dependency \\[5pt]
+\textbf{Codification} & Norm becomes legally binding; enforcement begins; penalties defined; technical standards organizations issue implementation guidance & Enacted statute; first enforcement actions; ISO/IEC standards drafts & Implement as a configurable constitutional constraint; version the implementation separately from the model \\[5pt]
+\textbf{Stabilization} & Norm is well-understood; case law has clarified ambiguous clauses; technical standards are mature & Court precedent established; compliance tooling market exists; regulator guidance documents published & Harden the implementation; reduce configuration surface; optimize for performance \\[5pt]
+\textbf{Obsolescence} & Norm is superseded by amendment, court ruling, or new framework; compliance with the old norm may conflict with compliance with the new & Legislative amendment; supervisory authority guidance withdrawals; framework replacements (e.g., GDPR superseding Data Protection Directive 1995) & Deprecate the old policy; run migration sprint; re-audit \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{ASEAN Norm Velocity:} Vietnam's AI regulatory landscape (2020--2026) has passed through Emergence $\to$ Codification in under four years---faster than any Western jurisdiction. Decree 13 (2023) was drafted, passed, and enforced within 18 months. The architect must assume that \emph{any} emerging Vietnamese AI regulation will reach Codification within 24 months of its first public consultation document. Design accordingly: policy constraints should be configurable, not hardcoded into model weights.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\subsection{Three Classes of Norm Conflict}
+\label{subsec:norm_conflict_classes}
+% ------------------------------------------------------------------
+
+The collision heuristic of Section~\ref{sec:regulatory_collision} addressed \emph{synchronic} conflict: two binding obligations in force at the same moment. Norm evolution introduces two additional conflict classes that the architect must resolve:
+
+\begin{description}
+  \item[Class 1: Synchronic Conflict (Static).]
+    Two currently binding obligations contradict each other. This is the case resolved by the Three-Step Heuristic in Section~\ref{sec:regulatory_collision}. The conflict is fully characterized at design time; the resolution is permanent unless one of the obligations changes.
+
+  \item[Class 2: Diachronic Conflict (Temporal).]
+    A norm changes \emph{during the operational lifetime of a deployed system}, creating a conflict between the obligation that existed at deployment and the obligation that exists at the time of audit. A system architecturally compliant with Decree~13 as enacted in 2023 may be non-compliant with an amendment passed in 2025 if the amendment changes a data localization requirement, a retention period, or a consent basis. Diachronic conflict is the primary source of \textbf{Staleness Debt} (Type~2, Section~\ref{subsec:debt-taxonomy}).
+
+    \textit{Resolution strategy:} Implement every regulatory obligation as a \textbf{versioned policy constraint} (Section~\ref{subsec:policy_as_code}). When the norm changes, the constraint version is incremented; the system triggers a re-audit at the new version without requiring an architecture change.
+
+  \item[Class 3: Technology-Norm Gap (Prospective).]
+    A new AI capability---multimodal inference, real-time biometric re-identification, synthetic data generation---creates a harm for which no norm yet exists. At the time of deployment, the system is compliant because there is no applicable rule. As regulatory awareness develops, the gap closes, often abruptly: a single court ruling or emergency regulatory guidance can instantiate a Codified norm with immediate enforcement effect.
+
+    \textit{Resolution strategy:} Apply the \textbf{Privacy by Design} principle (GDPR Art.~25) prospectively. Before deploying a capability with no applicable norm, conduct a \emph{shadow DPIA}: assess the capability against the Contextual Integrity five-parameter model (Chapter~\ref{chap:contextual_integrity}) as if a norm prohibiting the most sensitive potential flow already existed. If the shadow DPIA flags a violation, implement the prohibition preemptively. The cost of a shadow DPIA is orders of magnitude lower than the cost of emergency remediation after a Technology-Norm Gap closes against you.
+\end{description}
+
+% ------------------------------------------------------------------
+\subsection{Policy-as-Code: The Norm Version Control System}
+\label{subsec:policy_as_code}
+% ------------------------------------------------------------------
+
+\textbf{Policy-as-Code} is the architectural pattern that enables a deployed AI system to evolve its compliance posture without retraining, re-deploying, or re-certifying the underlying model. Every regulatory obligation is encoded as a \textbf{machine-verifiable Constitutional Policy constraint}---a predicate over the system's inputs, outputs, and data flows---that is evaluated at runtime by the Gatekeeper Pattern (Chapter~\ref{chap:contextual_integrity}) and the Emergency Brake (Chapter~\ref{chap:hitl}).
+
+The constraint set is stored as a \textbf{versioned policy manifest}, semantically versioned (MAJOR.MINOR.PATCH) according to the following convention:
+
+\begin{description}
+  \item[MAJOR version bump:] A legally binding obligation is added or removed (e.g., a new Decree enacted; an existing article repealed). Requires a full re-audit.
+  \item[MINOR version bump:] An existing constraint is tightened or relaxed without a change in legal basis (e.g., the approved $\varepsilon_{\text{budget}}$ is reduced following internal risk review; a new data category is added to the Sensitive Attribute list). Requires a Budget Reconciliation audit (Phase 2 only).
+  \item[PATCH version bump:] An implementation detail is corrected without changing the constraint semantics (e.g., a regex pattern in the PII detector is updated; a country code is added to a jurisdiction list). No audit required; change logged in the Privacy Budget Ledger.
+\end{description}
+
+\begin{table}[ht]
+\centering
+\caption{Policy Manifest versioning examples and their audit obligations. MAJOR changes always trigger a full five-phase audit; MINOR changes trigger Phase 2 only; PATCH changes require no audit but must be logged.}
+\label{tab:policy_versioning}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{1.6cm} p{4.5cm} p{3.5cm} p{2.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Version} & \textbf{Change Description} & \textbf{Trigger} & \textbf{Audit Required} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+1.0.0 & Initial deployment: Decree~13 + GDPR baseline constraints & System launch & Full five-phase audit \\[3pt]
+1.1.0 & $\varepsilon_{\text{budget}}$ reduced from 5.0 to 3.0 following DPO review & Internal risk decision & Phase 2 (Budget Reconciliation) \\[3pt]
+1.1.1 & PII regex updated to include new CCCD format (12-digit) & Vietnam MPS guidance & No audit; log in Ledger \\[3pt]
+2.0.0 & AI Act Art.~22 automated-decision prohibition added for HR domain & EU AI Act enforcement begins & Full five-phase audit \\[3pt]
+2.1.0 & Biometric data reclassified as Tier-A sensitive under MPS amendment & Regulatory amendment & Phase 2 + Phase 4 \\[3pt]
+3.0.0 & Decree 356-bis enacted: new cross-border transfer basis required & New Vietnamese statute & Full five-phase audit \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={Policy Manifest as a versioned YAML document evaluated by the Gatekeeper at runtime. The \texttt{constraint\_version} field triggers an automatic re-audit check against the Privacy Budget Ledger when it changes. The constraints block is a machine-verifiable Datalog predicate set compiled by the Constitutional Engine (Chapter~\ref{chap:hitl}).},
+  label={lst:policy_manifest}]
+# policy_manifest.yaml -- version-controlled alongside model artefacts
+policy_version: "2.1.0"
+last_full_audit: "2026-03-15"
+next_audit_due:  "2027-03-15"
+
+applicable_regulations:
+  - id: "Decree-13/2023/ND-CP"
+    articles: [6, 8, 24, 25, 26]
+    jurisdiction: "VN"
+  - id: "GDPR"
+    articles: [5, 6, 17, 25, 30, 32, 35]
+    jurisdiction: "EU"
+  - id: "EU-AI-Act"
+    articles: [9, 11, 13, 17, 43]
+    jurisdiction: "EU"
+    risk_class: "HIGH"
+
+privacy_budget:
+  epsilon_budget: 3.0          # DPO-approved; reduced at v1.1.0
+  delta_max: 1.0e-6
+  accounting_method: "RDP"
+  ledger_path: "s3://audit/ledger/v2.1.0/"
+
+constraints:
+  - id: "C-001"
+    description: "No cross-border transfer of SPS without explicit consent"
+    predicate: "recipient.jurisdiction != 'VN' => data.class != 'SPS'"
+    regulation: "Decree-13 Art.25"
+    version_added: "1.0.0"
+
+  - id: "C-002"
+    description: "Biometric data classified Tier-A; consent required"
+    predicate: "data.type == 'biometric' => consent.tier == 'A'"
+    regulation: "MPS Amendment 2026-Q1"
+    version_added: "2.1.0"   # new at MINOR bump
+
+  - id: "C-003"
+    description: "No automated HR decisions without HOTL override window"
+    predicate: "domain == 'HR' => oversight.mode IN ['HOTL', 'HITL']"
+    regulation: "EU-AI-Act Art.22"
+    version_added: "2.0.0"   # added at MAJOR bump
+
+audit_hooks:
+  on_major_bump: "trigger_full_audit()"
+  on_minor_bump: "trigger_phase2_audit()"
+  on_patch_bump:  "log_to_ledger(change_description)"
+\end{lstlisting}
+
+% ------------------------------------------------------------------
+\subsection{Norm Evolution Patterns in ASEAN: Three Case Studies}
+\label{subsec:norm_evolution_cases}
+% ------------------------------------------------------------------
+
+Abstract principles become actionable when traced through concrete regulatory trajectories. The following three case studies document norm evolution events that occurred between 2023 and 2026 in the ASEAN region, and the architectural responses they triggered.
+
+\subsubsection*{Case 1: Vietnam's AI Law — From Draft to Enforcement (2024--2026)}
+
+\textbf{Timeline.} Vietnam's first dedicated AI legislation entered public consultation in mid-2024 (Emergence phase), was enacted in late 2025, and came into force on 1~March 2026 (Codification phase). The 18-month window from Emergence to enforcement was shorter than any European analogue.
+
+\textbf{Norm Change.} The law introduced a mandatory risk classification requirement: all AI systems deployed in Vietnam must be self-classified as Low, Medium, or High risk within 90 days of the law's effective date. High-Risk systems must undergo a Conformity Assessment by an MIC-accredited third party within 180 days.
+
+\textbf{Architectural Impact.} Systems already deployed under Decree~13 required a MAJOR version bump to their Policy Manifest (e.g., from v1.x to v2.0.0), triggering a full five-phase audit within 90 days. Systems that had implemented Policy-as-Code needed only to add the new risk-classification constraint (a new \texttt{C-00N} entry in the manifest) and trigger the audit hook. Systems with hardcoded compliance logic required a re-engineering sprint estimated at 6--18 months of effort.
+
+\textbf{Lesson.} The 18-month emergence-to-enforcement window is the minimum viable lead time for architectural compliance preparation in Vietnam. Architects who read the public consultation documents and implemented the risk-classification constraint as a policy flag during Emergence phase incurred zero emergency engineering cost at Codification.
+
+\subsubsection*{Case 2: Biometric Re-identification Prohibition --- A Technology-Norm Gap Closes}
+
+\textbf{Timeline.} By 2024, multimodal AI systems could reliably re-identify individuals from gait patterns, voice signatures, and partial facial images without accessing any biometric database. No Vietnamese regulation explicitly prohibited this class of inference; the Technology-Norm Gap was open.
+
+\textbf{Norm Change.} In Q1 2026, Vietnam's MPS issued Circular~09-bis, classifying \emph{inferred} biometric attributes (not just stored biometrics) as Sensitive Personal Data under Decree~13. The classification took effect immediately, with no transition period.
+
+\textbf{Architectural Impact.} Systems that had conducted Shadow DPIAs (Section~\ref{subsec:norm_conflict_classes}, Class~3) and proactively suppressed inferred biometric outputs required only a MINOR version bump to reflect the new regulatory basis for an existing constraint. Systems that had not conducted a Shadow DPIA were immediately non-compliant and faced emergency suspension obligations under Decree~13 Art.~26.
+
+\textbf{Lesson.} A Shadow DPIA costs approximately 3 person-days. Emergency remediation of an immediately non-compliant production system costs 3--12 months and carries regulatory penalty exposure under Decree~13 Art.~84 (administrative fines up to VND~100 million per violation).
+
+\subsubsection*{Case 3: GDPR's Schrems~III Aftermath --- Diachronic Conflict for ASEAN Fintechs}
+
+\textbf{Timeline.} Following the invalidation of the EU--US Data Privacy Framework in late 2025 (a hypothetical Schrems~III event), Vietnamese fintechs serving EU-resident customers lost their primary legal basis for cross-border data transfers from their EU branches to their Vietnamese processing infrastructure.
+
+\textbf{Norm Change.} The Schrems~III ruling invalidated Standard Contractual Clauses (SCCs) as a transfer mechanism for AI training data, requiring either EU-local processing or a new adequacy decision. Vietnam had no adequacy decision with the EU; SCCs were the primary transfer mechanism.
+
+\textbf{Architectural Impact.} Fintechs that had implemented Federated Learning (Chapter~\ref{chap:fl}) for their EU customer segments were unaffected: no raw personal data crossed the boundary; only DP-noised gradient tensors moved between jurisdictions, and these were reclassified as non-personal data under Decree~13's data minimization standard. Fintechs that had centralized their ML training on Vietnamese servers and relied on SCCs for lawful transfer faced immediate suspension of EU-data-sourced training pipelines.
+
+\textbf{Lesson.} Federated Learning is not merely a privacy technology; it is a \textbf{regulatory hedge against cross-border norm collapse}. An FL architecture designed for privacy (Chapter~\ref{chap:fl}) simultaneously provides legal resilience against transfer mechanism invalidation---a benefit that does not appear in any DP guarantee calculation but is, in practice, worth more than the privacy guarantee in a post-Schrems world.
+
+% ------------------------------------------------------------------
+\subsection{The Norm Evolution Readiness Checklist}
+\label{subsec:norm_readiness_checklist}
+% ------------------------------------------------------------------
+
+Before a system enters production, the architect should verify readiness for norm evolution across four dimensions:
+
+\begin{table}[ht]
+\centering
+\caption{Norm Evolution Readiness Checklist. Systems that score below 3/4 on this checklist carry elevated regulatory exposure and should be treated as High Technical Debt before entering production.}
+\label{tab:norm_readiness}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{0.5cm} p{3.8cm} p{5.5cm} p{2.0cm}}
+\hline\noalign{\smallskip}
+\textbf{\#} & \textbf{Dimension} & \textbf{Verification Question} & \textbf{Pass Condition} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+1 & Policy Decoupling & Are all regulatory constraints encoded in a versioned Policy Manifest, separate from model weights? & Yes \\[4pt]
+2 & Shadow DPIA Coverage & Has a Shadow DPIA been conducted for every novel capability, including those for which no applicable norm currently exists? & Yes \\[4pt]
+3 & Audit Hook Wiring & Are MAJOR/MINOR version bumps in the manifest automatically wired to trigger the corresponding audit protocol (Section~\ref{subsec:audit_protocol})? & Yes \\[4pt]
+4 & Transfer Mechanism Redundancy & If cross-border data transfer is required, does the architecture have a fallback transfer mechanism (e.g., FL migration path) in the event the primary legal basis is invalidated? & Yes \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{The Architect's Standing Order on Norm Evolution:} Subscribe to the regulatory monitoring services of MIC Vietnam (\texttt{mic.gov.vn}), the EU AI Office (\texttt{digital-strategy.ec.europa.eu}), and EDPB (\texttt{edpb.europa.eu}). Assign a named team member to the Regulatory Intelligence function. When a new consultation document, draft guideline, or court ruling arrives, run the Norm Lifecycle assessment (Table~\ref{tab:norm_lifecycle}) within 5 business days. If the assessment places the incoming norm at Emergence phase with expected Codification within 24 months, open a Policy Manifest ticket immediately. The 24-month window is the architect's budget; use it.
+\end{svgraybox}
+
+% ==================================================================
 \section{Conclusion}
 \label{sec:conclusion_compliance}
+% ==================================================================
 
 By aligning our architecture with global and local regulations, we build systems that are resilient to both technical and legal challenges. However, building these systems requires the right set of tools. In the next chapter, we provide a hands-on guide to the \textbf{Practitioner's Toolkit}, bridging the gap between theory and code.
 
