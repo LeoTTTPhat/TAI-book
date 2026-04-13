@@ -539,17 +539,78 @@ advanced to \textsc{Advisory}---never directly to \textsc{Autonomous}.
 
 \begin{figure}[h]
 \centering
-% Replace with your actual TikZ or vector figure; placeholder below.
-\fbox{\parbox{0.88\textwidth}{\centering\vspace{1.2cm}
-\textbf{Figure placeholder:}
-State-transition diagram showing
-AUTONOMOUS $\to$ ADVISORY $\to$ HANDOVER $\to$ SUSPENDED
-(brake triggered) $\to$ Phase 0 (freeze) $\to$ Phase 1 (deliberate)
-$\to$ Phase 2 (mutate) $\to$ Phase 3 (precondition check)
-$\to$ ADVISORY (safe restart).
-A ``No passive resume'' guard rail blocks any direct arrow from
-SUSPENDED back to AUTONOMOUS or ADVISORY that bypasses Phases 1--3.
-\vspace{1.2cm}}}
+\begin{tikzpicture}[
+    state/.style={draw, rounded corners=4pt, minimum width=2.4cm,
+                  minimum height=0.72cm, font=\small\bfseries, text centered},
+    auto_s/.style={state, fill=stategreen, text=white},
+    adv_s/.style={state,  fill=stateamber},
+    hand_s/.style={state, fill=statered,   text=white},
+    susp_s/.style={state, fill=stategray,  text=white},
+    phase/.style={draw, rounded corners=3pt, fill=blue!7, draw=blue!50,
+                  minimum width=5.2cm, minimum height=0.9cm,
+                  font=\footnotesize, align=center},
+    arr/.style={->, >=Stealth, thick, gray!60},
+    rarr/.style={->, >=Stealth, thick, red!65!black},
+    garr/.style={->, >=Stealth, thick, green!55!black, line width=1.2pt}
+  ]
+
+  %% ---- Confidence Spectrum (top row) ----
+  \node (auto) [auto_s] at (0,0)    {\textsc{Autonomous}};
+  \node (adv)  [adv_s]  at (2.7,0)  {\textsc{Advisory}};
+  \node (hand) [hand_s] at (5.4,0)  {\textsc{Handover}};
+  \node (susp) [susp_s] at (8.1,0)  {\textsc{Suspended}};
+
+  \draw[arr] (auto.east) -- (adv.west);
+  \draw[arr] (adv.east)  -- (hand.west);
+  \draw[arr] (hand.east) -- (susp.west);
+
+  \draw[arr, gray!35]
+      ([xshift=-4pt]auto.west) -- ([xshift=4pt]susp.east);
+  \node[font=\tiny\itshape, gray!65, above] at (4.05,0.38)
+      {increasing uncertainty $\longrightarrow$};
+
+  %% ---- Brake trigger ----
+  \draw[rarr] (susp.south) -- ++(0,-0.50);
+  \node[font=\scriptsize\itshape, red!70!black, right] at (8.5,-0.72)
+      {\textbf{brake triggered}};
+
+  %% ---- Recovery Phases ----
+  \node (p0) [phase] at (8.1,-1.75)
+      {\textbf{Phase 0 — Freeze}\\[-1pt]
+       {\scriptsize All outputs halted; session context snapshot saved}};
+  \node (p1) [phase, below=0.33cm of p0]
+      {\textbf{Phase 1 — Deliberate Review}\\[-1pt]
+       {\scriptsize Senior human audit; root-cause identified; ZK-log entry}};
+  \node (p2) [phase, below=0.33cm of p1]
+      {\textbf{Phase 2 — Context Mutation}\\[-1pt]
+       {\scriptsize Norm Matrix updated; CI parameters re-validated}};
+  \node (p3) [phase, below=0.33cm of p2]
+      {\textbf{Phase 3 — Precondition Check}\\[-1pt]
+       {\scriptsize All 3 conditions satisfied $\Rightarrow$ re-entry approved}};
+
+  \draw[arr] (p0.south) -- (p1.north);
+  \draw[arr] (p1.south) -- (p2.north);
+  \draw[arr] (p2.south) -- (p3.north);
+
+  %% ---- Safe restart → ADVISORY only ----
+  \draw[garr]
+      (p3.west)  -- ++(-3.5,0)
+                 -- ++(0,5.50)
+                 -- (adv.south);
+  \node[font=\scriptsize\itshape, green!55!black, align=center]
+      at (3.2,-3.1) {safe restart\\(\textsc{Advisory} only)};
+
+  %% ---- No Passive Resume guard ----
+  \node[draw, fill=red!8, draw=red!50, rounded corners=3pt,
+        font=\scriptsize, align=center, text width=3.0cm]
+      (guard) at (1.1,-1.35)
+      {\textbf{$\oslash$\ No Passive Resume}\\[1pt]
+       {\itshape Direct \textsc{Suspended}${}\to{}$\textsc{Autonomous}/\textsc{Advisory}
+        bypass \textbf{blocked}}};
+  \draw[rarr, dashed, thin]
+      (susp.south west) -- ++(-0.3,-0.7) -- (guard.east);
+
+\end{tikzpicture}
 \caption{Post-Brake Recovery Protocol integrated into the Confidence Spectrum.
          The \textsc{Suspended} state is exited exclusively through the four
          phases of the HiC Transition Protocol; no passive resume path exists.}

@@ -33,8 +33,86 @@ A TEE provides four fundamental security guarantees that are vital for a Trustwo
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/ch9_tee.png}
-\caption{Hardware-Rooted Trust: Architecture of a Trusted Execution Environment (TEE) showing the isolated Secure Enclave protecting data while in use.}
+\begin{tikzpicture}[
+    int/.style={draw, rounded corners=3pt, inner sep=6pt,
+                font=\footnotesize, align=center,
+                minimum width=3.2cm, minimum height=0.85cm},
+    model_c/.style={int, fill=blue!10,  draw=blue!55},
+    data_c/.style={int,  fill=green!8,  draw=green!55},
+    hw_c/.style={int,    fill=red!8,    draw=red!50},
+    ext/.style={draw, rounded corners=3pt, fill=gray!10, draw=gray!55,
+                inner sep=6pt, font=\footnotesize, align=center,
+                minimum width=2.4cm, minimum height=0.85cm},
+    vfy/.style={ext, fill=orange!8, draw=orange!55},
+    arr/.style={->, >=Stealth, thick, gray!65},
+    enc_arr/.style={->, >=Stealth, thick, blue!55},
+    attest/.style={->, >=Stealth, thick, orange!60!black, dashed, line width=0.9pt},
+    note/.style={font=\scriptsize\itshape, text=gray!65}
+  ]
+
+  %% ---- Host Machine boundary (path-only styles: no font/inner sep) ----
+  \draw[gray!50, rounded corners=6pt, fill=gray!5]
+      (-5.5,-3.2) rectangle (5.5,3.9);
+  \node[font=\small\itshape, gray!55] at (-3.4,3.6)
+      {Host Machine (OS / Hypervisor)};
+  \node[note, align=center] at (-3.6,0.3)
+      {Untrusted zone:\\OS, hypervisor,\\co-located processes};
+
+  %% ---- Secure Enclave boundary ----
+  \draw[blue!55, rounded corners=5pt, fill=blue!5, line width=1.1pt]
+      (-1.3,-2.6) rectangle (5.2,2.8);
+  \node[font=\small\bfseries, blue!65!black] at (2.0,2.5)
+      {Secure Enclave};
+
+  %% ---- Internal components ----
+  \node (model) [model_c] at (2.0, 1.2)
+      {\textbf{AI Model}\\{\scriptsize encrypted weights}};
+  \node (data)  [data_c]  at (2.0, 0.0)
+      {\textbf{Sensitive Data}\\{\scriptsize in-enclave plaintext only}};
+  \node (hw)    [hw_c]    at (2.0,-1.5)
+      {\textbf{Hardware Root of Trust}\\{\scriptsize measurement + sealing key}};
+
+  \draw[enc_arr] (data.north) -- (model.south);
+  \draw[enc_arr] (hw.north)   -- (data.south);
+
+  %% ---- External nodes ----
+  \node (client)  [ext] at (-4.2, 0.0)
+      {\textbf{Client}\\(data sender)};
+  \node (output)  [ext] at (-4.2,-1.5)
+      {\textbf{Encrypted}\\Output};
+  \node (verifier)[vfy] at (-4.2, 3.2)
+      {\textbf{Remote Verifier}\\{\scriptsize (auditor / client)}};
+
+  %% ---- Arrow 1: Client → Sensitive Data (horizontal at y=0.0) ----
+  %% Path: client.east → enclave boundary → data.west (straight, same y)
+  \draw[arr] (client.east) -- (data.west);
+  \node[note, above] at (-2.6, 0.0)
+      {encrypted channel (TLS + attestation)};
+
+  %% ---- Arrow 2: Model output → Encrypted Output ----
+  %% Absolute path: model.west → enclave left edge → down → left → output.east
+  %% model.west ≈ (0.4, 1.2); enclave left = -1.3; output.east ≈ (-3.0,-1.5)
+  \draw[arr] (model.west) -- (-1.5,1.2) -- (-1.5,-1.5) -- (output.east);
+  \node[note, align=center, right] at (-1.4, -0.15)
+      {re-encrypted\\before exit};
+
+  %% ---- Arrow 3: Attestation hw → verifier ----
+  %% Absolute path: hw.north → enclave top → left → verifier.south
+  %% hw.north ≈ (2.0,-1.05); enclave top = 2.8; verifier.south ≈ (-4.2, 2.77)
+  \draw[attest] (hw.north) -- (2.0,2.8) -- (-1.3,2.8)
+                -- (-1.3,3.2) -- (verifier.east);
+  \node[note, align=center, orange!60!black] at (-2.75, 3.1)
+      {attestation report};
+  \node[note, align=center, orange!55!black] at (-3.3, 2.3)
+      {Remote Attestation:\\verifies enclave\\before data is sent};
+
+\end{tikzpicture}
+\caption{Hardware-Rooted Trust: Architecture of a Trusted Execution Environment (TEE).
+         The Secure Enclave is hardware-isolated from the host OS and hypervisor.
+         Sensitive data and the AI model exist in plaintext exclusively inside the
+         enclave's protected memory. Remote Attestation allows an external verifier
+         to confirm enclave identity before sending data, and all results are
+         re-encrypted before crossing the enclave boundary.}
 \label{fig:ch9_tee}
 \end{figure}
 

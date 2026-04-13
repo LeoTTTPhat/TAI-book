@@ -29,8 +29,91 @@ Byzantine clients do not follow the protocol and may send arbitrary or even stra
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/ch10_robust.png}
-\caption{Robust Aggregation: A network graph showing the filtering of Byzantine (malicious) updates to maintain the integrity of the global model aggregation.}
+\begin{tikzpicture}[
+    honest/.style={circle, draw=green!60!black, fill=green!10,
+                   inner sep=5pt, font=\footnotesize\bfseries,
+                   minimum size=1.0cm},
+    byz/.style={circle, draw=red!65!black, fill=red!10,
+                inner sep=5pt, font=\footnotesize\bfseries,
+                minimum size=1.0cm},
+    filter/.style={draw, rounded corners=5pt, fill=blue!8, draw=blue!55,
+                   inner sep=9pt, font=\small\bfseries, align=center,
+                   minimum width=3.0cm, minimum height=1.4cm},
+    global/.style={draw, rounded corners=5pt, fill=gray!10, draw=gray!55,
+                   inner sep=8pt, font=\small\bfseries, align=center,
+                   minimum width=2.8cm, minimum height=1.0cm},
+    harr/.style={->, >=Stealth, thick, green!55!black},
+    barr/.style={->, >=Stealth, thick, red!60!black, dashed},
+    farr/.style={->, >=Stealth, thick, blue!55, line width=1.2pt},
+    note/.style={font=\scriptsize\itshape}
+  ]
+
+  %% Honest clients (left column)
+  \node (h1) [honest] at (0,  2.4) {H1};
+  \node (h2) [honest] at (0,  0.9) {H2};
+  \node (h3) [honest] at (0, -0.6) {H3};
+  \node[note, green!60!black, align=center] at (0,-1.6)
+      {Honest\\clients};
+
+  %% Byzantine clients
+  \node (b1) [byz] at (2.6, 3.2) {B1};
+  \node (b2) [byz] at (2.6, 1.8) {B2};
+  \node[note, red!65!black, align=center] at (2.6, 0.6)
+      {Byzantine\\(malicious)};
+
+  %% Robust Filter (Krum) — node text uses \\ inside align=center node: safe
+  \node (filt) [filter] at (6.0, 1.0)
+      {\textbf{Robust Filter}\\
+       {\small (Krum / Trimmed Mean)}\\
+       {\scriptsize rejects $\beta$ outlier updates}};
+
+  %% Global Model
+  \node (gm) [global] at (10.0, 1.0)
+      {\textbf{Global Model}\\
+       $\theta_{t+1}$\\
+       {\scriptsize clean aggregate}};
+
+  %% Honest → filter (accepted); single-line labels — no \\ in path nodes
+  \draw[harr] (h1.east) -- node[above, note, sloped] {$\Delta\theta_{H1}$ accepted}
+      (filt.north west);
+  \draw[harr] (h2.east) -- node[above, note] {$\Delta\theta_{H2}$ accepted}
+      (filt.west);
+  \draw[harr] (h3.east) -- node[below, note, sloped] {$\Delta\theta_{H3}$ accepted}
+      (filt.south west);
+
+  %% Byzantine arrows terminated at explicit absolute coords (no anchor intersection)
+  %% b1 at (2.6,3.2) → rejection point (4.4,3.2); b2 at (2.6,1.8) → (4.4,1.8)
+  \draw[barr] (b1.east) -- (4.4, 3.2);
+  \draw[barr] (b2.east) -- (4.4, 1.8);
+
+  %% Rejection markers at termination points
+  \node[font=\large\bfseries, red!65!black] at (4.4, 3.2) {$\times$};
+  \node[font=\large\bfseries, red!65!black] at (4.4, 1.8) {$\times$};
+
+  %% Rejection label (standalone node, not path-inline)
+  \node[note, red!60!black, align=center] at (3.8, 2.5)
+      {$\Delta\theta_{B1}$, $\Delta\theta_{B2}$\\rejected};
+
+  %% Filter → Global Model
+  \draw[farr] (filt.east) -- node[above, note] {filtered update} (gm.west);
+
+  %% Krum score formula (standalone node with align=center)
+  \node[note, blue!60, align=center] at (6.0,-0.8)
+      {$\mathrm{Score}(i) = \textstyle\sum_{j \in \mathrm{Nbr}(i)} \|w_i - w_j\|^2$\\
+       lowest score $\Rightarrow$ selected};
+
+  %% Legend
+  \node[draw, rounded corners=2pt, fill=white, draw=gray!40,
+        inner sep=5pt, font=\scriptsize, align=left] at (10.0, 3.2)
+      {\textcolor{green!60!black}{$\bullet$} Honest client\quad
+       \textcolor{red!60!black}{$\bullet$} Byzantine client};
+
+\end{tikzpicture}
+\caption{Robust Aggregation: network graph illustrating Byzantine-Krum filtering.
+         Honest client updates (green) are geometrically close in gradient space
+         and pass the Krum score threshold. Byzantine updates (red) are detected
+         as statistical outliers and rejected before reaching the filter,
+         preserving the integrity of the global model $\theta_{t+1}$.}
 \label{fig:ch10_robust}
 \end{figure}
 

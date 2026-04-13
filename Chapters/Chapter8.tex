@@ -29,8 +29,63 @@ r_i = \sum_{j \in N_i} (s_{i,j} - s_{j,i}) \pmod P
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/ch8_secagg.png}
-\caption{Secure Aggregation Logic: Pairwise masking ensures that individual updates are blinded during transit, while the masks cancel out at the server to reveal the aggregate sum.}
+\begin{tikzpicture}[
+    client/.style={draw, rounded corners=4pt, fill=green!8, draw=green!55,
+                   inner sep=8pt, font=\footnotesize\bfseries, align=center,
+                   minimum width=3.2cm, minimum height=1.1cm},
+    srv/.style={draw, rounded corners=5pt, fill=blue!10, draw=blue!60,
+                inner sep=10pt, font=\small\bfseries, align=center,
+                minimum width=3.6cm, minimum height=1.6cm},
+    mask/.style={draw, rounded corners=2pt, fill=orange!8, draw=orange!50,
+                 inner sep=5pt, font=\scriptsize, align=center, minimum width=3.2cm},
+    arr/.style={->, >=Stealth, thick, gray!65},
+    note/.style={font=\scriptsize\itshape}
+  ]
+
+  %% Three clients on left
+  \node (c1) [client] at (0, 2.2)  {\textbf{Client 1}\\$w_1$ (true update)};
+  \node (c2) [client] at (0, 0)    {\textbf{Client 2}\\$w_2$ (true update)};
+  \node (c3) [client] at (0,-2.2)  {\textbf{Client 3}\\$w_3$ (true update)};
+
+  %% Masked values computed by each client
+  \node (m1) [mask, right=1.4cm of c1]
+      {$u_1 = w_1 + r_1$\\{\scriptsize $r_1 = s_{12} - s_{21} + s_{13} - s_{31}$}};
+  \node (m2) [mask, right=1.4cm of c2]
+      {$u_2 = w_2 + r_2$\\{\scriptsize masks sum to zero across all clients}};
+  \node (m3) [mask, right=1.4cm of c3]
+      {$u_3 = w_3 + r_3$\\{\scriptsize $r_3 = s_{31} - s_{13} + s_{32} - s_{23}$}};
+
+  %% Server on right
+  \node (srv) [srv] at (9.5,0)
+      {\textbf{Aggregation Server}\\[4pt]
+       $\sum_i u_i = \sum_i w_i$\\[2pt]
+       {\scriptsize masks cancel: $\sum_i r_i = 0$}\\[2pt]
+       {\scriptsize server sees \emph{only} the sum}};
+
+  %% Arrows client → mask
+  \draw[arr] (c1.east) -- (m1.west);
+  \draw[arr] (c2.east) -- (m2.west);
+  \draw[arr] (c3.east) -- (m3.west);
+
+  %% Masked updates → server
+  \draw[arr] (m1.east) -- node[note, above, sloped] {blinded transit} (srv.north west);
+  \draw[arr] (m2.east) -- node[note, above] {blinded transit} (srv.west);
+  \draw[arr] (m3.east) -- node[note, below, sloped] {blinded transit} (srv.south west);
+
+  %% Shared-secret annotations between clients
+  \draw[<->, gray!40, dashed, thin] (c1.south) -- node[note, left] {$s_{12}$} (c2.north);
+  \draw[<->, gray!40, dashed, thin] (c2.south) -- node[note, left] {$s_{23}$} (c3.north);
+  \draw[<->, gray!40, dashed, thin, bend left=25]
+      (c1.south west) to node[note, left] {$s_{13}$} (c3.north west);
+
+  \node[note, gray!60, align=center] at (0,-3.3)
+      {Pairwise seeds $s_{ij}$ exchanged\\via Diffie-Hellman; never sent to server};
+
+\end{tikzpicture}
+\caption{Secure Aggregation Logic: Pairwise masking. Each client adds a cancelling
+         random mask $r_i$ derived from shared seeds $s_{ij}$ before uploading. Because
+         $\sum_i r_i = 0$ across all clients, the server recovers $\sum_i w_i$ exactly
+         without ever observing any individual update $w_i$ in the clear.}
 \label{fig:ch8_secagg}
 \end{figure}
 

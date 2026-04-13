@@ -29,8 +29,71 @@ In a standard Federated Learning loop (often using the \textbf{FedAvg} algorithm
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/ch7_fl_arch.png}
-\caption{The Federated Learning Architecture: Illustrating the global model broadcast, local edge training, and subsequent aggregation of model updates without raw data movement.}
+\begin{tikzpicture}[
+    server/.style={draw, rounded corners=5pt, fill=blue!10, draw=blue!60,
+                   inner sep=9pt, font=\small\bfseries, align=center,
+                   minimum width=3.6cm, minimum height=1.1cm},
+    client/.style={draw, rounded corners=4pt, fill=green!8, draw=green!55,
+                   inner sep=7pt, font=\footnotesize\bfseries, align=center,
+                   minimum width=2.8cm, minimum height=1.0cm},
+    data/.style={draw, rounded corners=3pt, fill=gray!10, draw=gray!50,
+                 inner sep=5pt, font=\scriptsize, align=center,
+                 minimum width=2.4cm},
+    broad/.style={->, >=Stealth, thick, blue!60, align=center, dashed},
+    grad/.style={->, >=Stealth, thick,align=center, green!55!black},
+    note/.style={font=\scriptsize\itshape, gray!70}
+  ]
+
+  %% Global Server
+  \node (srv) [server] at (5.5,0)
+      {\textbf{Global Server}\\{\scriptsize FedAvg Aggregator}};
+
+  %% Four clients arranged below
+  \node (c1) [client] at (0,-3.0)
+      {\textbf{Client 1}\\{\scriptsize Hospital A}};
+  \node (c2) [client] at (3.5,-3.0)
+      {\textbf{Client 2}\\{\scriptsize Hospital B}};
+  \node (c3) [client] at (7.0,-3.0)
+      {\textbf{Client 3}\\{\scriptsize Bank C}};
+  \node (c4) [client] at (10.5,-3.0)
+      {\textbf{Client 4}\\{\scriptsize Mobile Device}};
+
+  %% Private data icons below each client
+  \node (d1) [data] at (0,-4.3)    {\scriptsize Private Data\\(stays local)};
+  \node (d2) [data] at (3.5,-4.3)  {\scriptsize Private Data\\(stays local)};
+  \node (d3) [data] at (7.0,-4.3)  {\scriptsize Private Data\\(stays local)};
+  \node (d4) [data] at (10.5,-4.3) {\scriptsize Private Data\\(stays local)};
+
+  \draw[gray!40, dashed, thin] (c1.south) -- (d1.north);
+  \draw[gray!40, dashed, thin] (c2.south) -- (d2.north);
+  \draw[gray!40, dashed, thin] (c3.south) -- (d3.north);
+  \draw[gray!40, dashed, thin] (c4.south) -- (d4.north);
+
+  %% Step 1: Broadcast (server → clients, dashed blue)
+  \draw[broad] (srv.south) -- node[note, left] {(1) broadcast\\$\theta_t$} (c1.north);
+  \draw[broad] (srv.south) -- (c2.north);
+  \draw[broad] (srv.south) -- (c3.north);
+  \draw[broad] (srv.south) -- node[note, right] {(1) broadcast\\$\theta_t$} (c4.north);
+
+  %% Step 2/3: Local training + gradient return (solid green)
+  \draw[grad] (c1.north) -- node[note, left] {(3) $\Delta\theta_1$} ++(0,1.0) -| (srv.south west);
+  \draw[grad] (c2.north) -- node[note, left, xshift=2pt] {(3) $\Delta\theta_2$} ++(0,0.5) -| ([xshift=-0.5cm]srv.south);
+  \draw[grad] (c3.north) -- node[note, right,xshift=-2pt] {(3) $\Delta\theta_3$} ++(0,0.5) -| ([xshift=0.5cm]srv.south);
+  \draw[grad] (c4.north) -- node[note, right] {(3) $\Delta\theta_4$} ++(0,1.0) -| (srv.south east);
+
+  %% Step labels
+  \node[note, align=center, blue!70] at (5.5,-1.5)
+      {(2) Local training on private data (no raw data leaves device)};
+  \node[note, align=center, blue!60] at (5.5,1.1)
+      {(4) Server aggregates: $\theta_{t+1} = \theta_t - \eta\,\tfrac{1}{K}\sum_i \Delta\theta_i$};
+
+\end{tikzpicture}
+\caption{The Federated Learning Architecture. (1)~The global
+         server broadcasts the current model weights $\theta_t$ to selected clients.
+         (2)~Each client trains locally on its private data ---
+         no raw records leave the device. (3)~Clients upload
+         only gradient updates $\Delta\theta_i$. (4)~The server
+         aggregates via weighted FedAvg to produce $\theta_{t+1}$.}
 \label{fig:ch7_fl_arch}
 \end{figure}
 
