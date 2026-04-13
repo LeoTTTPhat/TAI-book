@@ -18,14 +18,25 @@ This shift has created a \textbf{Visibility Crisis}. Currently, nearly 50\% of o
 \section{The ``Lessons Learned'' from the 2025 Crisis}
 \label{sec:crisis_2025}
 
-The urgency of this transition is grounded in the "Great Audit" of 2025. This year saw high-profile failures that permanently eroded public confidence:
-\begin{itemize}
-    \item \textbf{The McHire Security Breach:} An autonomous recruitment agent was manipulated via prompt injection to leak the PII of two million applicants.
-    \item \textbf{Deepfake-Enabled Corporate Fraud:} A CEO's agent was mimicked to authorize a \$50 million cross-border transfer, highlighting the failure of unverified agency.
-    \item \textbf{Hallucination-in-Healthcare:} Miscalibrated diagnostic agents emphasized accuracy over safety, leading to unrepresentative treatment recommendations for minority groups.
-\end{itemize}
+The urgency of this transition is grounded in the ``Great Audit'' of 2025. Three incidents permanently eroded public confidence and, more importantly, exposed the exact pillar of the Trustworthy AI Stack that was absent in each case.
 
-These incidents have turned AI from "Experimental Magic" into "Critical Infrastructure," demanding the same rigor we apply to bridges or power grids.
+\begin{table}[ht]
+\centering
+\caption{Architectural Post-Mortem: 2025 Trust Failures. Each incident maps to a specific missing control within the four-pillar Trustworthy AI Stack (Security, Privacy, Verifiability, Alignment).}
+\label{tab:postmortem_2025}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.6cm} p{3.0cm} p{2.2cm} p{4.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Incident} & \textbf{What Happened} & \textbf{Pillar Failed} & \textbf{Missing Control} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+McHire Security Breach & Autonomous recruitment agent manipulated via prompt injection; PII of 2 million applicants exfiltrated & \cellcolor{costhigh}Security & No Action Verification Enclave (Ch.~17); no Indirect Injection Guard at tool-output boundary \\[4pt]
+Deepfake-Enabled Corporate Fraud & CEO agent identity mimicked; \$50\,M cross-border transfer authorized without human confirmation & \cellcolor{costhigh}Verifiability & No C2PA agent-identity watermark (Ch.~16); no DID-anchored authorization chain (Ch.~10) \\[4pt]
+Hallucination-in-Healthcare & Diagnostic agents over-optimized for accuracy; minority-group patients received unrepresentative treatment recommendations & \cellcolor{costmed}Alignment & No Conformal Prediction uncertainty bound (Ch.~3); no Constitutional Guardrail with demographic equity constraint \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+These incidents have turned AI from ``Experimental Magic'' into ``Critical Infrastructure,'' demanding the same rigor we apply to bridges or power grids. Critically, each failure had a known technical remedy. The chapters ahead build every missing control into the Trustworthy AI Stack.
 
 \section{The Regulatory Landscape: Global and Local}
 \label{sec:regulation_2026}
@@ -73,6 +84,10 @@ Digital sovereignty is a core pillar of the 2026 strategy. Western-centric trust
             Aligned RLHF}
 \label{subsec:sovereign-ai-rlhf}
 % ==================================================================
+
+\begin{svgraybox}
+\textbf{Advanced Technical Content.} This subsection introduces Culturally Aligned RLHF (CA-RLHF), an implementation pattern that draws on reinforcement learning, constitutional constraints, and KL-divergence regularization. Readers approaching this book for strategic framing (Executive/CTO persona, Table~\ref{tab:reader_map}) may proceed to Section~\ref{sec:the_trustworthy_stack} without loss of continuity. The full CA-RLHF specification is revisited with formal notation in Chapter~27 (Alignment Engineering).
+\end{svgraybox}
 
 \begin{quote}
 \textit{``A model aligned only to the values of its creators is not
@@ -953,5 +968,31 @@ Supply-Chain Poisoning & SBOM + Provenance (Ch.~24) & \$20K--\$80K & $900\times$
 \end{table}
 
 The Sovereign AI Scorecard (Table~\ref{tab:trust_stack_2026}) and the Trust Debt Score introduced in Chapter~\ref{chap:attm} are not only governance tools---they are the technical underwriting evidence that enables AI insurance policies and satisfies procurement security requirements. Appendix~\ref{app:rav} provides the full RAV calculator, default probability tables calibrated to the 2025 ASEAN incident record, and a worked example for a Vietnamese fintech deployment.
+
+% ------------------------------------------------------------------
+\section{Reader Persona Navigation Map}
+\label{sec:reader_personas}
+% ------------------------------------------------------------------
+
+This book is designed to serve readers across different professional contexts. The full chapter sequence is the recommended path for practitioners implementing trustworthy systems end-to-end. For readers with a more focused mission, Table~\ref{tab:reader_map} provides curated reading paths by persona.
+
+\begin{table}[ht]
+\centering
+\caption{Reader Persona Navigation Map. Chapter references indicate the minimum viable reading path for each role; parenthetical notes indicate where depth is most critical.}
+\label{tab:reader_map}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.0cm} p{4.5cm} p{5.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Persona} & \textbf{Primary Mission} & \textbf{Recommended Chapters} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\textbf{AI Architect} & Full-stack trustworthy system design and implementation & All chapters (sequential) \\[3pt]
+\textbf{Compliance Officer} & Regulatory mapping, evidence generation, audit readiness & Ch.~1, 2, 3, 5, 25, 26, 27, 29 (Appendices A--B) \\[3pt]
+\textbf{Executive / CTO} & Strategic investment framing, risk communication & Ch.~1, 3, 15, 25, Appendix~A (RAV Framework) \\[3pt]
+\textbf{Security Engineer} & Attack surface, red teaming, TEE integration & Ch.~6, 9, 10, 17, 21, 22, 24 \\[3pt]
+\textbf{Data Scientist} & Privacy-preserving ML, DP implementation, unlearning & Ch.~4, 5, 7, 8, 18, 19 \\[3pt]
+\textbf{Policy Researcher} & Regulatory landscape, sovereign AI, norm evolution & Ch.~1, 2, 15, 25, 26 \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
 
 Trust is no longer a luxury feature; it is the substrate of our future digital civilization. In the following chapters, we build this stack from the ground up, starting with the mapping of social norms through \textbf{Contextual Integrity}.

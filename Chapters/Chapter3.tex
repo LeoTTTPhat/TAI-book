@@ -32,6 +32,61 @@ The 2026 regulatory environment, specifically Vietnam's AI Law and the updated N
 
 Architecturally, the \textbf{Emergency Brake Pattern} is a hardcoded circuit-breaker that immediately suspends agent execution if a core safety or privacy boundary (defined in the Norm Matrix from Chapter 2) is approached.
 
+% ------------------------------------------------------------------
+\subsection{HITL/HOTL/HiC Decision Matrix}
+\label{subsec:hitl_decision_matrix}
+% ------------------------------------------------------------------
+
+Selecting the wrong oversight mode is a design failure. Placing HITL approval gates on every inference decision in a high-frequency trading system is operationally impossible; deploying a fully HiC autonomous agent in a clinical dosing system is legally indefensible. Table~\ref{tab:hitl_decision_matrix} provides a structured selection matrix across three dimensions: risk class, required response latency, and acceptable automation degree.
+
+\begin{table}[ht]
+\centering
+\caption{HITL/HOTL/HiC Decision Matrix. Risk class is defined by the data sensitivity taxonomy (Chapter~6) combined with the consequence severity of an erroneous autonomous action. Automation degree indicates what fraction of decisions the agent may execute without explicit per-decision human approval.}
+\label{tab:hitl_decision_matrix}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.5cm} p{2.2cm} p{2.2cm} p{2.5cm} p{3.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Domain} & \textbf{Risk Class} & \textbf{Latency Req.} & \textbf{Oversight Mode} & \textbf{Automation Degree} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Clinical dosing / surgery & \cellcolor{costhigh}Critical & $<$200\,ms & HITL & 0\%: every dosing decision requires physician confirmation \\[4pt]
+Financial trading (retail) & \cellcolor{costhigh}High & $<$1\,ms & HiC & $\sim$99\%: Constitutional limits on order size; human sets boundaries only \\[4pt]
+Content moderation & \cellcolor{costmed}Medium & $<$500\,ms & HOTL & $\sim$90\%: automated action; human monitors queue, overrides on appeal \\[4pt]
+Autonomous vehicle & \cellcolor{costhigh}Critical & $<$10\,ms & HiC & $\sim$99\%: real-time control is autonomous; emergency brake is human-set \\[4pt]
+HR / Recruitment screening & \cellcolor{costmed}Medium & $<$24\,h & HOTL & $\sim$70\%: AI ranks; human approves or rejects shortlist \\[4pt]
+Logistics / route planning & \cellcolor{costlow}Low & $<$60\,s & HiC & $\sim$99\%: fully automated within policy constraints \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Design Rule:} If the consequence of an erroneous autonomous action is irreversible (a surgical cut, a cross-border wire transfer, a published medical record), the system must default to at least HOTL with real-time override capability---regardless of latency pressure. Latency is an engineering constraint to be optimized; irreversibility is an ethical constraint that cannot be traded away.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\subsection{Emergency Brake Latency SLA}
+\label{subsec:brake_latency_sla}
+% ------------------------------------------------------------------
+
+The Emergency Brake is only effective if it fires \emph{before} the unauthorized action exits the system boundary. Table~\ref{tab:brake_latency_sla} establishes the maximum acceptable brake-activation latency for each domain, together with the enforcement technology required to meet it. These values are derived from the action execution time windows in the 2025 incident record (Section~\ref{sec:crisis_2025}).
+
+\begin{table}[ht]
+\centering
+\caption{Emergency Brake Latency SLA by deployment domain. ``Enforcement technology'' refers to the architectural layer responsible for meeting the SLA; software-only approaches cannot meet sub-10\,ms targets.}
+\label{tab:brake_latency_sla}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.0cm} p{2.0cm} p{2.8cm} p{4.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Domain} & \textbf{Max Brake Latency} & \textbf{Enforcement Technology} & \textbf{Rationale} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+High-frequency trading & $<$1\,ms & FPGA-based policy engine & Order execution windows are $\sim$50\,$\mu$s; software-layer brakes arrive after trade settles \\[4pt]
+Autonomous vehicle & $<$10\,ms & On-chip ARM TrustZone interrupt & Braking distance at 100\,km/h begins within 28\,m; action must halt in actuator pipeline \\[4pt]
+Clinical documentation / dosing & $<$200\,ms & TEE-hosted Constitutional Engine & Physician cognitive window; must fire before LLM output is committed to medical record \\[4pt]
+Content moderation & $<$500\,ms & SLM classifier + policy API & Content publication pipeline; brake must fire before CDN cache propagation \\[4pt]
+Enterprise agent (general) & $<$2\,s & Software guardrail layer & API call round-trips provide natural latency buffer; software brake is sufficient \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
 \subsection{The Post-Brake Recovery Protocol}
 \label{sec:post-brake-recovery}
 
