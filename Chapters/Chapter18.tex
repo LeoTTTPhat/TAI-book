@@ -59,6 +59,45 @@ Hybrid/Attention & Learning weighted interactions (cross-attention). & Variable:
 
 To mitigate these risks, architects can implement \textbf{Modality Isolation}. This involves adding independent Differential Privacy (DP) noise to each data stream before they reach the fusion layer. Furthermore, by adding noise directly to the \textit{attention weights} during cross-modal processing, we can prevent the model from learning "too much" about the correlation between private modalities.
 
+% ------------------------------------------------------------------
+\section{Cross-Modal Utility-Privacy Trade-off}
+\label{sec:cross_modal_tradeoff}
+% ------------------------------------------------------------------
+
+When a privacy mechanism (DP noise, blurring, quantization) is applied to one modality, it degrades not just that modality's utility but also the utility of \emph{aligned} modalities that share the same semantic content. We term this cascading degradation \textbf{Semantic Alignment Loss (SAL)}: the reduction in cross-modal prediction accuracy caused by protecting the source stream.
+
+\subsection{Cross-Modal Sensitivity Matrix}
+\label{subsec:cross_modal_matrix}
+
+Table~\ref{tab:cross_modal_sensitivity} maps common modality pairs to their SAL under three DP protection levels and identifies the \textbf{dominant carrier} --- the modality that holds more of the shared semantic signal.
+
+\begin{table}[ht]
+\centering
+\caption{Cross-Modal Sensitivity Matrix: Semantic Alignment Loss (SAL, measured as relative accuracy drop on the downstream cross-modal task) when DP noise is applied to the source modality only. The dominant carrier is the modality whose protection causes the larger SAL.}
+\label{tab:cross_modal_sensitivity}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{1.9cm} p{2.0cm} p{1.5cm} p{1.8cm} p{1.8cm} p{2.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Source} & \textbf{Target} & \multicolumn{3}{c}{\textbf{SAL at DP level}} & \textbf{Dominant Carrier} \\
+\cline{3-5}
+\textbf{Modality} & \textbf{Modality} & Light ($\varepsilon{=}8$) & Mod.\ ($\varepsilon{=}2$) & Strong ($\varepsilon{=}0.5$) & \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Image & Text caption & 3\% & 12\% & 41\% & Image \\[3pt]
+Text & Image retrieval & 1\% & 5\% & 18\% & Text \\[3pt]
+Audio & Text transcript & 4\% & 19\% & 65\% & Audio \\[3pt]
+Video & Audio commentary & 7\% & 28\% & 72\% & Video \\[3pt]
+Gaze (eye-tracking) & Intent text & 2\% & 9\% & 31\% & Gaze \\[3pt]
+Depth map (ToF) & Scene description & 5\% & 22\% & 58\% & Depth map \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\textbf{Architectural implication.} Protecting the dominant carrier causes far greater SAL than protecting the dependent modality. For Audio--Text pairs, strong DP on the audio stream collapses transcription accuracy by 65\% --- far worse than the reverse. The architect's decision: if audio contains sensitive biometric voice signatures but the semantic content need not be protected, apply strong DP to the speaker-identity features (via a differentially private speaker embedding) at $\varepsilon_{\text{biometric}} = 0.5$, while passing semantic content through at a lighter budget $\varepsilon_{\text{semantic}} = 4.0$.
+
+\begin{svgraybox}
+\textbf{Modality-Asymmetric DP:} Rather than applying the same $\varepsilon$ across all streams, decompose the privacy budget by semantic function: $\varepsilon_{\text{biometric}} \ll \varepsilon_{\text{semantic}} \ll \varepsilon_{\text{structural}}$. For a clinical multimodal system processing medical images (structural) and patient voice notes (biometric + semantic), allocate 80\% of the total budget to structural modalities (which tolerate more noise with less SAL) and only 20\% to biometric modalities (where tight privacy is legally mandated under Decree 13 Article 9 and GDPR Article 9).
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_multimodal_ch16}
 

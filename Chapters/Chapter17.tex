@@ -51,6 +51,49 @@ Unlike traditional software security, the non-deterministic nature of LLMs requi
   \item[Automated Red Teaming:] Using an "attacker LLM" to generate thousands of diverse adversarial prompts to stress-test a "defender LLM," measuring the success rate of safety bypasses.
 \end{description}
 
+% ------------------------------------------------------------------
+\section{Private Retrieval-Augmented Generation}
+\label{sec:private_rag}
+% ------------------------------------------------------------------
+
+\textbf{Retrieval-Augmented Generation (RAG)} has become the dominant 2025--2026 pattern for enterprise AI: rather than fine-tuning a model on sensitive proprietary data, a RAG system fetches relevant document chunks at inference time and injects them into the LLM context window. This shift dramatically reduces fine-tuning leakage risk — but opens a new threat surface: \textbf{the retrieval step itself leaks information}.
+
+\subsection{The Retrieval Privacy Problem}
+\label{subsec:rag_privacy_problem}
+
+In a standard RAG pipeline, the user query is encoded into an embedding vector and matched against a document store via approximate nearest-neighbor (ANN) search. This apparently innocuous step has two privacy implications:
+
+\begin{description}
+  \item[Query Leakage to the Embedding Model:] If the embedding model is hosted by a third-party provider (e.g., a cloud API), the raw user query is transmitted externally. Under Decree 13 Article 25, this may constitute a cross-border personal data transfer requiring explicit legal basis.
+  \item[Document Existence Leakage:] A cloud-hosted vector database provider can observe which chunks are retrieved for each query, inferring the structure and content of the knowledge base and the user's information needs — even if documents are encrypted at rest.
+\end{description}
+
+\subsection{Private Vector Search Architectures}
+\label{subsec:private_vector_search}
+
+Three countermeasures resolve the retrieval privacy problem at increasing protection levels:
+
+\begin{table}[ht]
+\centering
+\caption{Private vector search architectures for RAG systems. ``Overhead'' is relative to plaintext ANN search on the same hardware.}
+\label{tab:private_vector_search}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.0cm} p{4.0cm} p{1.8cm} p{2.8cm}}
+\hline\noalign{\smallskip}
+\textbf{Architecture} & \textbf{Mechanism} & \textbf{Privacy} & \textbf{Overhead} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+On-Premise Embedding & Embedding model + vector DB on sovereign hardware; no external API call & \cellcolor{costlow}High & $1\times$ \\[3pt]
+TEE-Hosted Vector DB & ANN search executes inside SGX enclave; provider cannot observe query--document pairs & \cellcolor{costlow}High & $1.5$--$2\times$ \\[3pt]
+Batch Oblivious Retrieval & Query is $k$-anonymized among $k$ synthetic decoy queries; provider cannot link result to user & \cellcolor{costmed}Medium & $k\times$ \\[3pt]
+HE Dot Product (CKKS) & Homomorphic embedding similarity; provider never decrypts query or documents & \cellcolor{costlow}Full & $10^3$--$10^4\times$ \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Production Pattern --- DP-RAG for Healthcare:} The Full-Stack Blueprint (Section~\ref{sec:blueprint_clinical_llm}) uses a \textbf{TEE-Hosted Vector DB} for retrieval. The hospital's clinical knowledge base is indexed inside an Intel SGX enclave; ANN search runs entirely within protected memory. The model provider cannot observe which patient-condition documents were retrieved for a given query. Retrieved chunks are assembled into the prompt inside the enclave and passed to the LLM as a single encrypted payload, ensuring zero-trust context assembly.
+\end{svgraybox}
+
 \section{Operational Safety: Input and Output Guardrails}
 \label{sec:llm_guardrails}
 
@@ -75,6 +118,33 @@ Output guardrails sanitize the model's response to ensure it adheres to corporat
 \textbf{The Practitioner's Toolbox:} Modern frameworks like \textbf{NVIDIA NeMo Guardrails} allow architects to define "Colang" scripts that explicitly map valid user intents to safe model flows, providing a deterministic control layer over a probabilistic engine.
 \end{svgraybox}
 
+\subsection{Guardrail Orchestration: Multi-Stage Filter Pipeline}
+\label{subsec:guardrail_orchestration}
+
+Stacking multiple guardrails naïvely multiplies latency. A 400\,ms toxicity classifier + 600\,ms semantic boundary check + 200\,ms PII detector = 1.2 seconds of added overhead per query — unacceptable for real-time clinical assistants or financial chatbots. The \textbf{Multi-Stage Filter Pipeline} pattern resolves this through \textbf{cascade design}: fast, cheap filters act as gates for expensive, accurate classifiers. Each stage only activates if all previous stages pass.
+
+\begin{table}[ht]
+\centering
+\caption{Multi-Stage Guardrail Pipeline: ordered by cost (ascending) and false-positive rate (descending). The pipeline short-circuits on any block decision, so $>$95\% of queries exit at Stages 1--2.}
+\label{tab:guardrail_pipeline}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{0.35cm} p{2.8cm} p{3.6cm} p{1.5cm} p{2.6cm}}
+\hline\noalign{\smallskip}
+\textbf{\#} & \textbf{Stage} & \textbf{Mechanism} & \textbf{Latency} & \textbf{Activates for} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+1 & PII Regex / Bloom Filter & Pattern match: CMND, phone, API keys, SSN & $<$1\,ms & All queries \\[3pt]
+2 & Injection Heuristics & Keyword + structural patterns (``ignore previous'', ``DAN'', ``jailbreak'') & 2--5\,ms & Stage 1 pass \\[3pt]
+3 & Embedding Similarity Gate & Cosine distance from safe-policy embeddings; block if $\cos\theta < \tau$ & 15--30\,ms & Stage 2 pass \\[3pt]
+4 & SLM Intent Classifier & 1B-parameter safety model (e.g., Llama Guard 2); semantic intent score & 80--150\,ms & Stage 3 pass \\[3pt]
+5 & Constitutional AI Review & Full LLM self-critique against Constitutional Policy Engine & 200--600\,ms & $<$1\% of queries \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Bit-per-Watt Efficiency Rule:} Stages 1--2 handle $>$95\% of adversarial traffic at near-zero compute cost. Tuning threshold $\tau$ at each stage to achieve this distribution reduces average per-query guardrail latency from $\sim$600\,ms (all stages sequential) to $\sim$8\,ms, compatible with edge and on-premise Bit-per-Watt efficiency targets.
+\end{svgraybox}
+
 \section{Differential Privacy for LLM Fine-Tuning}
 \label{sec:dp_fine_tuning}
 
@@ -93,6 +163,39 @@ Furthermore, by using \textbf{Low-Rank Adaptation (LoRA)} \cite{hu2021}, we can 
 W' = W + BA \quad \text{where } A \in \mathbb{R}^{d \times r}, B \in \mathbb{R}^{r \times k}
 \end{equation}
 This rank-constrained update is not only faster but also simplifies the application of noise for private aggregation in distributed settings.
+
+% ------------------------------------------------------------------
+\section{Action Verification Enclaves for Large Action Models}
+\label{sec:action_verification_enclaves}
+% ------------------------------------------------------------------
+
+The proliferation of \textbf{Large Action Models (LAMs)} --- LLM-powered agents that take real-world actions (API calls, file writes, financial transactions) rather than generating text --- introduces a threat category absent from traditional language model safety: a hallucinating or prompt-injected LAM does not produce a wrong sentence; it executes an unauthorized trade, approves a fraudulent transfer, or deletes a production database.
+
+\subsection{The LAM Threat Model}
+\label{subsec:lam_threat_model}
+
+Three attack vectors are unique to action-capable agents:
+
+\begin{description}
+  \item[Indirect Prompt Injection via Tool Output:] The agent retrieves a malicious instruction embedded in the output of a tool it calls (a fetched web page, an incoming email). The injected instruction hijacks the subsequent action plan.
+  \item[Goal Misgeneralization:] Under distributional shift, the agent pursues a proxy goal that was instrumentally useful in training but harmful in deployment (e.g., ``maximize confirmed transactions'' $\Rightarrow$ approves fraudulent ones).
+  \item[Escalation Hallucination:] The agent fabricates permission to access a resource it does not have; if the API boundary is unenforced, the action executes successfully.
+\end{description}
+
+\subsection{The Action Verification Enclave Pattern}
+\label{subsec:action_enclave_pattern}
+
+No action exits the system boundary without passing through a \textbf{TEE-hosted Action Verification Enclave (AVE)} that validates it against the \textbf{Constitutional Policy Engine} (Chapter~\ref{chap:agentic_governance}). The enclave enforces three sequential checks:
+
+\begin{enumerate}
+  \item \textbf{Schema Validation:} The proposed action is parsed against the API contract schema. Any action with invalid parameter types, out-of-range values, or missing required fields is rejected before policy evaluation.
+  \item \textbf{Policy Check:} The parsed action is evaluated against a formal predicate over (action type, actor identity, resource scope, time window). For example: \texttt{ALLOW transfer(amount, recipient)} \texttt{IF amount $\leq$ \$10{,}000 AND recipient} \texttt{IN verified\_whitelist AND actor.clearance $\geq$ 3}.
+  \item \textbf{Explanation Audit:} The AVE logs a natural-language justification of why the action was permitted or blocked, anchored to the specific policy clause. The log is signed by the enclave's attestation key and stored immutably.
+\end{enumerate}
+
+\begin{svgraybox}
+\textbf{From the Trenches (2025):} A Southeast Asian brokerage deployed an LLM trading assistant that was successfully prompt-injected via a malicious financial news article. The injected instruction caused the agent to submit 147 sell orders before human oversight intervened. Post-incident analysis: no Action Verification Enclave was in place — the LLM's output was piped directly to the trading API. Remediation: all API calls from the agent now pass through a Constitutional Policy Engine inside an AWS Nitro Enclave, with hard limits on order size, frequency, and recipient accounts that cannot be overridden by any LLM-generated instruction.
+\end{svgraybox}
 
 \section{Conclusion}
 \label{sec:conclusion_llm_ch15}
