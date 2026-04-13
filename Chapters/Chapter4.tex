@@ -19,6 +19,24 @@ To build a secure anonymization pipeline, the architect must first classify ever
   \item[Sensitive Attributes (SA):] The private information we want to protect while still allowing for statistical analysis (e.g., medical diagnosis, salary).
 \end{description}
 
+% ------------------------------------------------------------------
+\subsection{Quasi-Identifier Discovery: A Systematic Heuristic}
+\label{subsec:qi_discovery}
+% ------------------------------------------------------------------
+
+Knowing the formal definition of a quasi-identifier is necessary but not sufficient. In practice, every real-world dataset contains dozens of columns, and the architect must determine which subset constitutes the quasi-identifier set $QI$ \emph{before} selecting $k$. Underestimating $QI$ leads to the Linkage Attack failure mode above; overestimating it forces aggressive generalization that destroys utility. The following four-step discovery heuristic is recommended before any anonymization pipeline is initialized.
+
+\begin{enumerate}
+  \item \textbf{Column-type classification.} Separate columns into Identifiers (suppress unconditionally: name, SSN, CCCD), Candidate QIs (demographic, geographic, temporal, or behavioral), and Sensitive Attributes (the target of protection). Any column that is (a) potentially available in an external public dataset and (b) not sensitive in its own right is a candidate QI.
+  \item \textbf{External linkability audit.} For each candidate QI, query: \emph{Does a publicly available dataset contain this column together with any identifier?} Vietnam-specific sources to check: voter registration data, business registration databases (Cong Thong Tin), social media profile fields. If yes, classify as \textbf{confirmed QI}.
+  \item \textbf{Uniqueness test.} For the confirmed QI set, compute the fraction of records that are \emph{unique} on the full cross-product of QI values: $\mathrm{UniquenessRatio}(QI) = |\{t \in T : |EQ(t)| = 1\}| / |T|$. If UniquenessRatio $> 0.01$ (i.e., more than 1\% of records are already unique before any linkage), the QI set is too specific for $k < 20$.
+  \item \textbf{Sensitivity expansion check.} Run the Data Food Chain analysis (Section~\ref{sec:data_food_chain}): can any non-sensitive QI column be used to infer the sensitive attribute directly (e.g., ZIP code $\Rightarrow$ income bracket $\Rightarrow$ financial SA)? If the mutual information $I(\text{QI}_i; SA) > 0.1$ nats, elevate $\text{QI}_i$ to a sensitive attribute or apply $t$-closeness.
+\end{enumerate}
+
+\begin{svgraybox}
+\textbf{Rule of Thumb:} For a Vietnamese healthcare dataset in 2026, a safe baseline $QI$ set is $\{\text{Age-band (5yr)}, \text{Gender}, \text{District}\}$ with $k \geq 15$ (Decree 356 Class B). Adding Occupation or Employer to any published companion dataset immediately upgrades the effective $QI$ set and requires re-evaluation. Run the uniqueness test after every new auxiliary source is identified.
+\end{svgraybox}
+
 \section{The K-L-T Hierarchy: Modern Standards}
 \label{sec:klt_hierarchy}
 
@@ -452,6 +470,34 @@ Even with $k, l,$ and $t$ protection, architects must defend against:
   \item[Structural Attacks (Graph Data):] Anonymizing social links and relationships requires defending against node-level and edge-level re-identification.
 \end{description}
 
+% ------------------------------------------------------------------
+\subsection{Linkage Attack: Worked Example}
+\label{subsec:linkage_worked_example}
+% ------------------------------------------------------------------
+
+The Mosaic Effect becomes concrete when traced through a real attack sequence. The following example follows Sweeney's canonical 1997 methodology \cite{sweeney2002} applied to a modern Vietnamese health dataset and a publicly available voter registration database.
+
+\textbf{Setup.} A district hospital publishes a 3-anonymous medical dataset (Age generalized to 5-year bands, Gender retained, ZIP code generalized to district level). A voter registration database is publicly available containing Name, Age (exact), Gender, and full ZIP code.
+
+\begin{table}[ht]
+\centering
+\caption{Linkage Attack: Three-Step Re-identification Trace. The 3-anonymous medical dataset (left) is joined to the voter registry (right) using the intersection of quasi-identifier values. In Step 3, the equivalence class collapses to a single record.}
+\label{tab:linkage_attack}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{0.4cm} p{3.2cm} p{4.2cm} p{4.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Step} & \textbf{Adversary Action} & \textbf{Medical Dataset State} & \textbf{Voter Registry Match} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+1 & Filter by gender & Rows: Gender = F, Age = [25--30), District = Hai Ba Trung & Voter registry: 847 female records in Hai Ba Trung \\[4pt]
+2 & Narrow by exact age & Age band [25--30) in registry: voters aged 25, 26, 27, 28, 29 & 847 $\to$ 312 records within age band \\[4pt]
+3 & Cross-reference known occupation & Adversary knows target works at ``Vinmec International'' (posted on LinkedIn). Voter registry includes employer field & \cellcolor{costhigh}312 $\to$ \textbf{1 record: Nguyen Thi H.} \\[4pt]
+4 & Infer sensitive attribute & Nguyen Thi H. maps to equivalence class $q_1$ & Class $q_1$ contains: \{Diabetes, Diabetes, Hypertension\}. Re-identification probability: $2/3 = 67\%$ for Diabetes \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\textbf{Architectural lesson.} The medical dataset satisfied 3-anonymity against a quasi-identifier set of \{Age-band, Gender, District\}. The attack succeeded because the \emph{effective} quasi-identifier set---expanded by the voter registry---included Employer, reducing the anonymity set to 1. The defense: (1)~enumerate all publicly available datasets that could act as linkage auxiliaries before selecting quasi-identifiers; (2)~apply $t$-closeness or Differential Privacy when the adversary's auxiliary information cannot be bounded; (3)~restrict data recipients via contractual re-identification prohibition (Decree 356 Class B requirement, Table~\ref{tab:decree356_compliance}).
+
 \section{Architectural Implementation}
 \label{sec:arch_implementation_anonymization}
 
@@ -529,6 +575,34 @@ Pair this report with a \textbf{Privacy-Utility Curve} so decision-makers can se
 \label{sec:vietnam_decree_356}
 
 Effective March 2026, \textbf{Decree 356} (replacing Decree 13) defines ``Sensitive Personal Data'' to include transaction history and real-time behavioral tracking. To comply with ``Advanced Safeguards,'' architects must map their $k$-anonymity levels to specific sensitivity tiers before data can be transferred to third parties or across borders.
+
+% ------------------------------------------------------------------
+\subsection{Decree 356 Sensitivity-Tier Compliance Table}
+\label{subsec:decree356_compliance}
+% ------------------------------------------------------------------
+
+Table~\ref{tab:decree356_compliance} operationalizes Decree 356 for anonymization engineers: it maps each sensitivity class to the \emph{minimum} required parameter values, the mandatory additional safeguard, and the relevant article. Every data release from a Vietnamese data controller must be evaluated against this table before a cross-border transfer or third-party data-sharing agreement can be executed.
+
+\begin{table}[ht]
+\centering
+\caption{Decree 356 Sensitivity-Tier Compliance Requirements for Anonymized Data Release. Sensitivity classes follow the taxonomy of Chapter~\ref{chap:privacy_attacks}. All minimum values are floors, not targets; architects should select the strongest mechanism compatible with required utility.}
+\label{tab:decree356_compliance}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{1.5cm} p{2.5cm} p{1.4cm} p{1.4cm} p{1.4cm} p{3.8cm}}
+\hline\noalign{\smallskip}
+\textbf{Class} & \textbf{Examples} & \textbf{Min.\ $k$} & \textbf{Min.\ $\ell$} & \textbf{Max.\ $\varepsilon$} & \textbf{Mandatory Safeguard (Decree 356)} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+\cellcolor{costhigh}A & Biometric, health, political affiliation, EEG & \cellcolor{costhigh}20 & \cellcolor{costhigh}5 & \cellcolor{costhigh}1.0 & Art.~9: Formal Privacy Impact Assessment; DPO sign-off; DP-SGD mandatory for ML \\[4pt]
+\cellcolor{costhigh}B & Financial records, precise location history, legal status & \cellcolor{costhigh}15 & \cellcolor{costhigh}4 & \cellcolor{costhigh}2.0 & Art.~9: Data-sharing agreement with contractual re-identification prohibition \\[4pt]
+\cellcolor{costmed}C & Behavioral preferences, purchase history, device IDs & \cellcolor{costmed}10 & \cellcolor{costmed}3 & \cellcolor{costmed}4.0 & Art.~6: Purpose limitation documented in processing register \\[4pt]
+\cellcolor{costlow}D & Aggregated public statistics, anonymized survey responses & \cellcolor{costlow}5 & \cellcolor{costlow}2 & \cellcolor{costlow}8.0 & Art.~6: Standard data-transfer agreement sufficient \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Compliance Workflow:} Before any release, (1)~classify the dataset using the sensitivity taxonomy; (2)~verify that all anonymization parameters meet the class minimum; (3)~run the MIA audit (AUC $< 0.60$) and the NNDR check (NNDR $> 0.50$); (4)~attach the Privacy-Utility Trade-off Report (Table~\ref{tab:pareto_report}) and the Decree 356 class determination to the data-sharing agreement. For Class A/B data, the Data Protection Officer must countersign before transfer.
+\end{svgraybox}
 
 Practitioners should view $k$-anonymity and $\ell$-diversity not as competing but as complementary layers: choose $k$ to limit re-identification risk, $\ell$ to prevent attribute inference, and consider $t$-closeness or differential privacy when adversaries may have rich auxiliary information or when data will be released repeatedly.
 

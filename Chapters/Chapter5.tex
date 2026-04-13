@@ -165,18 +165,35 @@ P[M(D) \in S] \le e^{\epsilon} \times P[M(D') \in S] + \delta
 
 To satisfy the DP definition, we inject random noise into our computations proportional to the \textbf{Sensitivity} of the query---the maximum change a single record can cause to the output.
 
-\begin{table}
-\caption{Fundamental DP Mechanisms}
-\label{tab:dp_mechanisms}
-\begin{tabular}{p{2cm}p{4cm}p{4cm}}
+% ------------------------------------------------------------------
+\subsection{DP Mechanism Selection Matrix}
+\label{subsec:dp_mechanism_matrix}
+% ------------------------------------------------------------------
+
+The choice of mechanism depends on the data type, query type, and deployment context. Table~\ref{tab:dp_mechanism_matrix} provides the complete selection guide used by the Trustworthy AI Architect when specifying a DP pipeline.
+
+\begin{table}[ht]
+\centering
+\caption{DP Mechanism Selection Matrix. $\Delta_1 f$ = $\ell_1$-sensitivity; $\Delta_2 f$ = $\ell_2$-sensitivity. Recommended $\varepsilon$ ranges follow the Sovereign AI Scorecard (Chapter~\ref{chap:attm}) tiers: Strong ($\leq 1$), Moderate ($1$--$4$), Acceptable ($4$--$8$).}
+\label{tab:dp_mechanism_matrix}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.0cm} p{2.2cm} p{2.8cm} p{2.4cm} p{3.0cm}}
 \hline\noalign{\smallskip}
-Mechanism & Noise Addition & Best For \\
+\textbf{Query / Data Type} & \textbf{Mechanism} & \textbf{Noise Formula} & \textbf{Sensitivity} & \textbf{Recommended $\varepsilon$} \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
-Laplace & $f(x) + \text{Lap}(\Delta f / \epsilon)$ & Numerical queries, Pure $\epsilon$-DP \\
-Gaussian & $f(x) + \mathcal{N}(0, \sigma^2)$ & Deep Learning, ($\epsilon, \delta$)-DP \\
+Numerical count / sum & Laplace & $f(x) + \mathrm{Lap}(\Delta_1 f / \varepsilon)$ & $\Delta_1 f = 1$ (count) & $\leq 2.0$ (strong) \\[3pt]
+Numerical mean / median & Gaussian & $f(x) + \mathcal{N}(0, \sigma^2)$; $\sigma = \frac{\Delta_2 f \sqrt{2\ln(1.25/\delta)}}{\varepsilon}$ & $\Delta_2 f = (\max - \min)/N$ & $0.5$--$4.0$ \\[3pt]
+Categorical / discrete response & Randomized Response & Respond truthfully w.p. $\frac{e^\varepsilon}{e^\varepsilon + 1}$; flip otherwise & $\Delta f = 1$ (1-bit) & $0.5$--$3.0$ (LDP) \\[3pt]
+Histogram / frequency & Laplace or Gaussian & Per-bin noise $\eta_i \sim \mathrm{Lap}(\Delta f / \varepsilon)$ & $\Delta_1 f = 2$ (one record shifts 2 bins) & $1.0$--$4.0$ \\[3pt]
+Top-$k$ / argmax selection & Exponential & Score $s_i$ replaced by $\exp(\varepsilon s_i / 2\Delta s)$ softmax sample & $\Delta s = \max$ score range & $1.0$--$6.0$ \\[3pt]
+ML model training (deep learning) & DP-SGD (Gaussian) & Clip gradient $\bar{g} = g \cdot \min(1, C/\|g\|_2)$; add $\mathcal{N}(0, \sigma^2 C^2)$ & Clipping norm $C$ (tuned) & $1.0$--$8.0$ (per epoch via RDP) \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 \end{tabular}
 \end{table}
+
+\begin{svgraybox}
+\textbf{Selection Rule:} If the output is a \emph{choice} (ranking, selection, recommendation), use the \textbf{Exponential Mechanism} --- it provides DP over the utility-score space rather than the output space, making it the correct tool for categorical queries where Laplace noise would produce non-sensical non-integer values. For client-side data collection where data must be privatized \emph{before} leaving the device, use \textbf{Randomized Response} or the LDP mechanisms in Section~\ref{sec:ldp}.
+\end{svgraybox}
 
 % ------------------------------------------------------------------
 \subsection{Worked Example 1: Laplace Mechanism on a Counting Query}
@@ -643,6 +660,34 @@ if __name__ == "__main__":
 
 \begin{svgraybox}
 \textbf{When to Choose PATE over DP-SGD:} If your regulatory context requires that the sensitive dataset \emph{never participates in model training} (a common interpretation of data minimization under GDPR Article 5 and Vietnam Decree 13 Article 6), PATE satisfies this requirement by design. DP-SGD does not: the sensitive data is directly consumed in the gradient computation. For healthcare and biometric applications subject to the strictest data handling requirements, PATE's architectural separation is often the legally superior choice even when its statistical efficiency is lower.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\subsection{DP-SGD Hyperparameter Selection Guide}
+\label{subsec:dpsgd_hyperparams}
+% ------------------------------------------------------------------
+
+Knowing \emph{how} DP-SGD works is necessary; knowing \emph{which hyperparameters to choose} is the practitioner's first bottleneck. The three key parameters --- clipping norm $C$, noise multiplier $\sigma$, and batch size $B$ --- jointly determine both the privacy cost and the accuracy loss. Table~\ref{tab:dpsgd_hyperparams} provides empirically calibrated starting points for the four most common deployment scenarios.
+
+\begin{table}[ht]
+\centering
+\caption{DP-SGD Hyperparameter Starting Points by deployment scenario. $\varepsilon$ values are estimated at $\delta = 10^{-5}$ using the RDP accountant (Opacus). All values assume 20 training epochs; halving epochs approximately halves $\varepsilon$ at constant $\sigma$.}
+\label{tab:dpsgd_hyperparams}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.8cm} p{1.5cm} p{1.5cm} p{1.2cm} p{1.8cm} p{3.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Scenario} & \textbf{$C$ (clip)} & \textbf{$\sigma$} & \textbf{$B$} & \textbf{Est.\ $\varepsilon$ (20 ep.)} & \textbf{Expected Accuracy Drop} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Small sensitive dataset ($N\!\leq\!5{,}000$), Class A & \cellcolor{costhigh}1.0 & \cellcolor{costhigh}2.0 & 64 & \cellcolor{costhigh}$\approx 1.0$ & \cellcolor{costhigh}$-8$\% to $-15$\% \\[3pt]
+Medium dataset ($N\!\approx\!50{,}000$), Class B & 1.0 & 1.5 & 256 & \cellcolor{costmed}$\approx 2.0$ & $-3$\% to $-8$\% \\[3pt]
+Large dataset ($N\!\geq\!500{,}000$), Class C & 1.0 & 1.1 & 512 & \cellcolor{costlow}$\approx 4.0$ & $-1$\% to $-3$\% \\[3pt]
+Fine-tuning only (LoRA, rank 16), any $N$ & 0.5 & 1.5 & 256 & \cellcolor{costmed}$\approx 2.0$ & $-1$\% to $-4$\% (LoRA adapters only) \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{Tuning Priority Order:} (1)~Set $\sigma$ first --- it is the primary lever for $\varepsilon$. (2)~Increase $B$ (larger batch = fewer steps = less accumulated noise at same $\varepsilon$). (3)~Lower $C$ only if gradient norms are already near 1.0 (check with a non-private trial run). Never lower $C$ below 0.5 without measuring the resulting accuracy drop on a validation set. Reserve the 10\% budget margin (Section~\ref{subsec:budget_ledger}) before finalizing parameters.
 \end{svgraybox}
 
 % ------------------------------------------------------------------
