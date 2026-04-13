@@ -34,6 +34,25 @@ Byzantine clients do not follow the protocol and may send arbitrary or even stra
 \label{fig:ch10_robust}
 \end{figure}
 
+\subsection{Collusion Attacks and Sybil Nodes}
+\label{subsec:collusion_attacks}
+
+Individual Byzantine clients are detectable by geometric distance (Krum) or statistical outlier rules (Trimmed Mean). A more sophisticated adversary deploys \textbf{coordinated Sybil nodes}: a group of $f$ colluding clients that each send individually plausible updates, but whose \emph{combined} effect steers the global model toward the attacker's objective.
+
+\textbf{Why simple rules fail against collusion.} Coordinate-Wise Trimmed Mean clips the $\beta$ most extreme values per coordinate. If $f > \beta$ colluding clients each contribute a moderate-magnitude poisoned gradient, every individual update stays within the trimming window — yet their aggregate effect corrupts the model. Krum selects the single lowest-score update; $f$ colluding clients can pre-arrange their updates so that each Sybil appears as the "most typical'' member of the group, displacing honest updates from the selection set.
+
+\textbf{Identity-Verified FL with Decentralized Identifiers (DIDs).} The architectural countermeasure is to break the pseudonymous identity assumption that enables Sybil attacks. \textbf{Decentralized Identifiers (DIDs)} (discussed in Chapter~\ref{chap:decentralized_identity}) bind each FL participant to a cryptographically verifiable, non-transferable identity credential anchored to a consortium blockchain. This enables three anti-Sybil properties:
+
+\begin{description}
+  \item[One-DID-per-client enforcement:] The aggregator rejects updates not accompanied by a valid DID Verifiable Presentation. An adversary cannot register multiple identities without acquiring multiple distinct hardware attestation credentials (SGX quotes or ARM TrustZone certificates), raising the cost of a Sybil attack from near-zero to near-hardware-acquisition cost.
+  \item[Stake-weighted reputation:] Each DID accumulates a gradient-quality reputation score across rounds. Low-reputation DIDs have their updates discounted; a new DID starts with minimum weight, preventing a fresh Sybil from immediately influencing the model.
+  \item[Audit trail without deanonymization:] The DID is pseudonymous — the aggregator knows the DID, not the hospital or user behind it. On-chain commitments record which DID submitted which round's update hash, enabling post-incident forensics without exposing the client's identity.
+\end{description}
+
+\begin{svgraybox}
+\textbf{Sybil Resistance in Practice:} A consortium of ten Vietnamese hospitals participating in a federated diagnostic AI is required under Decree 13 to maintain an audit log of data processors. The DID-based FL architecture satisfies this requirement while preventing any single participant from creating phantom identities. The Ministry of Health acts as the DID root-of-trust authority, issuing verifiable credentials to each licensed institution --- a natural extension of the existing healthcare licensing infrastructure.
+\end{svgraybox}
+
 \section{Robust Aggregation Rules}
 \label{sec:aggregation_rules}
 
@@ -51,8 +70,35 @@ The update with the lowest score (the one most typical of the group) is selected
 \label{sec:privacy_robustness_conflict}
 
 \begin{svgraybox}
-\textbf{The Architect's Dilemma:} There is a fundamental conflict between \textbf{Secure Aggregation} (which hides individual updates from the server to protect privacy) and \textbf{Robust Aggregation} (which requires the server to inspect or sort individual updates to detect malicious ones). If the updates are cryptographically masked, the server cannot see which one is an outlier. This "Privacy-Integrity" trade-off is a core area of ongoing research and a critical design decision for any secure distributed system.
+\textbf{The Architect's Dilemma:} There is a fundamental conflict between \textbf{Secure Aggregation} (which hides individual updates from the server to protect privacy) and \textbf{Robust Aggregation} (which requires the server to inspect or sort individual updates to detect malicious ones). If the updates are cryptographically masked, the server cannot see which one is an outlier. This "Privacy-Integrity'' trade-off is a core area of ongoing research and a critical design decision for any secure distributed system.
 \end{svgraybox}
+
+\subsection{Trust Mitigation Matrix: Resolving the Privacy-Integrity Dilemma}
+\label{subsec:trust_mitigation_matrix}
+
+The dilemma has no perfect solution, but the architect has a spectrum of approaches that trade off between robustness strength, privacy preservation, and operational cost. Table~\ref{tab:trust_mitigation_matrix} maps five architectural strategies across these axes.
+
+\begin{table}[ht]
+\centering
+\caption{Trust Mitigation Matrix for the Privacy-Robustness conflict in Federated Learning. Robustness strength is rated relative to adaptive (collusion-aware) adversaries; privacy preservation is rated relative to individual gradient exposure.}
+\label{tab:trust_mitigation_matrix}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.0cm} p{3.2cm} p{1.6cm} p{1.6cm} p{2.4cm}}
+\hline\noalign{\smallskip}
+\textbf{Strategy} & \textbf{Mechanism} & \textbf{Robustness} & \textbf{Privacy} & \textbf{Overhead} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Plaintext Krum / Trimmed Mean & Server inspects raw gradients; applies robust rule & High & \cellcolor{costhigh}None & Low \\[3pt]
+SecAgg only & Pairwise masking; server sees only aggregate & None & \cellcolor{costlow}Full & Medium \\[3pt]
+\textbf{ZK-Proof of Gradient Norm} & Client proves $\|\mathbf{g}_i\|_2 \leq C$ without revealing $\mathbf{g}_i$; server rejects norm-violating updates & Medium & \cellcolor{costlow}Full & \cellcolor{costhigh}High (ZK circuit) \\[3pt]
+\textbf{Commitment + Selective Reveal} & Client commits $h = \mathrm{SHA256}(\mathbf{g}_i)$; reveals only on anomaly flag & Medium & \cellcolor{costmed}Conditional & Low--Med \\[3pt]
+\textbf{TEE-based Aggregator} & Secure enclave runs Krum on decrypted updates; OS never sees individual gradients & \cellcolor{costlow}High & \cellcolor{costlow}High & Medium \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\textbf{ZK-Proof of Gradient Norm} is the theoretically cleanest approach: the client constructs a zero-knowledge proof that their gradient norm satisfies $\|\mathbf{g}_i\|_2 \leq C$ (the DP-SGD clipping bound), without revealing any coordinate of $\mathbf{g}_i$. The server can reject any update whose proof fails, blocking extreme outliers while the cryptographic mask keeps the content private. The practical challenge is proof generation time: current ZK-SNARK circuits for 100K-dimensional gradient vectors require several seconds per round --- feasible for hourly hospital batch FL, but too slow for real-time edge deployments.
+
+\textbf{TEE-based Aggregation} (the shaded row) is the most deployment-ready solution for 2025--2026: the server runs the Krum filter inside an Intel SGX or AWS Nitro Enclave. Decrypted gradients exist only inside the enclave's protected memory; the host OS sees only the filtered aggregate. This is the approach used in the Full-Stack Blueprint of Section~\ref{sec:blueprint_federated_fraud}.
 
 % ------------------------------------------------------------------
 \section{Full-Stack Blueprint: Cross-Border Federated Fraud Detection}

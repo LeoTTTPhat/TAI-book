@@ -69,6 +69,61 @@ Cryptographic defenses are not "free"; they introduce significant overhead that 
         If a client drops out after sending their masked update but before the unmasking phase, the server cannot recover the aggregate without specific "secret sharing recovery" mechanisms.
 \end{description}
 
+% ------------------------------------------------------------------
+\section{Implementation Sketch: Secure FL with Flower and SecAgg}
+\label{sec:secagg_implementation}
+% ------------------------------------------------------------------
+
+The theory of pairwise masking becomes architectural reality with \textbf{Flower (\texttt{flwr})} \cite{flower}, an open-source FL framework with a built-in SecAgg+ protocol. The following sketch wires a SecAgg-protected aggregation server with DP-noised clients in under 30 lines.
+
+\begin{lstlisting}[language=Python, style=pythonstyle,
+  caption={Secure FL with Flower \texttt{flwr} and \texttt{SecAggPlusWorkflow}. The server attaches pairwise masking via the workflow; each client applies DP-SGD noise \emph{before} the mask is applied, giving double-layer protection: even if the SecAgg mask were broken, the DP noise prevents gradient inversion.},
+  label={lst:flower_secagg}]
+import flwr as fl
+from flwr.server.workflow import SecAggPlusWorkflow
+from opacus import PrivacyEngine
+import torch
+
+# --- Server: attach SecAgg+ workflow to standard FedAvg ---------
+strategy = fl.server.strategy.FedAvg(
+    fraction_fit=0.8, min_fit_clients=5, min_available_clients=5,
+)
+workflow = SecAggPlusWorkflow(
+    num_shares=5,               # secret-sharing degree
+    reconstruction_threshold=3, # minimum shares to reconstruct
+)
+fl.server.start_server(
+    server_address="0.0.0.0:8080",
+    config=fl.server.ServerConfig(num_rounds=10),
+    strategy=strategy, workflow=workflow,
+)
+
+# --- Client: DP-SGD noise applied before SecAgg mask ------------
+class SecureFlClient(fl.client.NumPyClient):
+    def __init__(self, model, train_loader):
+        self.engine = PrivacyEngine()
+        self.model, self.opt, self.loader = \
+            self.engine.make_private_with_epsilon(
+                module=model,
+                optimizer=torch.optim.SGD(model.parameters(), lr=0.01),
+                data_loader=train_loader,
+                epochs=1, target_epsilon=3.0,
+                target_delta=1e-5, max_grad_norm=1.0)
+
+    def fit(self, parameters, config):
+        # DP-SGD local training; Flower runtime applies SecAgg mask after
+        for X, y in self.loader:
+            self.opt.zero_grad()
+            torch.nn.CrossEntropyLoss()(self.model(X), y).backward()
+            self.opt.step()
+        eps = self.engine.get_epsilon(delta=1e-5)
+        return self.model.parameters(), len(self.loader), {"eps": eps}
+\end{lstlisting}
+
+\begin{svgraybox}
+\textbf{Architect's Note --- Layer Ordering:} DP noise must be injected \emph{before} the SecAgg mask, not after. The correct stack is: \textbf{[per-sample gradient clip]} $\to$ \textbf{[Gaussian noise injection]} $\to$ \textbf{[pairwise SecAgg masking]} $\to$ \textbf{[server aggregation]}. Adding noise after the mask would mean the DP accounting applies to the \emph{aggregate}, not to each individual update — violating the per-client privacy guarantee.
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_secagg}
 

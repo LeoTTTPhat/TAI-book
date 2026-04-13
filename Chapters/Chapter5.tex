@@ -33,8 +33,123 @@ P[M(D) \in S] \le e^{\epsilon} \times P[M(D') \in S] + \delta
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{figures/ch5_dp_noise.png}
-\caption{Mathematics of Differential Privacy: Gaussian noise addition ensures that the distributions of neighboring datasets D and D' overlap, achieving $(\epsilon, \delta)$-indistinguishability.}
+\begin{tikzpicture}[
+  font=\small,
+  db/.style={draw, rounded corners=3pt, fill=blue!5, draw=blue!50!black,
+             inner sep=7pt, minimum width=3.4cm, align=left},
+  mechbox/.style={draw, rounded corners=5pt, fill=orange!7, draw=orange!55!black,
+                  inner sep=7pt, minimum width=2.4cm, align=center,
+                  minimum height=1.5cm},
+  arrow/.style={->, >=Stealth, thick, gray!55},
+]
+
+%%% Left panel: two neighboring datasets
+\node (D) [db] at (0, 1.5) {
+  \textbf{Dataset $D$}\\[4pt]
+  Bob\quad: 0\\
+  Carol\ : 1\\
+  Dave\quad: 0\\[1pt]
+  \textcolor{blue!70!black}{\textbf{Alice\,: 1\enspace$\leftarrow$}}};
+
+\node (Dp) [db] at (0,-1.5) {
+  \textbf{Dataset $D'$}\\[4pt]
+  Bob\quad: 0\\
+  Carol\ : 1\\
+  Dave\quad: 0\\[1pt]
+  \textcolor{gray!55}{\textit{(Alice absent)}}};
+
+\draw [<->, >=Stealth, blue!40, thick, dashed]
+  ([yshift=-2pt]D.south) -- ([yshift=2pt]Dp.north)
+  node[midway, right=3pt, font=\scriptsize, blue!60!black, align=left]
+    {\textbf{neighboring}\\differ by\\one record};
+
+%%% Center panel: randomized mechanism
+\node (mD)  [mechbox] at (4.9, 1.5)
+  {$\mathcal{M}$\\[3pt]
+   {\scriptsize apply $f$, add}\\{\scriptsize$\mathcal{N}(0,\sigma^2\!)$ noise}};
+
+\node (mDp) [mechbox] at (4.9,-1.5)
+  {$\mathcal{M}$\\[3pt]
+   {\scriptsize apply $f$, add}\\{\scriptsize$\mathcal{N}(0,\sigma^2\!)$ noise}};
+
+\draw [arrow] (D.east)  -- node[above, font=\scriptsize] {count query $f$} (mD.west);
+\draw [arrow] (Dp.east) -- node[below, font=\scriptsize] {count query $f$} (mDp.west);
+
+%%% Right panel: output distributions
+\begin{scope}[xshift=7.5cm]
+
+  \node (entry_top) at (-0.3, 0.8)  {};
+  \node (entry_bot) at (-0.3,-0.8) {};
+
+  \begin{axis}[
+    width=5.0cm, height=5.5cm,
+    xlabel={Noisy output $z$},
+    ylabel={Probability density},
+    xmin=-3.5, xmax=4.8,
+    ymin=0, ymax=0.47,
+    xtick={0,1},
+    xticklabels={$f(D')$, $f(D)$},
+    ytick=\empty,
+    legend pos=north east,
+    legend style={font=\scriptsize, inner sep=2pt},
+    axis line style={gray!50},
+    grid=none,
+    clip=false,
+    title={\small $(\varepsilon,\delta)$-Indistinguishability},
+    title style={font=\small\bfseries},
+  ]
+
+    %% Shade region S under each curve
+    \addplot[fill=blue!10, opacity=0.6, draw=none, domain=1.5:3.5, samples=60]
+      { 1/sqrt(2*pi) * exp(-(x-1)^2/2) } \closedcycle;
+    \addplot[fill=red!8, opacity=0.5, draw=none, domain=1.5:3.5, samples=60]
+      { 1/sqrt(2*pi) * exp(-(x-0)^2/2) } \closedcycle;
+
+    %% M(D): Gaussian centered at f(D)=1
+    \addplot[blue!70!black, very thick, domain=-3.5:4.8, samples=250]
+      { 1/sqrt(2*pi) * exp(-(x-1)^2/2) };
+    \addlegendentry{$\mathcal{M}(D)$}
+
+    %% M(D'): Gaussian centered at f(D')=0  (shifted by sensitivity Deltadf=1)
+    \addplot[red!70!black, very thick, dashed, domain=-3.5:4.8, samples=250]
+      { 1/sqrt(2*pi) * exp(-(x-0)^2/2) };
+    \addlegendentry{$\mathcal{M}(D')$}
+
+    %% S boundary dashes
+    \draw[gray!50, dashed, thin] (axis cs:1.5,0) -- (axis cs:1.5,0.35);
+    \draw[gray!50, dashed, thin] (axis cs:3.5,0) -- (axis cs:3.5,0.09);
+    \node[font=\scriptsize\bfseries, blue!60!black] at (axis cs:2.5, 0.28) {$S$};
+
+    %% Delta tail: right tail of M(D) beyond S
+    \addplot[fill=red!18, opacity=0.55, draw=none, domain=3.5:4.8, samples=50]
+      { 1/sqrt(2*pi) * exp(-(x-1)^2/2) } \closedcycle;
+    \node[font=\scriptsize, red!55!black] at (axis cs:4.1, 0.018) {$\delta$};
+
+    %% Sensitivity bracket
+    \draw[->, >=Stealth, green!50!black, thick]
+      (axis cs:0, 0.42) -- (axis cs:1, 0.42)
+      node[midway, above, font=\scriptsize\bfseries, green!40!black]
+        {$\Delta f{=}1$};
+
+    %% Key DP inequality
+    \node[font=\scriptsize, align=center, text=statered]
+      at (axis cs:3.6, 0.36)
+      {$P[\mathcal{M}(D){\in}S]$\\
+       $\leq\,e^{\varepsilon}\!\cdot\!P[\mathcal{M}(D'){\in}S]$\\
+       $+\;\delta$};
+
+  \end{axis}
+\end{scope}
+
+%%% Connect mechanism outputs to distribution panel
+\draw [arrow] (mD.east)  -- ++(0.5,0) |- (entry_top);
+\draw [arrow] (mDp.east) -- ++(0.5,0) |- (entry_bot);
+
+\end{tikzpicture}
+\caption{Mathematics of Differential Privacy.
+\textbf{Left:} Neighboring datasets $D$ (includes Alice) and $D'$ (excludes Alice) differ by exactly one record.
+\textbf{Center:} The same randomized mechanism $\mathcal{M}$ applies count query $f$ and injects Gaussian noise $\mathcal{N}(0,\sigma^2)$ to each dataset independently.
+\textbf{Right:} The two output distributions are shifted by exactly $\Delta f{=}1$ (the query sensitivity) but noise makes them nearly indistinguishable. For any output region $S$, the probability ratio is bounded: $P[\mathcal{M}(D)\in S] \leq e^\varepsilon \cdot P[\mathcal{M}(D')\in S] + \delta$. The shaded $\delta$ tail is the small-probability failure region where the bound may not hold. Stronger privacy (smaller $\varepsilon$) requires larger $\sigma$, pushing the two distributions closer together.}
 \label{fig:ch5_dp_noise}
 \end{figure}
 

@@ -38,26 +38,32 @@ A TEE provides four fundamental security guarantees that are vital for a Trustwo
 \label{fig:ch9_tee}
 \end{figure}
 
-\section{Major TEE Technologies}
+\section{Major TEE Technologies: Hardware-Rooted Trust Comparison}
 \label{sec:tee_technologies}
 
-Three primary technologies dominate the confidential computing landscape:
+Four technologies dominate the confidential computing landscape in 2025--2026, each with distinct trust boundaries, memory limits, and operational models. The architect's choice determines whether to build \textbf{sovereign on-premise infrastructure} or leverage \textbf{cloud-native confidential computing}.
 
-\begin{table}
-\caption{Comparative Overview of TEE Technologies}
-\label{tab:tee_tech}
-\begin{tabular}{p{3cm}p{1.5cm}p{6cm}}
+\begin{table}[ht]
+\centering
+\caption{Hardware-Rooted Trust Comparison: TEE technologies across the sovereignty--convenience spectrum. ASEAN relevance reflects deployment footprint in Vietnam, Indonesia, and Thailand.}
+\label{tab:tee_comparison}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.4cm} p{1.5cm} p{2.2cm} p{2.2cm} p{3.3cm}}
 \hline\noalign{\smallskip}
-Technology & Vendor & Best For \\
+\textbf{Technology} & \textbf{Vendor} & \textbf{Enclave Memory} & \textbf{Attestation} & \textbf{Best For} \\
 \noalign{\smallskip}\svhline\noalign{\smallskip}
-Intel SGX & Intel & Server-side confidential AI and model serving. \\
-ARM TrustZone & ARM & Mobile and IoT edge AI; on-device inference. \\
-AMD SEV & AMD & Virtual machine-level isolation in the cloud. \\
+Intel SGX (v2) & Intel & Up to 512\,GB EPC & DCAP remote attestation via Intel IAS & Server-side confidential model training and inference; on-premise sovereign clusters \\[3pt]
+ARM TrustZone & ARM & Shared DRAM (partition) & OP-TEE + platform certificate & Mobile and IoT edge AI; on-device inference; \textbf{dominant in ASEAN smartphones} \\[3pt]
+AMD SEV-SNP & AMD & Full VM memory & SNP attestation report (AMD root of trust) & VM-level isolation on AMD EPYC servers; public cloud Confidential VMs \\[3pt]
+\rowcolor{patternbg}
+AWS Nitro Enclaves & AWS & Up to 30\,GB & Nitro Attestation Document (signed by AWS root CA) & Managed confidential inference on AWS; lowest operational overhead; \textbf{not sovereign} \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 \end{tabular}
 \end{table}
 
-In emerging markets like ASEAN, \textbf{ARM TrustZone} is particularly critical due to its ubiquity in the smartphones and IoT devices that power local digital economies.
+\begin{svgraybox}
+\textbf{Sovereign vs.\ Cloud-Native Decision Framework:} If your system must satisfy Vietnam Decree 356's data sovereignty requirements, \textbf{Intel SGX or AMD SEV-SNP on on-premise hardware} is the only compliant choice — the attestation root of trust must not be a foreign cloud provider. AWS Nitro Enclaves are operationally excellent but attestation anchors to AWS's root CA, which sits outside Vietnamese legal jurisdiction. For pure model-serving use cases without personal data (e.g., inference on synthetic data), Nitro is a pragmatic shortcut. ARM TrustZone, embedded in every Qualcomm and MediaTek SoC in ASEAN, is the natural choice for on-device personalization where no data ever leaves the handset.
+\end{svgraybox}
 
 \section{Defense-in-Depth: The Composition of Trust}
 \label{sec:tee_composition}
@@ -67,7 +73,72 @@ A truly resilient architecture does not rely on a single layer. The most secure 
 \text{Total Protection} = \underbrace{\text{TEE}}_{\text{Hardware}} + \underbrace{\text{DP } (\epsilon, \delta)}_{\text{Statistical}} + \underbrace{\text{SecAgg}}_{\text{Cryptographic}}
 \end{equation}
 
-In this stack, the TEE protects the computation, Secure Aggregation protects the transit, and Differential Privacy protects the final output from being reverse-engineered.
+In this stack, the TEE protects the \emph{computation}, Secure Aggregation protects the \emph{transit}, and Differential Privacy protects the \emph{output} from being reverse-engineered.
+
+\subsection{Unified Secure Distributed Blueprint}
+\label{subsec:unified_blueprint}
+
+Figure~\ref{fig:unified_blueprint} shows how these three defense layers nest together in a single data flow. An architect composing trust across a Federated Learning system should read this diagram left-to-right: data starts at the most sensitive point (inside the TEE on the client device) and moves outward through progressively coarser aggregation, with a privacy or security layer at each boundary.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  node distance=0.5cm and 0.0cm,
+  font=\small,
+  stage/.style={draw, rounded corners=4pt, inner sep=9pt,
+                text width=3.2cm, align=center,
+                minimum height=2.2cm},
+  tee_s/.style={stage,   fill=red!8,    draw=red!60!black},
+  dp_s/.style={stage,    fill=blue!8,   draw=blue!60!black},
+  sec_s/.style={stage,   fill=orange!8, draw=orange!60!black},
+  rob_s/.style={stage,   fill=green!8,  draw=green!60!black},
+  glob_s/.style={stage,  fill=gray!8,   draw=gray!60},
+  arrow/.style={->, >=Stealth, thick, gray!60},
+  label_a/.style={font=\scriptsize\itshape, text=gray!70!black,
+                  text width=1.6cm, align=center}
+]
+
+\node (tee) [tee_s]
+    {\textbf{TEE Client}\\[4pt]
+     Local training\\inside SGX enclave\\[4pt]
+     {\scriptsize Gradient private\\from host OS}};
+
+\node (dp) [dp_s, right=1.6cm of tee]
+    {\textbf{DP-SGD}\\[4pt]
+     Per-sample clip\\+ Gaussian noise\\$\mathcal{N}(0,\sigma^2 C^2\mathbf{I})$\\[4pt]
+     {\scriptsize $\varepsilon$-budget consumed}};
+
+\node (sec) [sec_s, right=1.6cm of dp]
+    {\textbf{SecAgg}\\[4pt]
+     Pairwise masking\\(Bonawitz protocol)\\[4pt]
+     {\scriptsize Server sees only\\the masked sum}};
+
+\node (rob) [rob_s, right=1.6cm of sec]
+    {\textbf{Krum Filter}\\[4pt]
+     Byzantine\\outlier rejection\\[4pt]
+     {\scriptsize Malicious gradient\\discarded}};
+
+\node (glob) [glob_s, right=1.6cm of rob]
+    {\textbf{Global Model}\\[4pt]
+     FedAvg update\\$\theta \leftarrow \theta - \eta\tilde{\mathbf{g}}$\\[4pt]
+     {\scriptsize Clean, private,\\robust aggregate}};
+
+\draw [arrow] (tee.east)  -- node[above, label_a] {raw\\gradient} (dp.west);
+\draw [arrow] (dp.east)   -- node[above, label_a] {clipped +\\noised} (sec.west);
+\draw [arrow] (sec.east)  -- node[above, label_a] {masked\\aggregate} (rob.west);
+\draw [arrow] (rob.east)  -- node[above, label_a] {filtered\\update} (glob.west);
+
+% Defense layer labels below the boxes
+\node [below=0.5cm of tee,  font=\scriptsize\bfseries, red!70!black]  {Hardware layer};
+\node [below=0.5cm of dp,   font=\scriptsize\bfseries, blue!70!black]  {Statistical layer};
+\node [below=0.5cm of sec,  font=\scriptsize\bfseries, orange!70!black]{Cryptographic layer};
+\node [below=0.5cm of rob,  font=\scriptsize\bfseries, green!70!black] {Integrity layer};
+\node [below=0.5cm of glob, font=\scriptsize\bfseries, gray!70!black]  {Output};
+
+\end{tikzpicture}
+\caption{Unified Secure Distributed Blueprint. A gradient travels from the TEE-protected client (hardware confidentiality) through DP-SGD noise injection (statistical privacy), pairwise SecAgg masking (cryptographic transit protection), and Byzantine-Krum filtering (integrity) before updating the global model. Each boundary crossing is guarded by a distinct defense layer; no single layer's failure exposes the system end-to-end.}
+\label{fig:unified_blueprint}
+\end{figure}
 
 \section{Practical Implementation: Secure Inference}
 \label{sec:tee_implementation}

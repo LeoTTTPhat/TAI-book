@@ -70,9 +70,92 @@ Implementing DP-FL in the wild introduces two major bottlenecks:
         In many real-world settings, data is not "Independent and Identically Distributed" (Non-IID) across clients. A hospital in a rural area may have significantly different data than one in an urban center, making global convergence difficult when combined with DP noise.
 \end{description}
 
+% ------------------------------------------------------------------
+\section{Regulatory Alignment: DP-FL and Vietnam's Data Localization Laws}
+\label{sec:fl_regulatory}
+% ------------------------------------------------------------------
+
+A persistent challenge for AI architects in Southeast Asia is demonstrating to regulators that a distributed system is legally compliant. Vietnam's \textbf{Decree 13/2023/ND-CP} (Personal Data Protection) and \textbf{Decree 356} (Cybersecurity) establish two core obligations: (1) \emph{data localization} — personal data of Vietnamese residents must be stored on servers located in Vietnam; and (2) \emph{data minimization} — only the minimum necessary data should cross jurisdictional boundaries.
+
+The DP-FL architecture satisfies both requirements \textbf{by design}:
+
+\begin{table}[ht]
+\centering
+\caption{DP-FL compliance mapping against Vietnam Decree 13/2023/ND-CP and Decree 356. Raw personal data never moves; only calibrated, DP-noised gradient tensors cross boundaries.}
+\label{tab:fl_decree_mapping}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{3.2cm} p{3.8cm} p{4.8cm}}
+\hline\noalign{\smallskip}
+\textbf{Legal Obligation} & \textbf{Decree Clause} & \textbf{DP-FL Architectural Response} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Data Localization & Decree 13, Art.\ 25: Cross-border transfer requires legal basis & Raw records never leave the local device or institution; only gradient tensors cross province boundaries. \\[3pt]
+Data Minimization & Decree 13, Art.\ 6: Collect only strictly necessary data & DP-noised gradients contain no individually identifiable signal; $\varepsilon$ budget enforces an information ceiling. \\[3pt]
+Purpose Limitation & Decree 13, Art.\ 6: Data restricted to declared purpose & Gradients are consumed by aggregation only; the server cannot reconstruct individual records. \\[3pt]
+Security Obligation & Decree 356, Art.\ 26: Implement technical safeguards & SecAgg masking + TEE-protected aggregation satisfies the "technical and organizational measures'' standard. \\[3pt]
+Audit Rights & Decree 13, Art.\ 8: Data subjects have right to processing records & Privacy Budget Ledger provides an immutable per-round $\varepsilon$ audit trail (see Chapter~\ref{chap:differential_privacy}). \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{The ``No Personal Data Crosses the Commune Boundary'' Argument:} When presenting a DP-FL system to Vietnam's Ministry of Information and Communications (MIC), the architect's most effective compliance statement is: ``The raw electronic health records of Patient $i$ never leave Hospital $A$'s server. What Hospital $A$ transmits is a gradient vector $\tilde{\mathbf{g}}$, which is: (a) a statistical summary, not a record; (b) clipped and noise-injected to satisfy $(\varepsilon, \delta)$-DP; and (c) indistinguishable from the gradient that would have been produced even if Patient $i$ were absent.'' This argument maps directly to Article 25 of Decree 13's legitimate transfer basis: the transmitted data is no longer ``personal data'' under the DP definition.
+\end{svgraybox}
+
+% ------------------------------------------------------------------
+\section{Connectivity-Aware FL for ASEAN Infrastructure}
+\label{sec:fl_asean_connectivity}
+% ------------------------------------------------------------------
+
+The standard FedAvg loop (Section~\ref{sec:fl_architecture}) assumes clients complete a local training round and submit updates within a fixed synchronization window. In ASEAN deployments --- particularly rural Vietnam, Indonesia's outer islands, and Myanmar's border regions --- intermittent 4G/5G connectivity means a synchronous FL loop will constantly fail, with \textbf{straggler} clients blocking the global round indefinitely.
+
+\subsection{Asynchronous Federated Learning}
+\label{subsec:async_fl}
+
+\textbf{Asynchronous FL (AsyncFL)} decouples the global update from client synchronization. The server applies each client update immediately as it arrives, using a \textbf{staleness discount factor} to downweight updates from clients that are many rounds behind the current global model:
+
+\begin{equation}
+  \theta^{(t+1)} = \theta^{(t)} - \eta \cdot \alpha(\tau_i) \cdot \tilde{\mathbf{g}}_i,
+  \qquad \alpha(\tau) = \frac{1}{(1 + \tau)^{\beta}}
+  \label{eq:async_fl}
+\end{equation}
+
+where $\tau_i$ is the client's \textbf{staleness} (number of global rounds the client's local model lags behind) and $\beta \in [0.5, 1.0]$ is the staleness decay parameter. Under convex loss functions and bounded staleness, AsyncFL converges at rate $O(1/\sqrt{T})$ — identical to synchronous FL \cite{xie2019}.
+
+\begin{description}
+  \item[Straggler handling:] Clients with intermittent connectivity submit when their connection is available; the server never blocks waiting for a quorum.
+  \item[Privacy accounting:] Each asynchronous update still carries its own DP noise; the global $\varepsilon$ budget accumulates over received updates, not wall-clock time.
+  \item[Fairness:] A heavily discounted stale update cannot unfairly dominate the global model, preserving convergence even when a single high-bandwidth client floods the server.
+\end{description}
+
+\subsection{Gradient Compression for Low-Bandwidth Links}
+\label{subsec:gradient_compression}
+
+Even DP-noised gradients for a modest ResNet-18 backbone exceed 40\,MB per round --- prohibitive for rural 4G uplinks. Three complementary compression strategies reduce this to under 500\,KB while preserving model quality:
+
+\begin{table}[ht]
+\centering
+\caption{Gradient compression techniques for low-bandwidth ASEAN deployments. All techniques are compatible with DP-SGD; apply compression \emph{before} the DP noise injection step to avoid amplifying quantization error.}
+\label{tab:gradient_compression}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{3.2cm} p{4.0cm} p{2.0cm} p{2.4cm}}
+\hline\noalign{\smallskip}
+\textbf{Technique} & \textbf{Mechanism} & \textbf{Compression Ratio} & \textbf{Accuracy Cost} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Top-$k$ Sparsification & Transmit only the $k$ largest-magnitude elements; zero the rest & $100\times$ & Low ($<$1\% AUC) \\[3pt]
+Random $k$ Dropout & Randomly select $k$ coordinates; rescale by $d/k$ for unbiasedness & $100\times$ & Minimal \\[3pt]
+Scalar Quantization & Represent 32-bit floats as 8-bit integers with learned scale factor & $4\times$ & Negligible \\[3pt]
+PowerSGD & Low-rank matrix factorization $G \approx PQ^\top$ of the gradient tensor & $10$--$50\times$ & Low \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{ASEAN Deployment Pattern (Vietnam T\^ay Nguy\^en Highlands):} For rural commune health centers with intermittent 4G connectivity, the recommended stack is \textbf{AsyncFL + Top-$k$ Sparsification ($k{=}0.01{\cdot}d$) + DP-SGD ($\varepsilon{=}3.0$, $\sigma{=}1.1$)}. This reduces uplink bandwidth to $\sim$400\,KB per round for a ResNet-18 backbone --- within the free-tier data budget of a standard Vietnamese SIM card. The staleness discount with $\beta{=}0.7$ handles connectivity gaps typical of mountainous terrain without destabilizing global convergence.
+\end{svgraybox}
+
 \section{Conclusion}
 \label{sec:conclusion_fl}
 
-Federated Learning provides the architectural scaffolding for decentralized trust, but it requires the mathematical shield of DP and the cryptographic protection of \textbf{Secure Aggregation} to be fully secure. In the next chapter, we look at how to protect the update process itself from a curious or compromised central server.
+Federated Learning provides the architectural scaffolding for decentralized trust, but it requires the mathematical shield of DP and the cryptographic protection of \textbf{Secure Aggregation} to be fully secure. In low-connectivity ASEAN environments, AsyncFL and gradient compression are not optional optimizations --- they are prerequisites for a system that works in production. In the next chapter, we look at how to protect the update process itself from a curious or compromised central server.
 
 
