@@ -155,6 +155,80 @@ Sovereign Data Enclave + bilateral transfer agreement \\
 \end{tabular}
 \end{table}
 
+% ==================================================================
+\section{Privacy Audit Obligations Under GDPR, AI Act, and Decree 13}
+\label{sec:privacy_audit_obligations}
+% ==================================================================
+
+Section~\ref{sec:privacy_audit} of Chapter~\ref{chap:mlops_monitoring} defined the \emph{operational} five-phase audit process. This section maps each phase to its \emph{legal obligation} under the three governing frameworks, specifying the filing deadline, the competent authority, and the consequences of non-compliance. The goal is to make the Audit Report (Section~\ref{subsec:audit_report}) a \emph{multi-jurisdictional} document that satisfies all three frameworks in a single filing event.
+
+% ------------------------------------------------------------------
+\subsection{Audit Obligation Mapping}
+\label{subsec:audit_obligation_mapping}
+% ------------------------------------------------------------------
+
+\begin{table}[ht]
+\centering
+\caption{Privacy Audit Obligations: cross-regulatory mapping of the five audit phases to specific legal articles in GDPR, EU AI Act, and Decree 13/2023/ND-CP. A single audit event structured around this table satisfies all three frameworks simultaneously.}
+\label{tab:audit_obligations}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{p{2.8cm} p{2.5cm} p{2.5cm} p{2.4cm} p{2.5cm}}
+\hline\noalign{\smallskip}
+\textbf{Audit Phase} & \textbf{GDPR Article} & \textbf{EU AI Act Article} & \textbf{Decree 13 Article} & \textbf{Filing Deadline} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Scope \& Inventory (Phase 1) & Art.~30: Records of processing activities & Art.~11: Technical documentation & Art.~8: Processing records & Before processing begins; updated annually \\[4pt]
+Budget Reconciliation (Phase 2) & Art.~5(2): Accountability; Art.~25: Privacy by Design & Art.~9(2): Risk management system & Art.~8: Right to audit processing records & Within 30 days of $\varepsilon_{\text{budget}}$ exhaustion \\[4pt]
+Empirical MIA Test (Phase 3) & Art.~32: Security of processing & Art.~17(1)(e): Post-market monitoring & Art.~26: Incident management obligations & Annually; within 72 hours if MIA advantage exceeds bound \\[4pt]
+Data Flow Conformance (Phase 4) & Art.~5(1)(b): Purpose limitation; Art.~6: Lawfulness & Art.~13: Transparency; Art.~17: Post-market monitoring & Art.~6: Purpose limitation; Art.~25: Cross-border transfer basis & Annually; quarterly for High-Risk systems \\[4pt]
+Report \& Filing (Phase 5) & Art.~5(2): Accountability obligation to supervisory authority & Art.~43: Conformity Assessment; Art.~61: Post-market follow-up & Art.~8: Data subject audit rights; Art.~36: Supervisory authority inspection & Within 90 days of audit period close \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------
+\subsection{Data Protection Impact Assessment (DPIA)}
+\label{subsec:dpia}
+% ------------------------------------------------------------------
+
+A \textbf{Data Protection Impact Assessment (DPIA)} is a \emph{prospective} privacy audit: it is conducted \emph{before} a new processing activity begins, rather than as a retrospective certification of an existing system. All three governing frameworks mandate DPIAs for high-risk processing:
+
+\begin{description}
+  \item[GDPR Art.~35:] A DPIA is mandatory when processing is likely to result in a high risk to individuals, specifically including: large-scale processing of sensitive data; systematic monitoring of publicly accessible areas; and automated decision-making with legal or similarly significant effects.
+  \item[EU AI Act Art.~9:] High-Risk AI systems must maintain a risk management system throughout the system lifecycle. A DPIA is the privacy component of this risk management system, required at system design time and after any material system modification.
+  \item[Decree 13 Art.~24 (DPIA):] Processing of Sensitive Personal Data (SPS: health, biometrics, financial, religious) requires a DPIA before processing begins. The DPIA must be submitted to Vietnam's Ministry of Public Security (MPS) within 60 days of completion, retained for three years, and updated whenever the processing purpose, scope, or technology materially changes.
+\end{description}
+
+The DPIA is the entry condition for the Privacy Audit: a system that did not conduct a DPIA before deployment cannot present an audit report for certification, because the audit has no baseline risk assessment against which to compare current operation. The architect should treat the DPIA as the founding document of the Privacy Budget Ledger (Section~\ref{subsec:privacy_budget_ledger}): it is the document that specifies the approved $\varepsilon_{\text{budget}}$ against which every subsequent round's expenditure is debited.
+
+% ------------------------------------------------------------------
+\subsection{Continuous vs.\ Point-in-Time Audit}
+\label{subsec:audit_cadence}
+% ------------------------------------------------------------------
+
+The five-phase audit (Chapter~\ref{chap:mlops_monitoring}) is a \emph{point-in-time} certification event. The continuous monitoring system (Section~\ref{sec:privacy_monitoring}) provides the \emph{real-time} surveillance. The Trustworthy AI Architect must configure both, as they serve distinct regulatory and operational purposes.
+
+\begin{table}[ht]
+\centering
+\caption{Continuous monitoring vs.\ periodic audit: purpose, trigger, output, and regulatory significance. Both mechanisms are required; neither substitutes for the other.}
+\label{tab:audit_vs_monitoring}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{p{2.8cm} p{3.4cm} p{3.4cm} p{3.0cm}}
+\hline\noalign{\smallskip}
+\textbf{Property} & \textbf{Continuous Monitoring} & \textbf{Periodic Privacy Audit} & \textbf{Regulatory Role} \\
+\noalign{\smallskip}\svhline\noalign{\smallskip}
+Cadence & Real-time, per round & Annual (High-Risk); semi-annual (Low-Risk) & Monitoring is operational; audit is regulatory \\[4pt]
+Trigger & Automated (threshold crossing) & Calendar-based; event-triggered & Audit is submitted to authority; monitoring is internal \\[4pt]
+Output & Alert, automated budget restriction & Signed Audit Report & Report satisfies Art.~8 (Decree 13), Art.~5(2) (GDPR) \\[4pt]
+Scope & Budget and drift only & Budget + MIA + data flow conformance & Full conformance requires all three \\[4pt]
+Admissibility & Operational log, not independently admissible & Legally admissible, DPO-signed & Monitoring logs are supporting evidence in an audit, not a substitute \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\end{tabular}
+\end{table}
+
+\begin{svgraybox}
+\textbf{The ASEAN Architect's Practical Shortcut:} Vietnam's Ministry of Information and Communications (MIC) and the Ministry of Public Security (MPS) currently accept a \emph{consolidated annual audit report} that covers all three phases simultaneously, provided it is submitted within 90 days of the audit period close. For an architect serving clients in both Vietnam and the EU, structuring the annual audit to produce a single report that satisfies Table~\ref{tab:audit_obligations} avoids duplicating audit effort across jurisdictions. Engage a certified DPIA practitioner (CIPP/E) for the EU filing and a Vietnamese legal counsel familiar with Decree 13 for the MPS filing; the underlying technical artefacts---the Budget Ledger, the MIA score, and the Flow Conformance Log---are shared between both.
+\end{svgraybox}
+
 % ------------------------------------------------------------------
 \section{Trustworthy AI Beyond ASEAN: Global South Alignment Frameworks}
 \label{sec:global_south}
